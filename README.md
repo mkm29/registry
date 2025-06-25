@@ -47,12 +47,14 @@ graph TB
     Prom -->|Scrape :5001/metrics| Reg
     Prom -->|Scrape :14269| Jaeger
     
-    style DH fill:#e1f5fe
-    style Client fill:#fff3e0
-    style Reg fill:#c8e6c9
-    style Jaeger fill:#f3e5f5
-    style Prom fill:#ffecb3
-    style Grafana fill:#fce4ec
+    style DH fill:#0db7ed
+    style Client fill:#2496ed
+    style Reg fill:#2496ed
+    style Jaeger fill:#60d0e4
+    style Prom fill:#e6522c
+    style Grafana fill:#f46800
+    style TLS fill:#ffd700
+    style Cache fill:#4285f4
 ```
 
 ## Quick Start
