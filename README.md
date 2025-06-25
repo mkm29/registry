@@ -167,8 +167,12 @@ make clean        # Stop services and remove volumes
 1. **Set up environment variables**:
 
    ```bash
-   cp .env.example .env
-   # Edit .env with your Docker Hub credentials
+   cat <<EOF > .env
+   REGISTRY_PROXY_USERNAME=<your_docker_hub_username>
+   REGISTRY_PROXY_PASSWORD=<your_docker_hub_password>
+   GF_SECURITY_ADMIN_USER=admin
+   GF_SECURITY_ADMIN_PASSWORD=admin
+   EOF
    ```
 
 2. **Quick start (generates certs and starts services)**:
