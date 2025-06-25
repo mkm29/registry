@@ -170,18 +170,18 @@ graph TB
     Prom -->|Scrape :5001/metrics| Reg
     Prom -->|Scrape :14269| Jaeger
 
-    style DH fill:#0db7ed
-    style Client fill:#2496ed
+    style DH fill:#000000,color:#ffffff
+    style Client fill:#000000,color:#ffffff
     style Reg fill:#2496ed
-    style Jaeger fill:#60d0e4
+    style Jaeger fill:#60d0e4,color:#000000
     style Prom fill:#e6522c
-    style Loki fill:#ff6b6b
-    style Alloy fill:#ff9800
+    style Loki fill:#ff0000,color:#ffffff
+    style Alloy fill:#800080,color:#ffffff
     style Grafana fill:#f46800
-    style TLS fill:#ffd700
-    style Cache fill:#4285f4
-    style Docker fill:#2496ed
-    style Logs fill:#e0e0e0
+    style TLS fill:#404040,color:#ffffff
+    style Cache fill:#404040,color:#ffffff
+    style Docker fill:#00ff00
+    style Logs fill:#404040,color:#ffffff
 ```
 
 ## Available Commands
