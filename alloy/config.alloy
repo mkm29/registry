@@ -1,0 +1,113 @@
+// Grafana Alloy configuration for Docker log collection
+
+// Discovery component to find Docker containers
+discovery.docker "containers" {
+  host = "unix:///var/run/docker.sock"
+}
+
+// Relabel to extract container metadata
+discovery.relabel "containers" {
+  targets = discovery.docker.containers.targets
+
+  // Keep container name
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(.*)"
+    target_label  = "container_name"
+  }
+
+  // Keep container ID
+  rule {
+    source_labels = ["__meta_docker_container_id"]
+    target_label  = "container_id"
+  }
+
+  // Keep container image
+  rule {
+    source_labels = ["__meta_docker_container_image"]
+    target_label  = "container_image"
+  }
+
+  // Add job label
+  rule {
+    target_label = "job"
+    replacement  = "docker_logs"
+  }
+
+  // Set the log path
+  rule {
+    source_labels = ["__meta_docker_container_id"]
+    target_label  = "__path__"
+    replacement   = "/var/lib/docker/containers/$1/*-json.log"
+  }
+
+  // Add compose project name
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_project"]
+    target_label  = "compose_project"
+  }
+
+  // Add compose service name
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+    target_label  = "compose_service"
+  }
+}
+
+// Local file source to read Docker container logs
+loki.source.file "docker_logs" {
+  targets    = discovery.relabel.containers.output
+  forward_to = [loki.process.docker_logs.receiver]
+}
+
+// Process pipeline for Docker logs
+loki.process "docker_logs" {
+  forward_to = [loki.write.loki.receiver]
+
+  // Parse JSON logs
+  stage.json {
+    expressions = {
+      output    = "log",
+      stream    = "stream",
+      timestamp = "time",
+    }
+  }
+
+  // Use timestamp from Docker
+  stage.timestamp {
+    source = "timestamp"
+    format = "RFC3339Nano"
+  }
+
+  // Parse registry logs format if present
+  stage.regex {
+    expression = "^(?P<timestamp>\\S+)\\s+(?P<level>\\S+)\\s+(?P<component>\\S+)\\s+(?P<msg>.*)"
+    source     = "output"
+  }
+
+  // Set output to the actual log message
+  stage.output {
+    source = "output"
+  }
+
+  // Add labels
+  stage.labels {
+    values = {
+      level     = "level",
+      component = "component",
+      stream    = "stream",
+    }
+  }
+
+  // Drop empty lines
+  stage.drop {
+    expression = "^\\s*$"
+  }
+}
+
+// Write logs to Loki
+loki.write "loki" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+}

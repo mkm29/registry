@@ -114,6 +114,7 @@ When properly configured, all `docker pull` commands for Docker Hub images will 
   - 9090: Prometheus
   - 16686: Jaeger UI
   - 3100: Loki
+  - 12345: Alloy UI
 
 ### Docker Hub Account
 
@@ -236,6 +237,7 @@ make get-manifest REPO=library/alpine TAG=latest  # Get image manifest
    - Prometheus: <http://localhost:9090>
    - Jaeger: <http://localhost:16686>
    - Loki: <http://localhost:3100>
+   - Alloy: <http://localhost:12345> (Grafana Alloy UI)
 
 ## CFSSL Configuration
 
@@ -503,7 +505,7 @@ health:
 
 - **Purpose**: Log aggregation system for collecting and querying logs
 - **Features**:
-  - Collects logs from Docker containers via Loki Docker driver
+  - Collects logs from Docker containers via Grafana Alloy
   - Supports LogQL query language for log searching
   - Efficient storage with compression and retention policies
   - Integrates seamlessly with Grafana for visualization
@@ -512,6 +514,21 @@ health:
   - `:3100/ready` - Health check endpoint
   - `:3100/loki/api/v1/push` - Log ingestion endpoint
   - `:3100/loki/api/v1/query` - Query endpoint
+- **Log Collection**: Uses Grafana Alloy to collect Docker container logs
+
+### Grafana Alloy (port 12345)
+
+- **Purpose**: Modern observability collector that replaces Promtail
+- **Features**:
+  - Automatically discovers Docker containers via Docker API
+  - Collects and processes container logs
+  - Extracts metadata and labels from containers
+  - Parses JSON log format and extracts fields
+  - Provides a web UI for monitoring collection status
+  - Supports complex processing pipelines
+- **Configuration**: `alloy/config.alloy`
+- **UI Access**: <http://localhost:12345>
+- **Note**: Requires access to Docker socket and container log files
 
 ### Grafana (port 3000)
 
@@ -733,23 +750,35 @@ rate(registry_storage_cache_hits_total[5m]) / rate(registry_storage_cache_reques
 Access Loki through Grafana's Explore interface or use these example LogQL queries:
 
 ```logql
-# View all registry logs
-{service_name="docker-registry"}
+# View all Docker container logs
+{job="docker_logs"}
 
-# Filter by log level
-{service_name="docker-registry"} |= "level=error"
+# View logs from the registry container
+{container_name="registry"}
 
-# Search for specific operations
-{service_name="docker-registry"} |= "pull" |= "manifest"
+# Filter by compose service
+{compose_service="registry"}
 
-# Extract and filter by HTTP status codes
-{service_name="docker-registry"} | regexp `status=(?P<status>\d{3})` | status >= 400
+# Filter registry logs by level
+{container_name="registry"} |= "level=error"
+
+# Search for specific operations in registry
+{container_name="registry"} |= "pull" |= "manifest"
+
+# View logs from all monitoring stack containers
+{compose_project="registry"} |> {container_name=~"registry|prometheus|grafana|loki|alloy"}
+
+# Parse and filter registry logs by HTTP status
+{container_name="registry"} | json | line_format "{{.log}}" | regexp `(?P<method>\S+)\s+(?P<path>\S+)\s+(?P<status>\d{3})` | status >= 400
 
 # Show logs for specific image pulls
-{service_name="docker-registry"} |= "library/alpine"
+{container_name="registry"} |= "library/alpine"
 
 # Rate of errors over time
-rate({service_name="docker-registry"} |= "error" [5m])
+rate({container_name="registry"} |= "error" [5m])
+
+# View Alloy collector logs
+{container_name="alloy"}
 ```
 
 ## Management Commands
@@ -773,6 +802,7 @@ make logs-prometheus   # Prometheus only
 make logs-grafana      # Grafana only
 make logs-jaeger       # Jaeger only
 make logs-loki         # Loki only
+make logs-alloy        # Alloy only
 
 # Clean up (including volumes)
 make clean
@@ -810,6 +840,34 @@ make metrics
 6. **Access control**: Consider implementing token authentication for production
 
 ## Troubleshooting
+
+### Loki/Alloy Issues
+
+1. **No logs appearing in Grafana**:
+   - Check if Alloy is running and healthy:
+     ```bash
+     docker-compose logs alloy
+     ```
+   - Access Alloy UI at <http://localhost:12345> to check status
+   - Verify Docker container logs location exists:
+     ```bash
+     ls -la /var/lib/docker/containers/
+     ```
+   - On some systems, Docker logs might be in a different location
+
+2. **Permission denied errors**:
+   - Alloy needs read access to Docker container logs
+   - May need to run with appropriate permissions or adjust volume mounts
+
+3. **Container labels not appearing**:
+   - Ensure Alloy has access to Docker socket
+   - Check Alloy configuration for proper discovery rules
+   - View Alloy UI to see discovered targets
+
+4. **Debugging Alloy**:
+   - Access the Alloy UI at <http://localhost:12345>
+   - Check the "Targets" page to see discovered containers
+   - Review the pipeline status for any errors
 
 ### Certificate Issues
 
@@ -885,6 +943,8 @@ make logs-registry
 │   └── prometheus.yml        # Scrape configurations with TLS client auth
 ├── loki/                     # Loki configuration
 │   └── loki-config.yaml      # Loki server configuration
+├── alloy/                    # Grafana Alloy configuration
+│   └── config.alloy          # Alloy collector configuration
 ├── grafana/                  # Grafana provisioning
 │   └── provisioning/
 │       ├── datasources/      # Pre-configured datasources (Prometheus, Jaeger, Loki)
