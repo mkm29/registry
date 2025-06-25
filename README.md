@@ -187,10 +187,11 @@ health:
 
 - **Purpose**: Metrics collection and storage
 - **Scrape targets**:
-  - Docker Registry metrics (HTTPS with skip verify)
+  - Docker Registry metrics (HTTP with mutual TLS authentication)
   - Jaeger metrics
   - Self-monitoring
 - **Configuration**: `prometheus/prometheus.yml`
+- **TLS Setup**: Uses registry certificates for client authentication when scraping metrics
 
 ### Grafana (port 3000)
 
@@ -304,7 +305,8 @@ curl -k https://localhost:6000/v2/_health
 2. **Credentials**: Stored in `.env` file - ensure it's in `.gitignore`
 3. **Network isolation**: Internal service ports not exposed to host
 4. **TLS enforcement**: Minimum TLS 1.2 with strong cipher suites
-5. **Access control**: Consider implementing token authentication for production
+5. **Mutual TLS**: Prometheus authenticates to registry using client certificates
+6. **Access control**: Consider implementing token authentication for production
 
 ## Troubleshooting
 
@@ -331,8 +333,12 @@ docker logs registry --tail 100 -f
 ### Metrics Not Appearing
 
 1. Check Prometheus targets: <http://localhost:9090/targets>
-2. Verify registry metrics endpoint: `docker exec registry wget -O- http://localhost:5001/metrics`
+2. Verify registry metrics endpoint: `docker exec registry wget -O- --no-check-certificate https://localhost:5001/metrics`
 3. Check Prometheus logs: `docker-compose logs prometheus`
+4. Verify TLS certificates are properly mounted in Prometheus container:
+   ```bash
+   docker exec prometheus ls -la /etc/prometheus/certs/
+   ```
 
 ## File Structure
 
@@ -345,7 +351,7 @@ docker logs registry --tail 100 -f
 │   └── registry.json       # Registry certificate config
 ├── certs/                   # Generated certificates (git ignored)
 ├── prometheus/              # Prometheus configuration
-│   └── prometheus.yml      # Scrape configurations
+│   └── prometheus.yml      # Scrape configurations with TLS client auth
 ├── grafana/                 # Grafana provisioning
 │   └── provisioning/
 │       ├── datasources/    # Pre-configured datasources

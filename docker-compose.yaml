@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # Docker Registry with TLS
   registry:
@@ -14,8 +12,6 @@ services:
       - ./certs/registry.key:/etc/ssl/private/domain.key:ro
       - registry-data:/var/lib/registry
     environment:
-      - REGISTRY_PROXY_USERNAME=${DOCKER_HUB_USERNAME}
-      - REGISTRY_PROXY_PASSWORD=${DOCKER_HUB_PASSWORD}
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4318
       - OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
       - OTEL_SERVICE_NAME=docker-registry
@@ -54,6 +50,9 @@ services:
       - "9090:9090"  # Prometheus UI - only expose the UI
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./certs/registry.crt:/etc/prometheus/certs/registry.pem:ro
+      - ./certs/registry.key:/etc/prometheus/certs/registry-key.pem:ro
+      - ./certs/ca.pem:/etc/prometheus/certs/ca.pem:ro
       - prometheus-data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
