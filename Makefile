@@ -89,7 +89,7 @@ test-push: test-pull ## Test pushing an image to the registry
 	docker tag localhost:6000/library/alpine:latest localhost:6000/test/alpine:latest
 	docker push localhost:6000/test/alpine:latest
 
-# macOS specific
+# TLS Configuration
 trust-cert: ## Trust CA certificate (macOS only)
 	@echo "Adding CA certificate to system trust store (requires sudo)..."
 	@if [ "$$(uname)" = "Darwin" ]; then \
@@ -98,6 +98,23 @@ trust-cert: ## Trust CA certificate (macOS only)
 	else \
 		echo "This command is only for macOS. For other systems, please manually trust certs/ca.pem"; \
 	fi
+
+configure-docker-tls: ## Configure Docker to trust the registry certificates
+	@echo "Configuring Docker to trust registry certificates..."
+	@if [ "$$(uname)" = "Darwin" ]; then \
+		echo "Configuring for macOS..."; \
+		mkdir -p $$HOME/.docker/certs.d/localhost:6000; \
+		cp certs/ca.pem $$HOME/.docker/certs.d/localhost:6000/ca.crt; \
+		chmod 644 $$HOME/.docker/certs.d/localhost:6000/ca.crt; \
+		echo "Docker Desktop will reload automatically."; \
+	else \
+		echo "Configuring for Linux..."; \
+		sudo mkdir -p /etc/docker/certs.d/localhost:6000; \
+		sudo cp certs/ca.pem /etc/docker/certs.d/localhost:6000/ca.crt; \
+		sudo chmod 644 /etc/docker/certs.d/localhost:6000/ca.crt; \
+		echo "Restart Docker with: sudo systemctl restart docker"; \
+	fi
+	@echo "Docker TLS configuration complete."
 
 # Maintenance
 gc: ## Run garbage collection on registry
@@ -108,7 +125,10 @@ gc: ## Run garbage collection on registry
 quickstart: certs up status ## Generate certs and start all services
 	@echo ""
 	@echo "Quick start complete! Services are running."
-	@echo "Don't forget to run 'make trust-cert' to trust the CA certificate."
+	@echo ""
+	@echo "IMPORTANT: To use the registry with Docker, you must configure TLS trust:"
+	@echo "  make configure-docker-tls  # Configure Docker daemon (required)"
+	@echo "  make trust-cert           # Add to system keychain (optional, macOS only)"
 
 # Certificate verification
 verify-certs: ## Verify certificate chain
@@ -132,6 +152,30 @@ verify-prometheus-certs: ## Check certificates in Prometheus container
 metrics: ## View registry metrics
 	@echo "Fetching registry metrics..."
 	@docker exec registry wget -O- --no-check-certificate https://localhost:5001/metrics 2>/dev/null | grep -E '^registry_' | head -20
+
+# Registry API
+list-repos: ## List all repositories in the registry
+	@echo "Listing repositories..."
+	@curl -sk https://localhost:6000/v2/_catalog | jq . 2>/dev/null || curl -sk https://localhost:6000/v2/_catalog
+
+list-tags: ## List tags for a repository (usage: make list-tags REPO=library/alpine)
+	@if [ -z "$(REPO)" ]; then \
+		echo "Usage: make list-tags REPO=library/alpine"; \
+		exit 1; \
+	fi
+	@echo "Listing tags for $(REPO)..."
+	@curl -sk https://localhost:6000/v2/$(REPO)/tags/list | jq . 2>/dev/null || curl -sk https://localhost:6000/v2/$(REPO)/tags/list
+
+get-manifest: ## Get manifest for a repository tag (usage: make get-manifest REPO=library/alpine TAG=latest)
+	@if [ -z "$(REPO)" ] || [ -z "$(TAG)" ]; then \
+		echo "Usage: make get-manifest REPO=library/alpine TAG=latest"; \
+		exit 1; \
+	fi
+	@echo "Getting manifest for $(REPO):$(TAG)..."
+	@curl -sk -H "Accept: application/vnd.docker.distribution.manifest.v2+json" \
+		https://localhost:6000/v2/$(REPO)/manifests/$(TAG) | jq . 2>/dev/null || \
+		curl -sk -H "Accept: application/vnd.docker.distribution.manifest.v2+json" \
+		https://localhost:6000/v2/$(REPO)/manifests/$(TAG)
 
 # Helpers
 check-env:

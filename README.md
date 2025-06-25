@@ -1,8 +1,8 @@
-# Local Docker Registry with TLS and Monitoring Stack
+# Local Docker Registry Mirror with TLS and Monitoring Stack
 
-This repository provides a complete setup for a local Docker registry secured with TLS using self-signed certificates. The registry is configured as a pull-through cache for Docker Hub and includes a full monitoring stack with Prometheus, Jaeger, and Grafana.
+This repository provides a complete setup for a local Docker registry that acts as a Docker Hub mirror (pull-through cache). The registry is secured with TLS using self-signed certificates and includes a full monitoring stack with Prometheus, Jaeger, and Grafana. Once configured, all Docker Hub image pulls will automatically use this local cache, significantly improving download speeds and reducing bandwidth usage.
 
-- [Local Docker Registry with TLS and Monitoring Stack](#local-docker-registry-with-tls-and-monitoring-stack)
+- [Local Docker Registry Mirror with TLS and Monitoring Stack](#local-docker-registry-mirror-with-tls-and-monitoring-stack)
   - [Overview](#overview)
   - [Prerequisites](#prerequisites)
     - [Required Software](#required-software)
@@ -12,6 +12,13 @@ This repository provides a complete setup for a local Docker registry secured wi
   - [Architecture](#architecture)
   - [Available Commands](#available-commands)
   - [Quick Start](#quick-start)
+  - [CFSSL Configuration](#cfssl-configuration)
+    - [1. Root CA Configuration (`cfssl/ca.json`)](#1-root-ca-configuration-cfsslcajson)
+    - [2. Intermediate CA Configuration (`cfssl/intermediate-ca.json`)](#2-intermediate-ca-configuration-cfsslintermediate-cajson)
+    - [3. Registry Certificate Configuration (`cfssl/registry.json`)](#3-registry-certificate-configuration-cfsslregistryjson)
+    - [4. Certificate Profiles (`cfssl/cfssl.json`)](#4-certificate-profiles-cfsslcfssljson)
+    - [Common Customizations](#common-customizations)
+    - [Example for Local Development](#example-for-local-development)
   - [Certificate Generation with CFSSL](#certificate-generation-with-cfssl)
   - [Registry Configuration](#registry-configuration)
     - [Key Configuration Settings](#key-configuration-settings)
@@ -25,6 +32,15 @@ This repository provides a complete setup for a local Docker registry secured wi
     - [Prometheus (port 9090)](#prometheus-port-9090)
     - [Grafana (port 3000)](#grafana-port-3000)
   - [Testing the Registry](#testing-the-registry)
+    - [Configure Docker to Trust the Registry](#configure-docker-to-trust-the-registry)
+      - [Step 1: Configure TLS Trust](#step-1-configure-tls-trust)
+        - [Option A: Configure Docker daemon certificates (Recommended)](#option-a-configure-docker-daemon-certificates-recommended)
+        - [Option B: System-wide trust (macOS)](#option-b-system-wide-trust-macos)
+      - [Step 2: Configure Docker Hub Mirror](#step-2-configure-docker-hub-mirror)
+        - [macOS (Docker Desktop)](#macos-docker-desktop)
+        - [Linux](#linux)
+        - [Verify Mirror Configuration](#verify-mirror-configuration)
+    - [Test Registry Access](#test-registry-access)
   - [Monitoring and Observability](#monitoring-and-observability)
     - [Grafana Dashboard](#grafana-dashboard)
     - [Prometheus Queries](#prometheus-queries)
@@ -41,16 +57,18 @@ This repository provides a complete setup for a local Docker registry secured wi
   - [Performance Tuning](#performance-tuning)
   - [References](#references)
 
-
 ## Overview
 
 This setup creates a production-ready local Docker registry with:
 
+- **Docker Hub Mirror**: Acts as a pull-through cache that automatically intercepts and caches Docker Hub images
 - **TLS Security**: Self-signed certificates using CFSSL with proper certificate chain
-- **Pull-through Cache**: Caches images from Docker Hub to reduce bandwidth and improve speed
+- **Bandwidth Optimization**: Caches images locally to reduce repeated downloads from Docker Hub
 - **Distributed Tracing**: OpenTelemetry integration with Jaeger
 - **Metrics Collection**: Prometheus scraping with pre-configured dashboards
 - **Visualization**: Grafana dashboards for monitoring registry performance
+
+When properly configured, all `docker pull` commands for Docker Hub images will automatically use your local registry mirror, significantly improving pull speeds and reducing bandwidth usage.
 
 ## Prerequisites
 
@@ -160,6 +178,15 @@ make down         # Stop all services
 make status       # Check service status and URLs
 make logs         # View logs from all services
 make clean        # Stop services and remove volumes
+
+# TLS configuration
+make configure-docker-tls                # Configure Docker to trust registry
+make trust-cert                          # Trust CA in system keychain (macOS)
+
+# Registry API commands
+make list-repos                          # List all repositories
+make list-tags REPO=library/alpine       # List tags for a repository
+make get-manifest REPO=library/alpine TAG=latest  # Get image manifest
 ```
 
 ## Quick Start
@@ -181,9 +208,13 @@ make clean        # Stop services and remove volumes
    make quickstart
    ```
 
-3. **Trust the CA certificate (macOS)**:
+3. **Configure Docker to trust the registry**:
 
    ```bash
+   # Required: Configure Docker daemon to trust the registry
+   make configure-docker-tls
+
+   # Optional: Add to system keychain (macOS)
    make trust-cert
    ```
 
@@ -194,14 +225,155 @@ make clean        # Stop services and remove volumes
    ```
 
    Service URLs:
-   - Registry API: <https://localhost:6000>
+   - Registry API: <https://localhost:6000/v2/> (Docker Registry HTTP API V2)
    - Grafana: <http://localhost:3000> (admin/admin)
    - Prometheus: <http://localhost:9090>
    - Jaeger: <http://localhost:16686>
 
+## CFSSL Configuration
+
+Before generating certificates, you need to customize the CFSSL configuration files for your environment. The following files contain default values that should be updated:
+
+### 1. Root CA Configuration (`cfssl/ca.json`)
+
+Edit the following fields in `cfssl/ca.json`:
+
+```json
+{
+  "CN": "Your Organization Root CA",     // Replace with your root CA name
+  "names": [{
+    "C": "US",                           // Your country code
+    "L": "Your City",                    // Your city
+    "O": "Your Organization",            // Your organization name
+    "OU": "Your Department",             // Your department/unit
+    "ST": "Your State"                   // Your state/province
+  }]
+}
+```
+
+### 2. Intermediate CA Configuration (`cfssl/intermediate-ca.json`)
+
+Update the same fields in `cfssl/intermediate-ca.json`:
+
+```json
+{
+  "CN": "Your Organization Intermediate CA",
+  "names": [{
+    "C": "US",
+    "L": "Your City",
+    "O": "Your Organization",
+    "OU": "Your Department",
+    "ST": "Your State"
+  }],
+  "ca": {
+    "expiry": "42720h"    // 5 years - adjust as needed
+  }
+}
+```
+
+### 3. Registry Certificate Configuration (`cfssl/registry.json`)
+
+This is the most important configuration to customize:
+
+```json
+{
+  "CN": "registry.yourdomain.com",       // Your registry's FQDN
+  "hosts": [
+    "registry.yourdomain.com",           // Your registry's domain
+    "registry",                          // Short hostname
+    "localhost",                         // Keep for local testing
+    "127.0.0.1",                        // Localhost IP
+    "10.0.0.100"                        // Your registry's IP (if static)
+  ],
+  "names": [{
+    "C": "US",
+    "L": "Your City",
+    "O": "Your Organization",
+    "OU": "Your Department",
+    "ST": "Your State"
+  }]
+}
+```
+
+### 4. Certificate Profiles (`cfssl/cfssl.json`)
+
+The default profiles are suitable for most use cases, but you can adjust certificate expiry times:
+
+```json
+{
+  "signing": {
+    "profiles": {
+      "intermediate_ca": {
+        "expiry": "8760h",    // 1 year - adjust as needed
+        ...
+      },
+      "server": {
+        "expiry": "8760h",    // 1 year for server certs
+        ...
+      }
+    }
+  }
+}
+```
+
+### Common Customizations
+
+1. **For Local Development**:
+   - Keep "localhost" and "127.0.0.1" in the hosts array
+   - Add your machine's hostname
+   - Use a simple organization name like "Development"
+
+2. **For Production**:
+   - Use proper FQDN for the registry
+   - Add all possible access names (load balancer DNS, service names, etc.)
+   - Set appropriate certificate expiry times
+   - Use official organization details
+
+3. **For Kubernetes**:
+   - Add service names: `registry.namespace.svc.cluster.local`
+   - Add service IPs if using ClusterIP
+   - Include any ingress hostnames
+
+### Example for Local Development
+
+Here's a complete example for local development:
+
+```bash
+# Edit ca.json
+sed -i '' 's/Smigula Root CA/My Local Root CA/g' cfssl/ca.json
+sed -i '' 's/Smigula/My Organization/g' cfssl/ca.json
+sed -i '' 's/Tampa/My City/g' cfssl/ca.json
+sed -i '' 's/FL/My State/g' cfssl/ca.json
+
+# Edit registry.json for local use
+cat > cfssl/registry.json <<EOF
+{
+  "CN": "localhost",
+  "hosts": [
+    "localhost",
+    "127.0.0.1",
+    "registry",
+    "registry.local",
+    "*.local"
+  ],
+  "key": {
+    "algo": "rsa",
+    "size": 2048
+  },
+  "names": [{
+    "C": "US",
+    "L": "My City",
+    "O": "My Organization",
+    "OU": "Development",
+    "ST": "My State"
+  }]
+}
+EOF
+```
+
 ## Certificate Generation with CFSSL
 
-This setup uses a proper PKI hierarchy with root and intermediate CAs:
+After customizing the configuration files, you can generate the certificates. This setup uses a proper PKI hierarchy with root and intermediate CAs:
 
 ```bash
 # Generate all certificates at once
@@ -289,6 +461,12 @@ health:
   - Pull-through cache for Docker Hub
   - OpenTelemetry tracing to Jaeger
   - Prometheus metrics exposure
+- **API Endpoints** (accessible at `https://localhost:6000`):
+  - `/v2/` - API version check
+  - `/v2/_catalog` - List all repositories
+  - `/v2/{name}/tags/list` - List tags for a repository
+  - `/v2/{name}/manifests/{reference}` - Get/Put/Delete manifests
+  - `/v2/{name}/blobs/{digest}` - Get/Put/Delete blobs
 - **Internal endpoints**:
   - `:5000` - Main API (mapped to host port 6000)
   - `:5001` - Debug/metrics (internal only)
@@ -325,23 +503,168 @@ health:
 
 ## Testing the Registry
 
-1. **Trust the CA certificate** (macOS):
+### Configure Docker to Trust the Registry
+
+Before Docker can communicate with the registry, you need to configure both TLS trust and registry mirroring:
+
+#### Step 1: Configure TLS Trust
+
+##### Option A: Configure Docker daemon certificates (Recommended)
+
+**Linux:**
+
+```bash
+# Create Docker certificate directory for the registry
+sudo mkdir -p /etc/docker/certs.d/localhost:6000
+
+# Copy the CA certificate (required)
+sudo cp certs/ca.pem /etc/docker/certs.d/localhost:6000/ca.crt
+
+# Set proper permissions
+sudo chmod 644 /etc/docker/certs.d/localhost:6000/ca.crt
+
+# Optional: For mutual TLS authentication
+sudo cp certs/registry-peer.pem /etc/docker/certs.d/localhost:6000/client.cert
+sudo cp certs/registry-peer-key.pem /etc/docker/certs.d/localhost:6000/client.key
+sudo chmod 644 /etc/docker/certs.d/localhost:6000/client.cert
+sudo chmod 600 /etc/docker/certs.d/localhost:6000/client.key
+```
+
+**macOS:**
+
+```bash
+# Create Docker certificate directory for the registry
+mkdir -p $HOME/.docker/certs.d/localhost:6000
+
+# Copy the CA certificate (required)
+cp certs/ca.pem $HOME/.docker/certs.d/localhost:6000/ca.crt
+
+# Optional: For mutual TLS authentication
+cp certs/registry-peer.pem $HOME/.docker/certs.d/localhost:6000/client.cert
+cp certs/registry-peer-key.pem $HOME/.docker/certs.d/localhost:6000/client.key
+chmod 644 $HOME/.docker/certs.d/localhost:6000/client.cert
+chmod 600 $HOME/.docker/certs.d/localhost:6000/client.key
+```
+
+##### Option B: System-wide trust (macOS)
+
+```bash
+# This command adds all certificates to system keychain
+make trust-cert
+
+# Or manually add each certificate:
+sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain certs/ca.pem
+sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain certs/intermediate_ca.pem
+sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain certs/registry-server.pem
+```
+
+#### Step 2: Configure Docker Hub Mirror
+
+To use this registry as a pull-through cache for Docker Hub, update your Docker daemon configuration:
+
+##### macOS (Docker Desktop)
+
+1. Open Docker Desktop preferences
+2. Go to Docker Engine settings
+3. Update the JSON configuration:
+
+```json
+{
+  "registry-mirrors": ["https://localhost:6000"]
+}
+```
+
+4. Click "Apply & Restart"
+
+##### Linux
+
+1. Edit or create `/etc/docker/daemon.json`:
+
+```bash
+sudo nano /etc/docker/daemon.json
+```
+
+2. Add or update the configuration:
+
+```json
+{
+  "registry-mirrors": ["https://localhost:6000"]
+}
+```
+
+3. Restart Docker:
+
+```bash
+sudo systemctl restart docker
+```
+
+##### Verify Mirror Configuration
+
+```bash
+# Check Docker daemon configuration
+docker info | grep -A1 "Registry Mirrors"
+
+# Should show:
+# Registry Mirrors:
+#  https://localhost:6000/
+```
+
+### Test Registry Access
+
+1. **Test the registry mirror (pull-through cache)**:
 
    ```bash
-   make trust-cert
+   # With registry-mirrors configured, this automatically uses your local registry
+   docker pull alpine:latest
+
+   # Check that the image was cached in your registry
+   curl -sk https://localhost:6000/v2/_catalog
+   # Should show: {"repositories":["library/alpine"]}
    ```
 
-2. **Test pulling an image through the cache**:
+2. **Test direct registry access**:
 
    ```bash
+   # Pull directly from the registry (bypasses mirror config)
    make test-pull
+   # Or: docker pull localhost:6000/library/alpine:latest
    ```
 
-3. **Test pushing an image**:
+3. **Test pushing to the registry**:
 
    ```bash
+   # Push a local image to the registry
    make test-push
+   # Or: docker tag alpine:latest localhost:6000/myimage:latest
+   #     docker push localhost:6000/myimage:latest
    ```
+
+   Note: When configured as a mirror, the registry only caches images from Docker Hub. 
+   To push your own images, you must use the full registry URL (localhost:6000).
+
+4. **Access the Registry API directly**:
+
+   The registry implements the [Docker Registry HTTP API V2](https://docs.docker.com/registry/spec/api/). Common endpoints:
+
+   ```bash
+   # Check registry availability
+   curl -k https://localhost:6000/v2/
+
+   # List all repositories
+   curl -k https://localhost:6000/v2/_catalog
+
+   # List tags for a specific repository
+   curl -k https://localhost:6000/v2/library/alpine/tags/list
+
+   # Get manifest for a specific tag
+   curl -k https://localhost:6000/v2/library/alpine/manifests/latest
+
+   # Get image configuration
+   curl -k -H "Accept: application/vnd.docker.distribution.manifest.v2+json" \
+        https://localhost:6000/v2/library/alpine/manifests/latest
+   ```
+
+   Note: The registry does not have a web UI. All interactions are through the Docker client or the HTTP API.
 
 ## Monitoring and Observability
 
@@ -417,6 +740,12 @@ make gc
 # Check registry health
 make health
 
+# List repositories in registry
+curl -k https://localhost:6000/v2/_catalog
+
+# Get repository tags
+curl -k https://localhost:6000/v2/<repository>/tags/list
+
 # View registry metrics
 make metrics
 ```
@@ -448,6 +777,10 @@ make test-tls
 # Check if registry is responding
 make health
 
+# Test specific API endpoints
+curl -k https://localhost:6000/v2/
+curl -k https://localhost:6000/v2/_catalog
+
 # View detailed logs
 make logs-registry
 ```
@@ -476,6 +809,16 @@ make logs-registry
 
    ```bash
    make verify-prometheus-certs
+   ```
+
+5. Check Docker certificate configuration:
+
+   ```bash
+   # Linux
+   ls -la /etc/docker/certs.d/localhost:6000/
+
+   # macOS
+   ls -la $HOME/.docker/certs.d/localhost:6000/
    ```
 
 ## File Structure
@@ -510,5 +853,6 @@ make logs-registry
 ## References
 
 - [Docker Registry Configuration Reference](https://distribution.github.io/distribution/about/configuration/)
+- [Docker Hub Registry Mirror Documentation](https://docs.docker.com/docker-hub/image-library/mirror/)
 - [CFSSL Documentation](https://github.com/cloudflare/cfssl)
 - [OpenTelemetry Registry Instrumentation](https://opentelemetry.io/)
