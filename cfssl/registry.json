@@ -1,0 +1,20 @@
+{
+  "CN": "registry.smigula",
+  "key": {
+    "algo": "rsa",
+    "size": 2048
+  },
+  "names": [
+  {
+    "C": "US",
+    "L": "Tampa",
+    "O": "Smigula",
+    "OU": "Smgula Registry",
+    "ST": "FL"
+  }
+  ],
+  "hosts": [
+    "hregistry.smigula",
+    "localhost"
+  ]
+}

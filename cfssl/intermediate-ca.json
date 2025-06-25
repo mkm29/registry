@@ -1,0 +1,19 @@
+{
+  "CN": "Smigula Intermediate CA",
+  "key": {
+    "algo": "rsa",
+    "size": 2048
+  },
+  "names": [
+    {
+      "C":  "US",
+      "L":  "Tampa",
+      "O":  "Smigula",
+      "OU": "Smigula Intermediate CA",
+      "ST": "FL"
+    }
+  ],
+  "ca": {
+    "expiry": "42720h"
+  }
+}

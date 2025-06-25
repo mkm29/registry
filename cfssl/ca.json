@@ -1,0 +1,16 @@
+{
+  "CN": "Smigula Root CA",
+  "key": {
+    "algo": "rsa",
+    "size": 2048
+  },
+  "names": [
+  {
+    "C": "US",
+    "L": "Tampa",
+    "O": "Smigula",
+    "OU": "Smigula",
+    "ST": "FL"
+  }
+ ]
+}

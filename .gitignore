@@ -1,0 +1,75 @@
+# Certificate files
+certs/
+*.pem
+*.crt
+*.key
+*.csr
+
+# Environment files with secrets
+.env
+.env.local
+.env.*.local
+
+# Log files
+*.log
+
+# Docker volumes
+registry-data/
+prometheus-data/
+grafana-data/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.sublime-*
+
+# Docker-specific
+docker-compose.override.yml
+.docker/
+
+# Backup files
+*.bak
+*.backup
+*.old
+
+# Temporary files
+*.tmp
+*.temp
+.tmp/
+.temp/
+
+# Python (if using any scripts)
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+venv/
+env/
+
+# Node.js (if using any tools)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Archives
+*.tar
+*.tar.gz
+*.zip
+*.rar
+
+# Security - additional patterns
+*.p12
+*.pfx
+.htpasswd
+secrets/
+credentials/
+.claude/
+CLAUDE.md

@@ -1,0 +1,42 @@
+version: 0.1
+log:
+  level: debug
+  fields:
+    service: registry
+    environment: development
+storage:
+    delete:
+      enabled: true
+    cache:
+        blobdescriptor: inmemory
+    filesystem:
+        rootdirectory: /var/lib/registry
+    maintenance:
+        uploadpurging:
+            enabled: false
+    tag:
+      concurrencylimit: 8
+http:
+    addr: :5000
+    debug:
+        addr: :5001
+        prometheus:
+            enabled: true
+            path: /metrics
+    headers:
+        X-Content-Type-Options: [nosniff]
+    tls:
+        certificate: /etc/ssl/certs/domain.crt
+        key: /etc/ssl/private/domain.key
+        minimumtls: tls1.2
+proxy:
+  remoteurl: https://registry-1.docker.io
+  # exec:
+  #   command: docker-credential-osxkeychain
+  #   lifetime: 1h
+  # ttl: 168h
+health:
+  storagedriver:
+    enabled: true
+    interval: 10s
+    threshold: 3
