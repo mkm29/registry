@@ -66,7 +66,8 @@ This setup creates a production-ready local Docker registry with:
 - **Bandwidth Optimization**: Caches images locally to reduce repeated downloads from Docker Hub
 - **Distributed Tracing**: OpenTelemetry integration with Jaeger
 - **Metrics Collection**: Prometheus scraping with pre-configured dashboards
-- **Visualization**: Grafana dashboards for monitoring registry performance
+- **Log Aggregation**: Loki for centralized log collection and querying
+- **Visualization**: Grafana dashboards for monitoring registry performance and logs
 
 When properly configured, all `docker pull` commands for Docker Hub images will automatically use your local registry mirror, significantly improving pull speeds and reducing bandwidth usage.
 
@@ -112,6 +113,7 @@ When properly configured, all `docker pull` commands for Docker Hub images will 
   - 3000: Grafana
   - 9090: Prometheus
   - 16686: Jaeger UI
+  - 3100: Loki
 
 ### Docker Hub Account
 
@@ -142,16 +144,19 @@ graph TB
         subgraph "Monitoring Stack"
             Jaeger[Jaeger<br/>:4318 OTLP]
             Prom[Prometheus<br/>:9090]
+            Loki[Loki<br/>:3100]
             Grafana[Grafana<br/>:3000]
 
             Prom --> Grafana
             Jaeger --> Grafana
+            Loki --> Grafana
         end
     end
 
     Client -->|HTTPS :6000| Reg
     Cache -->|Proxy| DH
     Reg -->|Traces| Jaeger
+    Reg -->|Logs| Loki
     Prom -->|Scrape :5001/metrics| Reg
     Prom -->|Scrape :14269| Jaeger
 
@@ -160,6 +165,7 @@ graph TB
     style Reg fill:#2496ed
     style Jaeger fill:#60d0e4
     style Prom fill:#e6522c
+    style Loki fill:#ff6b6b
     style Grafana fill:#f46800
     style TLS fill:#ffd700
     style Cache fill:#4285f4
@@ -229,6 +235,7 @@ make get-manifest REPO=library/alpine TAG=latest  # Get image manifest
    - Grafana: <http://localhost:3000> (admin/admin)
    - Prometheus: <http://localhost:9090>
    - Jaeger: <http://localhost:16686>
+   - Loki: <http://localhost:3100>
 
 ## CFSSL Configuration
 
@@ -492,12 +499,27 @@ health:
 - **Configuration**: `prometheus/prometheus.yml`
 - **TLS Setup**: Uses registry certificates for client authentication when scraping metrics
 
+### Loki (port 3100)
+
+- **Purpose**: Log aggregation system for collecting and querying logs
+- **Features**:
+  - Collects logs from Docker containers via Loki Docker driver
+  - Supports LogQL query language for log searching
+  - Efficient storage with compression and retention policies
+  - Integrates seamlessly with Grafana for visualization
+- **Configuration**: `loki/loki-config.yaml`
+- **Internal endpoints**:
+  - `:3100/ready` - Health check endpoint
+  - `:3100/loki/api/v1/push` - Log ingestion endpoint
+  - `:3100/loki/api/v1/query` - Query endpoint
+
 ### Grafana (port 3000)
 
 - **Purpose**: Metrics visualization and dashboards
 - **Features**:
-  - Pre-configured datasources (Prometheus, Jaeger)
+  - Pre-configured datasources (Prometheus, Jaeger, Loki)
   - Docker Registry dashboard included
+  - Log exploration with Loki integration
   - Anonymous viewer access enabled
 - **Default credentials**: Configured in `.env`
 
@@ -678,6 +700,9 @@ docker info | grep -A1 "Registry Mirrors"
    - Cache hit ratios
    - Response code distribution
    - Storage metrics
+5. For log exploration:
+   - Navigate to **Explore → Loki**
+   - Query registry logs using LogQL
 
 ### Prometheus Queries
 
@@ -703,6 +728,30 @@ rate(registry_storage_cache_hits_total[5m]) / rate(registry_storage_cache_reques
    - Manifest operations
    - Blob uploads/downloads
 
+### Loki Log Queries
+
+Access Loki through Grafana's Explore interface or use these example LogQL queries:
+
+```logql
+# View all registry logs
+{service_name="docker-registry"}
+
+# Filter by log level
+{service_name="docker-registry"} |= "level=error"
+
+# Search for specific operations
+{service_name="docker-registry"} |= "pull" |= "manifest"
+
+# Extract and filter by HTTP status codes
+{service_name="docker-registry"} | regexp `status=(?P<status>\d{3})` | status >= 400
+
+# Show logs for specific image pulls
+{service_name="docker-registry"} |= "library/alpine"
+
+# Rate of errors over time
+rate({service_name="docker-registry"} |= "error" [5m])
+```
+
 ## Management Commands
 
 ### Docker Compose Operations
@@ -723,6 +772,7 @@ make logs-registry     # Registry only
 make logs-prometheus   # Prometheus only
 make logs-grafana      # Grafana only
 make logs-jaeger       # Jaeger only
+make logs-loki         # Loki only
 
 # Clean up (including volumes)
 make clean
@@ -833,9 +883,11 @@ make logs-registry
 ├── certs/                    # Generated certificates (git ignored)
 ├── prometheus/               # Prometheus configuration
 │   └── prometheus.yml        # Scrape configurations with TLS client auth
+├── loki/                     # Loki configuration
+│   └── loki-config.yaml      # Loki server configuration
 ├── grafana/                  # Grafana provisioning
 │   └── provisioning/
-│       ├── datasources/      # Pre-configured datasources
+│       ├── datasources/      # Pre-configured datasources (Prometheus, Jaeger, Loki)
 │       └── dashboards/       # Pre-configured dashboards
 ├── config.yaml               # Registry configuration
 ├── docker-compose.yaml       # Service definitions

@@ -22,12 +22,30 @@ services:
       - monitoring
     depends_on:
       - jaeger
+      - loki
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "https://localhost:5001/metrics", "--no-check-certificate"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
+    logging:
+      driver: loki
+      options:
+        loki-url: "http://loki:3100/loki/api/v1/push"
+        loki-batch-size: "400"
+        loki-retries: "2"
+        loki-max-backoff: "800ms"
+        loki-timeout: "1s"
+        loki-pipeline-stages: |
+          - multiline:
+              firstline: '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}'
+              max_wait_time: 3s
+          - regex:
+              expression: '^(?P<timestamp>\S+)\s+(?P<level>\S+)\s+(?P<msg>.*)$'
+          - labels:
+              level:
+        labels: "container_name,service_name=docker-registry"
 
   # Jaeger for distributed tracing
   jaeger:
@@ -65,6 +83,26 @@ services:
     depends_on:
       - registry
 
+  # Loki for log aggregation
+  loki:
+    image: grafana/loki:latest
+    container_name: loki
+    restart: always
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./loki/loki-config.yaml:/etc/loki/loki-config.yaml:ro
+      - loki-data:/loki
+    command: -config.file=/etc/loki/loki-config.yaml
+    networks:
+      - monitoring
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3100/ready"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
   # Grafana for visualization
   grafana:
     image: grafana/grafana:latest
@@ -87,6 +125,7 @@ services:
     depends_on:
       - prometheus
       - jaeger
+      - loki
 
 volumes:
   registry-data:
@@ -94,6 +133,8 @@ volumes:
   prometheus-data:
     driver: local
   grafana-data:
+    driver: local
+  loki-data:
     driver: local
 
 networks:
