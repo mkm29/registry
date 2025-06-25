@@ -12,6 +12,56 @@ This setup creates a production-ready local Docker registry with:
 - **Metrics Collection**: Prometheus scraping with pre-configured dashboards
 - **Visualization**: Grafana dashboards for monitoring registry performance
 
+## Prerequisites
+
+### Required Software
+
+1. **Docker** (20.10.0 or later)
+   - macOS: `brew install --cask docker` or download from [Docker Desktop](https://www.docker.com/products/docker-desktop)
+   - Linux: Follow the [official Docker installation guide](https://docs.docker.com/engine/install/)
+   - Verify: `docker --version`
+
+2. **Docker Compose** (2.0.0 or later)
+   - Usually included with Docker Desktop on macOS/Windows
+   - Linux: `sudo apt-get install docker-compose-plugin` or follow [official guide](https://docs.docker.com/compose/install/)
+   - Verify: `docker-compose --version`
+
+3. **CFSSL** (CloudFlare's PKI toolkit)
+   - macOS: `brew install cfssl`
+   - Linux: `sudo apt-get install golang-cfssl` or download from [CFSSL releases](https://github.com/cloudflare/cfssl/releases)
+   - Verify: `cfssl version`
+
+4. **Make** (GNU Make 3.81 or later)
+   - macOS: Included with Xcode Command Line Tools or `brew install make`
+   - Linux: `sudo apt-get install build-essential`
+   - Verify: `make --version`
+
+5. **OpenSSL** (for certificate verification)
+   - macOS/Linux: Usually pre-installed
+   - Verify: `openssl version`
+
+### Optional Tools
+
+- **curl** or **wget**: For testing endpoints (usually pre-installed)
+- **jq**: For parsing JSON responses (`brew install jq` or `apt-get install jq`)
+
+### System Requirements
+
+- **Disk Space**: At least 10GB free for Docker images and registry storage
+- **Memory**: Minimum 4GB RAM (8GB recommended for full monitoring stack)
+- **Ports**: Ensure the following ports are available:
+  - 6000: Registry API
+  - 3000: Grafana
+  - 9090: Prometheus
+  - 16686: Jaeger UI
+
+### Docker Hub Account
+
+You'll need a Docker Hub account for the pull-through cache functionality:
+
+1. Create a free account at [hub.docker.com](https://hub.docker.com)
+2. Note your username and password for the `.env` configuration
+
 ## Architecture
 
 ```mermaid
@@ -20,33 +70,33 @@ graph TB
         DH[Docker Hub<br/>registry-1.docker.io]
         Client[Docker Client]
     end
-    
+
     subgraph "Docker Compose Network"
         subgraph "Registry Service"
             Reg[Docker Registry<br/>:5000/:5001]
             TLS[TLS Certificates<br/>Self-signed]
             Cache[Pull-through Cache]
-            
+
             Reg --> TLS
             Reg --> Cache
         end
-        
+
         subgraph "Monitoring Stack"
             Jaeger[Jaeger<br/>:4318 OTLP]
             Prom[Prometheus<br/>:9090]
             Grafana[Grafana<br/>:3000]
-            
+
             Prom --> Grafana
             Jaeger --> Grafana
         end
     end
-    
+
     Client -->|HTTPS :6000| Reg
     Cache -->|Proxy| DH
     Reg -->|Traces| Jaeger
     Prom -->|Scrape :5001/metrics| Reg
     Prom -->|Scrape :14269| Jaeger
-    
+
     style DH fill:#0db7ed
     style Client fill:#2496ed
     style Reg fill:#2496ed
@@ -57,23 +107,49 @@ graph TB
     style Cache fill:#4285f4
 ```
 
+## Available Commands
+
+Run `make help` to see all available commands:
+
+```bash
+make help         # Show all available commands
+make quickstart   # One-command setup: generates certs and starts services
+make certs        # Generate all TLS certificates
+make up           # Start all services
+make down         # Stop all services
+make status       # Check service status and URLs
+make logs         # View logs from all services
+make clean        # Stop services and remove volumes
+```
+
 ## Quick Start
 
-1. **Generate TLS certificates** (see Certificate Generation section below)
-2. **Set up environment variables**:
+1. **Set up environment variables**:
 
    ```bash
    cp .env.example .env
    # Edit .env with your Docker Hub credentials
    ```
 
-3. **Start the stack**:
+2. **Quick start (generates certs and starts services)**:
 
    ```bash
-   docker-compose up -d
+   make quickstart
+   ```
+
+3. **Trust the CA certificate (macOS)**:
+
+   ```bash
+   make trust-cert
    ```
 
 4. **Access services**:
+
+   ```bash
+   make status  # Shows all service URLs and status
+   ```
+
+   Service URLs:
    - Registry API: <https://localhost:6000>
    - Grafana: <http://localhost:3000> (admin/admin)
    - Prometheus: <http://localhost:9090>
@@ -84,24 +160,25 @@ graph TB
 This setup uses a proper PKI hierarchy with root and intermediate CAs:
 
 ```bash
-# 1. Generate the root CA
-cfssl gencert -initca cfssl/ca.json | cfssljson -bare certs/ca
+# Generate all certificates at once
+make certs
 
-# 2. Generate the intermediate CA
-cfssl gencert -initca cfssl/intermediate-ca.json | cfssljson -bare certs/intermediate_ca
+# Or generate them step by step:
+make cert-ca              # Generate root CA
+make cert-intermediate    # Generate intermediate CA
+make cert-registry        # Generate registry certificates
 
-# 3. Sign the intermediate CA with the root CA
-cfssl sign -ca certs/ca.pem -ca-key certs/ca-key.pem -config cfssl/cfssl.json -profile intermediate_ca certs/intermediate_ca.csr | cfssljson -bare certs/intermediate_ca
-
-# 4. Generate registry certificates (all three profiles)
-cfssl gencert -ca certs/intermediate_ca.pem -ca-key certs/intermediate_ca-key.pem -config cfssl/cfssl.json -profile=peer cfssl/registry.json | cfssljson -bare certs/registry-peer
-cfssl gencert -ca certs/intermediate_ca.pem -ca-key certs/intermediate_ca-key.pem -config cfssl/cfssl.json -profile=server cfssl/registry.json | cfssljson -bare certs/registry-server
-cfssl gencert -ca certs/intermediate_ca.pem -ca-key certs/intermediate_ca-key.pem -config cfssl/cfssl.json -profile=client cfssl/registry.json | cfssljson -bare certs/registry-client
-
-# 5. Create certificate chain for the registry
-cat certs/registry-server.pem certs/intermediate_ca.pem > certs/registry.crt
-cp certs/registry-server-key.pem certs/registry.key
+# Verify the certificate chain
+make verify-certs
 ```
+
+The Makefile automates the following steps:
+
+1. Generates root CA certificate
+2. Generates intermediate CA certificate
+3. Signs intermediate CA with root CA
+4. Generates registry certificates (peer, server, client profiles)
+5. Creates certificate chain for the registry
 
 ## Registry Configuration
 
@@ -116,9 +193,9 @@ Our configuration (`config.yaml`) includes:
 ```yaml
 storage:
   delete:
-    enabled: true          # Allows deletion of image blobs
+    enabled: true                         # Allows deletion of image blobs
   cache:
-    blobdescriptor: inmemory  # In-memory cache for blob metadata
+    blobdescriptor: inmemory              # In-memory cache for blob metadata
   filesystem:
     rootdirectory: /var/lib/registry
 ```
@@ -127,16 +204,16 @@ storage:
 
 ```yaml
 http:
-  addr: :5000             # Main API port
+  addr: :5000                               # Main API port
   debug:
-    addr: :5001          # Debug/metrics endpoint
+    addr: :5001                             # Debug/metrics endpoint
     prometheus:
-      enabled: true      # Expose Prometheus metrics
+      enabled: true                         # Expose Prometheus metrics
       path: /metrics
   tls:
-    certificate: /etc/ssl/certs/domain.crt
-    key: /etc/ssl/private/domain.key
-    minimumtls: tls1.2   # Enforce TLS 1.2 minimum
+    certificate: /etc/ssl/certs/domain.crt  # Full cert chain
+    key: /etc/ssl/private/domain.key        # Private key
+    minimumtls: tls1.2                      # Enforce TLS 1.2 minimum
 ```
 
 #### Proxy Cache Configuration
@@ -207,27 +284,19 @@ health:
 1. **Trust the CA certificate** (macOS):
 
    ```bash
-   sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain certs/ca.pem
+   make trust-cert
    ```
 
-2. **Configure Docker to use the registry**:
+2. **Test pulling an image through the cache**:
 
    ```bash
-   # Test pulling an image through the cache
-   docker pull localhost:6000/library/alpine:latest
-   
-   # The image is now cached locally
-   docker images | grep localhost:6000
+   make test-pull
    ```
 
-3. **Push a local image**:
+3. **Test pushing an image**:
 
    ```bash
-   # Tag a local image
-   docker tag myapp:latest localhost:6000/myapp:latest
-   
-   # Push to registry
-   docker push localhost:6000/myapp:latest
+   make test-push
    ```
 
 ## Monitoring and Observability
@@ -273,30 +342,39 @@ rate(registry_storage_cache_hits_total[5m]) / rate(registry_storage_cache_reques
 
 ```bash
 # Start all services
-docker-compose up -d
-
-# View logs
-docker-compose logs -f registry
-docker-compose logs -f
-
-# Restart a service
-docker-compose restart registry
+make up
 
 # Stop all services
-docker-compose down
+make down
+
+# Restart all services
+make restart
+
+# View logs
+make logs              # All services
+make logs-registry     # Registry only
+make logs-prometheus   # Prometheus only
+make logs-grafana      # Grafana only
+make logs-jaeger       # Jaeger only
 
 # Clean up (including volumes)
-docker-compose down -v
+make clean
+
+# Check service status
+make status
 ```
 
 ### Registry Maintenance
 
 ```bash
 # Garbage collection (remove unused blobs)
-docker exec registry registry garbage-collect /etc/distribution/config.yml
+make gc
 
 # Check registry health
-curl -k https://localhost:6000/v2/_health
+make health
+
+# View registry metrics
+make metrics
 ```
 
 ## Security Considerations
@@ -314,30 +392,46 @@ curl -k https://localhost:6000/v2/_health
 
 ```bash
 # Verify certificate chain
-openssl verify -CAfile certs/ca.pem -untrusted certs/intermediate_ca.pem certs/registry.crt
+make verify-certs
 
 # Test TLS connection
-openssl s_client -connect localhost:6000 -CAfile certs/ca.pem
+make test-tls
 ```
 
 ### Registry Connection Issues
 
 ```bash
 # Check if registry is responding
-curl -k https://localhost:6000/v2/
+make health
 
 # View detailed logs
-docker logs registry --tail 100 -f
+make logs-registry
 ```
 
 ### Metrics Not Appearing
 
-1. Check Prometheus targets: <http://localhost:9090/targets>
-2. Verify registry metrics endpoint: `docker exec registry wget -O- --no-check-certificate https://localhost:5001/metrics`
-3. Check Prometheus logs: `docker-compose logs prometheus`
-4. Verify TLS certificates are properly mounted in Prometheus container:
+1. Check Prometheus targets:
+
    ```bash
-   docker exec prometheus ls -la /etc/prometheus/certs/
+   make prometheus-targets
+   ```
+
+2. Verify registry metrics endpoint:
+
+   ```bash
+   make metrics
+   ```
+
+3. Check Prometheus logs:
+
+   ```bash
+   make logs-prometheus
+   ```
+
+4. Verify TLS certificates are properly mounted in Prometheus container:
+
+   ```bash
+   make verify-prometheus-certs
    ```
 
 ## File Structure
@@ -345,21 +439,21 @@ docker logs registry --tail 100 -f
 ```text
 .
 ├── cfssl/                    # Certificate configurations
-│   ├── ca.json              # Root CA config
-│   ├── intermediate-ca.json # Intermediate CA config
-│   ├── cfssl.json          # Certificate profiles
-│   └── registry.json       # Registry certificate config
-├── certs/                   # Generated certificates (git ignored)
-├── prometheus/              # Prometheus configuration
-│   └── prometheus.yml      # Scrape configurations with TLS client auth
-├── grafana/                 # Grafana provisioning
+│   ├── ca.json               # Root CA config
+│   ├── intermediate-ca.json  # Intermediate CA config
+│   ├── cfssl.json            # Certificate profiles
+│   └── registry.json         # Registry certificate config
+├── certs/                    # Generated certificates (git ignored)
+├── prometheus/               # Prometheus configuration
+│   └── prometheus.yml        # Scrape configurations with TLS client auth
+├── grafana/                  # Grafana provisioning
 │   └── provisioning/
-│       ├── datasources/    # Pre-configured datasources
-│       └── dashboards/     # Pre-configured dashboards
-├── config.yaml             # Registry configuration
-├── docker-compose.yaml     # Service definitions
-├── .env.example           # Environment template
-└── .gitignore            # Git ignore patterns
+│       ├── datasources/      # Pre-configured datasources
+│       └── dashboards/       # Pre-configured dashboards
+├── config.yaml               # Registry configuration
+├── docker-compose.yaml       # Service definitions
+├── .env.example              # Environment template
+└── .gitignore                # Git ignore patterns
 ```
 
 ## Performance Tuning
