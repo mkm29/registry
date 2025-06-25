@@ -30,6 +30,8 @@ This repository provides a complete setup for a local Docker registry that acts 
     - [Docker Registry (port 6000)](#docker-registry-port-6000)
     - [Jaeger (port 16686)](#jaeger-port-16686)
     - [Prometheus (port 9090)](#prometheus-port-9090)
+    - [Loki (port 3100)](#loki-port-3100)
+    - [Grafana Alloy (port 12345)](#grafana-alloy-port-12345)
     - [Grafana (port 3000)](#grafana-port-3000)
   - [Testing the Registry](#testing-the-registry)
     - [Configure Docker to Trust the Registry](#configure-docker-to-trust-the-registry)
@@ -45,11 +47,13 @@ This repository provides a complete setup for a local Docker registry that acts 
     - [Grafana Dashboard](#grafana-dashboard)
     - [Prometheus Queries](#prometheus-queries)
     - [Jaeger Traces](#jaeger-traces)
+    - [Loki Log Queries](#loki-log-queries)
   - [Management Commands](#management-commands)
     - [Docker Compose Operations](#docker-compose-operations)
     - [Registry Maintenance](#registry-maintenance)
   - [Security Considerations](#security-considerations)
   - [Troubleshooting](#troubleshooting)
+    - [Loki/Alloy Issues](#lokialloy-issues)
     - [Certificate Issues](#certificate-issues)
     - [Registry Connection Issues](#registry-connection-issues)
     - [Metrics Not Appearing](#metrics-not-appearing)
@@ -158,7 +162,7 @@ graph TB
         subgraph "Docker Infrastructure"
             Docker[Docker Daemon]
             Logs[Container Logs<br/>/var/lib/docker/containers]
-            
+
             Docker --> Logs
             Alloy -->|Read| Logs
         end
@@ -180,7 +184,7 @@ graph TB
     style Grafana fill:#f46800
     style TLS fill:#404040,color:#ffffff
     style Cache fill:#404040,color:#ffffff
-    style Docker fill:#00ff00
+    style Docker fill:#00ff00,color:#000000
     style Logs fill:#404040,color:#ffffff
 ```
 
