@@ -8,8 +8,8 @@ services:
       - "6000:5000"  # Registry API - only expose the main API port
     volumes:
       - ./config.yaml:/etc/distribution/config.yml:ro
-      - ./certs/registry.crt:/etc/ssl/certs/domain.crt:ro
-      - ./certs/registry.key:/etc/ssl/private/domain.key:ro
+      - ./certs/registry.crt:/etc/ssl/certs/registry.crt:ro
+      - ./certs/registry.key:/etc/ssl/private/registry.key:ro
       - registry-data:/var/lib/registry
     environment:
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4318

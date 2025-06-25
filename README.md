@@ -146,18 +146,27 @@ graph TB
             Jaeger[Jaeger<br/>:4318 OTLP]
             Prom[Prometheus<br/>:9090]
             Loki[Loki<br/>:3100]
+            Alloy[Grafana Alloy<br/>:12345]
             Grafana[Grafana<br/>:3000]
 
             Prom --> Grafana
             Jaeger --> Grafana
             Loki --> Grafana
+            Alloy -->|Push logs| Loki
+        end
+
+        subgraph "Docker Infrastructure"
+            Docker[Docker Daemon]
+            Logs[Container Logs<br/>/var/lib/docker/containers]
+            
+            Docker --> Logs
+            Alloy -->|Read| Logs
         end
     end
 
     Client -->|HTTPS :6000| Reg
     Cache -->|Proxy| DH
     Reg -->|Traces| Jaeger
-    Reg -->|Logs| Loki
     Prom -->|Scrape :5001/metrics| Reg
     Prom -->|Scrape :14269| Jaeger
 
@@ -167,9 +176,12 @@ graph TB
     style Jaeger fill:#60d0e4
     style Prom fill:#e6522c
     style Loki fill:#ff6b6b
+    style Alloy fill:#ff9800
     style Grafana fill:#f46800
     style TLS fill:#ffd700
     style Cache fill:#4285f4
+    style Docker fill:#2496ed
+    style Logs fill:#e0e0e0
 ```
 
 ## Available Commands
@@ -238,6 +250,12 @@ make get-manifest REPO=library/alpine TAG=latest  # Get image manifest
    - Jaeger: <http://localhost:16686>
    - Loki: <http://localhost:3100>
    - Alloy: <http://localhost:12345> (Grafana Alloy UI)
+
+5. **View logs in Grafana**:
+   - Navigate to <http://localhost:3000>
+   - Login with admin/admin
+   - Go to Explore → Select Loki datasource
+   - Try queries like `{container_name="registry"}` or `{job="docker_logs"}`
 
 ## CFSSL Configuration
 
@@ -507,13 +525,18 @@ health:
 - **Features**:
   - Collects logs from Docker containers via Grafana Alloy
   - Supports LogQL query language for log searching
-  - Efficient storage with compression and retention policies
+  - Uses TSDB (Time Series Database) index for efficient storage
+  - Schema v13 with structured metadata support
+  - 7-day retention policy with automatic cleanup
   - Integrates seamlessly with Grafana for visualization
 - **Configuration**: `loki/loki-config.yaml`
+  - Storage: Filesystem-based with TSDB shipper
+  - Retention: 168 hours (7 days)
+  - Ingestion limits: 4MB/s rate, 6MB burst
 - **Internal endpoints**:
   - `:3100/ready` - Health check endpoint
   - `:3100/loki/api/v1/push` - Log ingestion endpoint
-  - `:3100/loki/api/v1/query` - Query endpoint
+  - `:3100/loki/api/v1/query_range` - Query endpoint for log ranges
 - **Log Collection**: Uses Grafana Alloy to collect Docker container logs
 
 ### Grafana Alloy (port 12345)
@@ -853,21 +876,33 @@ make metrics
      ```bash
      ls -la /var/lib/docker/containers/
      ```
-   - On some systems, Docker logs might be in a different location
+   - Check if Alloy is discovering containers properly in the UI
 
-2. **Permission denied errors**:
+2. **"failed to tail file" errors in Alloy logs**:
+   - This usually means the log file path pattern is incorrect
+   - Docker logs are stored as `<container_id>/<container_id>-json.log`
+   - Ensure the Alloy config uses the correct path pattern
+
+3. **Loki configuration errors**:
+   - Modern Loki requires schema v13 and TSDB index type
+   - If you see schema-related errors, ensure you're using the latest config
+   - Check Loki logs: `docker-compose logs loki`
+
+4. **Permission denied errors**:
    - Alloy needs read access to Docker container logs
-   - May need to run with appropriate permissions or adjust volume mounts
+   - The Docker socket mount is required for container discovery
+   - On some systems, you may need to adjust permissions
 
-3. **Container labels not appearing**:
-   - Ensure Alloy has access to Docker socket
-   - Check Alloy configuration for proper discovery rules
-   - View Alloy UI to see discovered targets
-
-4. **Debugging Alloy**:
+5. **Debugging tips**:
    - Access the Alloy UI at <http://localhost:12345>
-   - Check the "Targets" page to see discovered containers
-   - Review the pipeline status for any errors
+   - Navigate to the graph page to see component status
+   - Check discovered targets and their labels
+   - Use Loki's API to verify log ingestion:
+     ```bash
+     curl -G -s --data-urlencode 'query={job="docker_logs"}' \
+          --data-urlencode 'limit=5' \
+          http://localhost:3100/loki/api/v1/query_range
+     ```
 
 ### Certificate Issues
 
