@@ -14,7 +14,7 @@
   }
   ],
   "hosts": [
-    "hregistry.smigula",
+    "registry.smigula",
     "localhost"
   ]
 }

@@ -277,13 +277,13 @@ This is the most important configuration to customize:
 
 ```json
 {
-  "CN": "registry.yourdomain.com",       // Your registry's FQDN
+  "CN": "registry.yourdomain.com",        // Your registry's FQDN
   "hosts": [
-    "registry.yourdomain.com",           // Your registry's domain
-    "registry",                          // Short hostname
-    "localhost",                         // Keep for local testing
-    "127.0.0.1",                        // Localhost IP
-    "10.0.0.100"                        // Your registry's IP (if static)
+    "registry.yourdomain.com",            // Your registry's domain
+    "registry",                           // Short hostname
+    "localhost",                          // Keep for local testing
+    "127.0.0.1",                          // Localhost IP
+    "10.0.0.100"                          // Your registry's IP (if static)
   ],
   "names": [{
     "C": "US",
