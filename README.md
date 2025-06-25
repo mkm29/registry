@@ -2,6 +2,46 @@
 
 This repository provides a complete setup for a local Docker registry secured with TLS using self-signed certificates. The registry is configured as a pull-through cache for Docker Hub and includes a full monitoring stack with Prometheus, Jaeger, and Grafana.
 
+- [Local Docker Registry with TLS and Monitoring Stack](#local-docker-registry-with-tls-and-monitoring-stack)
+  - [Overview](#overview)
+  - [Prerequisites](#prerequisites)
+    - [Required Software](#required-software)
+    - [Optional Tools](#optional-tools)
+    - [System Requirements](#system-requirements)
+    - [Docker Hub Account](#docker-hub-account)
+  - [Architecture](#architecture)
+  - [Available Commands](#available-commands)
+  - [Quick Start](#quick-start)
+  - [Certificate Generation with CFSSL](#certificate-generation-with-cfssl)
+  - [Registry Configuration](#registry-configuration)
+    - [Key Configuration Settings](#key-configuration-settings)
+      - [Storage Configuration](#storage-configuration)
+      - [HTTP/TLS Configuration](#httptls-configuration)
+      - [Proxy Cache Configuration](#proxy-cache-configuration)
+      - [Health Checks](#health-checks)
+  - [Services Architecture](#services-architecture)
+    - [Docker Registry (port 6000)](#docker-registry-port-6000)
+    - [Jaeger (port 16686)](#jaeger-port-16686)
+    - [Prometheus (port 9090)](#prometheus-port-9090)
+    - [Grafana (port 3000)](#grafana-port-3000)
+  - [Testing the Registry](#testing-the-registry)
+  - [Monitoring and Observability](#monitoring-and-observability)
+    - [Grafana Dashboard](#grafana-dashboard)
+    - [Prometheus Queries](#prometheus-queries)
+    - [Jaeger Traces](#jaeger-traces)
+  - [Management Commands](#management-commands)
+    - [Docker Compose Operations](#docker-compose-operations)
+    - [Registry Maintenance](#registry-maintenance)
+  - [Security Considerations](#security-considerations)
+  - [Troubleshooting](#troubleshooting)
+    - [Certificate Issues](#certificate-issues)
+    - [Registry Connection Issues](#registry-connection-issues)
+    - [Metrics Not Appearing](#metrics-not-appearing)
+  - [File Structure](#file-structure)
+  - [Performance Tuning](#performance-tuning)
+  - [References](#references)
+
+
 ## Overview
 
 This setup creates a production-ready local Docker registry with:
