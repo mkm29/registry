@@ -2,7 +2,8 @@
 
 // Discovery component to find Docker containers
 discovery.docker "containers" {
-  host = "unix:///run/user/1000/docker.sock"
+  host = "tcp://127.0.0.1:2375"
+  refresh_interval = "5s"
 }
 
 // Relabel to extract container metadata
