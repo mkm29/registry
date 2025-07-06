@@ -123,18 +123,31 @@ services:
       - ${CONFIG_ROOT}/plex:/config
       - ${DATA_ROOT}/media/tv:/tv
       - ${DATA_ROOT}/media/movies:/movies
+    ports:
+      - "32400:32400"   # Main Plex port
+      - "1900:1900/udp" # DLNA
+      - "3005:3005"     # Plex Companion
+      - "5353:5353/udp" # Bonjour/Avahi
+      - "8324:8324"     # Plex for Roku
+      - "32410:32410/udp" # GDM Network discovery
+      - "32412:32412/udp" # GDM Network discovery
+      - "32413:32413/udp" # GDM Network discovery
+      - "32414:32414/udp" # GDM Network discovery
+      - "32469:32469"   # DLNA
     restart: unless-stopped
-    # Note: Plex uses host networking for better performance and compatibility
+    networks:
+      - mediaserver
+    # Note: Plex uses host networking for better performance and compatibility but in rootless mode you cannot use host networking.
 
   # VPN
-  nordlynx:
-    image: ghcr.io/bubuntux/nordlynx
-    cap_add:
-      - NET_ADMIN
-    environment:
-      - PRIVATE_KEY=${NORDLYNX_PRIVATE_KEY}
-    restart: unless-stopped
-    network_mode: host
+  # nordlynx:
+  #   image: ghcr.io/bubuntux/nordlynx
+  #   cap_add:
+  #     - NET_ADMIN
+  #   environment:
+  #     - PRIVATE_KEY=${NORDLYNX_PRIVATE_KEY}
+  #   restart: unless-stopped
+  #   network_mode: host
 
 networks:
   mediaserver:

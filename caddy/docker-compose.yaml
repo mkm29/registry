@@ -1,23 +1,19 @@
 services:
   caddy:
-    image: caddy:2.10.0-alpine
+    image: caddy:2-alpine
     container_name: caddy-proxy
     restart: unless-stopped
     ports:
-      - "80:80"
-      - "443:443"
+      - "80:80"       # Explicit port binding
+      - "443:443"     # Explicit port binding
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
-      - ./logs:/var/log/caddy
     environment:
-      # Optional: Set email for Let's Encrypt notifications
       - ACME_EMAIL=admin@smigula.io
     networks:
       - caddy-proxy
-      - registry_monitoring
-      - media_mediaserver
 
   landing:
     image: nginx:alpine
@@ -39,7 +35,3 @@ volumes:
 networks:
   caddy-proxy:
     driver: bridge
-  registry_monitoring:
-    external: true
-  media_mediaserver:
-    external: true
