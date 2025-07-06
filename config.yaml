@@ -1,6 +1,6 @@
 version: 0.1
 log:
-  level: debug
+  level: info
   fields:
     service: registry
     environment: development
@@ -25,18 +25,25 @@ http:
             path: /metrics
     headers:
         X-Content-Type-Options: [nosniff]
-    tls:
-        certificate: /etc/ssl/certs/registry.crt
-        key: /etc/ssl/private/registry.key
-        minimumtls: tls1.2
+    # tls:
+    #     certificate: /etc/ssl/certs/registry.crt
+    #     key: /etc/ssl/private/registry.key
+    #     minimumtls: tls1.2
 proxy:
   remoteurl: https://registry-1.docker.io
-  # exec:
-  #   command: docker-credential-osxkeychain
-  #   lifetime: 1h
-  # ttl: 168h
+  username: myusername
+  password: mypassword
 health:
   storagedriver:
     enabled: true
     interval: 10s
     threshold: 3
+
+telemetry:
+  prometheus:
+    enabled: true
+  opentelemetry:
+    traces:
+      endpoint: http://jaeger:4318
+      insecure: true
+      service_name: docker-registry

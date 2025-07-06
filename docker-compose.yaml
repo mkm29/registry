@@ -5,17 +5,12 @@ services:
     container_name: registry
     restart: always
     ports:
-      - "6000:5000"  # Registry API - only expose the main API port
+      - "5000:5000"
     volumes:
       - ./config.yaml:/etc/distribution/config.yml:ro
       - ./certs/registry.crt:/etc/ssl/certs/registry.crt:ro
       - ./certs/registry.key:/etc/ssl/private/registry.key:ro
       - registry-data:/var/lib/registry
-    environment:
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4318
-      - OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
-      - OTEL_SERVICE_NAME=docker-registry
-      - OTEL_TRACES_EXPORTER=otlp
     env_file:
       - .env
     networks:
@@ -23,7 +18,7 @@ services:
     depends_on:
       - jaeger
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "https://localhost:5001/metrics", "--no-check-certificate"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5000/v2/", "--no-check-certificate"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -65,6 +60,18 @@ services:
     depends_on:
       - registry
 
+  loki-init:
+    image: alpine:latest
+    container_name: loki-init
+    volumes:
+      - loki-data:/loki
+    command: >
+      sh -c "
+        chown -R 10001:10001 /loki &&
+        chmod -R 755 /loki
+      "
+    restart: "no"
+
   # Loki for log aggregation
   loki:
     image: grafana/loki:latest
@@ -84,6 +91,8 @@ services:
       timeout: 10s
       retries: 5
       start_period: 30s
+    depends_on:
+      - loki-init
 
   # Grafana Alloy for log collection
   alloy:
