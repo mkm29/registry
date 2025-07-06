@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    container_name: caddy-proxy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    environment:
+      # Optional: Set email for Let's Encrypt notifications
+      - ACME_EMAIL=admin@smigula.io
+    networks:
+      - caddy-proxy
+      - monitoring
+
+  landing:
+    image: nginx:alpine
+    container_name: landing-page
+    restart: unless-stopped
+    volumes:
+      - ./html:/usr/share/nginx/html:ro
+    networks:
+      - caddy-proxy
+    expose:
+      - "80"
+
+volumes:
+  caddy_data:
+    external: false
+  caddy_config:
+    external: false
+
+networks:
+  caddy-proxy:
+    driver: bridge
+  monitoring:
+    external: true
