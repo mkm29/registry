@@ -17,7 +17,9 @@ services:
       - ACME_EMAIL=admin@smigula.io
     networks:
       - caddy-proxy
-      - monitoring
+      - registry_monitoring
+      - host
+      - bridge
 
   landing:
     image: nginx:alpine
@@ -39,5 +41,5 @@ volumes:
 networks:
   caddy-proxy:
     driver: bridge
-  monitoring:
+  registry_monitoring:
     external: true
