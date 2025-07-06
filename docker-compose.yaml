@@ -36,6 +36,18 @@ services:
     networks:
       - monitoring
 
+  prometheus-init:
+    image: alpine:latest
+    container_name: prometheus-init
+    volumes:
+      - prometheus-data:/prometheus
+    command: >
+      sh -c "
+        chown -R 65534:65534 /prometheus &&
+        chmod -R 755 /prometheus
+      "
+    restart: "no"
+
   # Prometheus for metrics collection
   prometheus:
     image: prom/prometheus:latest
@@ -59,6 +71,7 @@ services:
       - monitoring
     depends_on:
       - registry
+      - prometheus-init
 
   loki-init:
     image: alpine:latest

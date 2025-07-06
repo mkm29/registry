@@ -38,7 +38,7 @@ discovery.relabel "containers" {
   rule {
     source_labels = ["__meta_docker_container_id"]
     target_label  = "__path__"
-    replacement   = "/var/lib/docker/containers/$1/$1-json.log"
+    replacement   = "/home/madmin/.config/containers/storage/$1/$1-json.log"
   }
 
   // Add compose project name
