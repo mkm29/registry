@@ -1,0 +1,123 @@
+services:
+
+  # Movies
+  radarr:
+    image: lscr.io/linuxserver/radarr:latest
+    container_name: radarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/New_York
+    volumes:
+      - ${CONFIG_ROOT}/radarr:/config
+      - ${DATA_ROOT}/torrents/movies:/downloads
+      - ${DATA_ROOT}/media/movies:/movies
+    ports:
+      - ${RADARR_PORT}:7878
+    restart: unless-stopped
+
+  # TV
+  sonarr:
+    image: lscr.io/linuxserver/sonarr:latest
+    container_name: sonarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/New_York
+    volumes:
+      - ${CONFIG_ROOT}/sonarr:/config
+      - ${DATA_ROOT}/torrents/tv:/downloads
+      - ${DATA_ROOT}/media/tv:/tv
+    ports:
+      - ${SONARR_PORT}:8989
+    restart: unless-stopped
+
+  # Subtitles
+  bazarr:
+    image: lscr.io/linuxserver/bazarr:latest
+    container_name: bazarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Etc/UTC
+    volumes:
+      - ${CONFIG_ROOT}/bazarr:/config
+      - ${DATA_ROOT}/media/movies:/movies
+      - ${DATA_ROOT}/media/tv:/tv
+    ports:
+      - ${BAZARR_PORT}:6767
+    restart: unless-stopped
+
+  # Indexer
+  prowlarr:
+    image: lscr.io/linuxserver/prowlarr:latest
+    container_name: prowlarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/New_York
+    volumes:
+      - ${CONFIG_ROOT}/prowlarr:/config
+    ports:
+      - ${PROWLARR_PORT}:9696
+    restart: unless-stopped
+
+  # Torrent Client
+  qbittorrent:
+    image: lscr.io/linuxserver/qbittorrent:latest
+    container_name: qbittorrent
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/New_York
+      - WEBUI_PORT=8080
+      - TORRENTING_PORT=6881
+    volumes:
+      - ${CONFIG_ROOT}/qbittorrent:/config
+      - ${DATA_ROOT}/torrents:/data/torrents
+      - ${DATA_ROOT}/torrents/incomplete:/data/incomplete
+    ports:
+      - ${QBITTORRENT_WEB_PORT}:8080
+      - ${QBITTORRENT_TORRENTING_PORT}:6881
+      - ${QBITTORRENT_TORRENTING_PORT}:6881/udp
+    restart: unless-stopped
+
+  # Requesting Web App
+  overseerr:
+    image: lscr.io/linuxserver/overseerr:latest
+    container_name: overseerr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/New_York
+    volumes:
+      - ${CONFIG_ROOT}/overseerr:/config
+    ports:
+      - ${OVERSEERR_PORT}:5055
+    restart: unless-stopped
+
+  # Media Server
+  plex:
+    image: lscr.io/linuxserver/plex:latest
+    container_name: plex
+    network_mode: host
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/New_York
+      - VERSION=docker
+      - PLEX_CLAIM=${PLEX_CLAIM}
+    volumes:
+      - ${CONFIG_ROOT}/plex:/config
+      - ${DATA_ROOT}/media/tv:/tv
+      - ${DATA_ROOT}/media/movies:/movies
+    restart: unless-stopped
+
+  # VPN
+  nordlynx:
+    image: ghcr.io/bubuntux/nordlynx
+    cap_add:
+      - NET_ADMIN
+    environment:
+      - PRIVATE_KEY=${NORDLYNX_PRIVATE_KEY}
+    restart: unless-stopped
