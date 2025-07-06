@@ -2,7 +2,7 @@
 
 // Discovery component to find Docker containers
 discovery.docker "containers" {
-  host = "tcp://127.0.0.1:2375"
+  host = "unix:///run/user/1000/docker.sock"
   refresh_interval = "5s"
 }
 

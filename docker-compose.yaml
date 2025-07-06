@@ -106,26 +106,6 @@ services:
       start_period: 30s
     depends_on:
       - loki-init
-
-  # Grafana Alloy for log collection
-  alloy:
-    image: grafana/alloy:latest
-    container_name: alloy
-    restart: always
-    network_mode: host
-    volumes:
-      - ./alloy/config.alloy:/etc/alloy/config.alloy:ro
-      - /home/madmin/.config/containers/storage/containers:/var/lib/docker/containers:ro
-    command:
-      - run
-      - /etc/alloy/config.alloy
-      - --server.http.listen-addr=0.0.0.0:12345
-      - --storage.path=/var/lib/alloy/data
-    environment:
-      - HOSTNAME=alloy
-    depends_on:
-      - loki
-
   # Grafana for visualization
   grafana:
     image: grafana/grafana:latest

@@ -1,14 +1,24 @@
-# Local Docker Registry Mirror with TLS and Monitoring Stack
+# Local Docker Registry Mirror with TLS and Monitoring Stack (Rootless Docker)
 
-This repository provides a complete setup for a local Docker registry that acts as a Docker Hub mirror (pull-through cache). The registry is secured with TLS using self-signed certificates and includes a full monitoring stack with Prometheus, Jaeger, and Grafana. Once configured, all Docker Hub image pulls will automatically use this local cache, significantly improving download speeds and reducing bandwidth usage.
+This repository provides a complete setup for a local Docker registry that acts as a Docker Hub mirror (pull-through cache). The registry is secured with TLS using self-signed certificates and includes a full monitoring stack with Prometheus, Jaeger, and Grafana. This setup is optimized for **rootless Docker** with native Alloy installation for better security and performance.
 
-- [Local Docker Registry Mirror with TLS and Monitoring Stack](#local-docker-registry-mirror-with-tls-and-monitoring-stack)
+- [Local Docker Registry Mirror with TLS and Monitoring Stack (Rootless Docker)](#local-docker-registry-mirror-with-tls-and-monitoring-stack-rootless-docker)
   - [Overview](#overview)
   - [Prerequisites](#prerequisites)
     - [Required Software](#required-software)
     - [Optional Tools](#optional-tools)
     - [System Requirements](#system-requirements)
     - [Docker Hub Account](#docker-hub-account)
+  - [Rootless Docker Setup](#rootless-docker-setup)
+    - [1. Remove Regular Docker (if installed)](#1-remove-regular-docker-if-installed)
+    - [2. Install Docker CE](#2-install-docker-ce)
+    - [3. Install Rootless Docker](#3-install-rootless-docker)
+    - [4. Start Rootless Docker](#4-start-rootless-docker)
+    - [5. Configure Docker Daemon](#5-configure-docker-daemon)
+  - [Install and Configure Alloy](#install-and-configure-alloy)
+    - [1. Download and Install Alloy](#1-download-and-install-alloy)
+    - [2. Create Alloy Configuration](#2-create-alloy-configuration)
+    - [3. Create Systemd User Service](#3-create-systemd-user-service)
   - [Architecture](#architecture)
   - [Available Commands](#available-commands)
   - [Quick Start](#quick-start)
@@ -27,20 +37,22 @@ This repository provides a complete setup for a local Docker registry that acts 
       - [Proxy Cache Configuration](#proxy-cache-configuration)
       - [Health Checks](#health-checks)
   - [Services Architecture](#services-architecture)
-    - [Docker Registry (port 6000)](#docker-registry-port-6000)
+    - [Docker Registry (port 5000)](#docker-registry-port-5000)
     - [Jaeger (port 16686)](#jaeger-port-16686)
     - [Prometheus (port 9090)](#prometheus-port-9090)
     - [Loki (port 3100)](#loki-port-3100)
-    - [Grafana Alloy (port 12345)](#grafana-alloy-port-12345)
+    - [Grafana Alloy (port 12345) - Native Installation](#grafana-alloy-port-12345---native-installation)
     - [Grafana (port 3000)](#grafana-port-3000)
+  - [Docker Compose Configuration](#docker-compose-configuration)
   - [Testing the Registry](#testing-the-registry)
     - [Configure Docker to Trust the Registry](#configure-docker-to-trust-the-registry)
       - [Step 1: Configure TLS Trust](#step-1-configure-tls-trust)
         - [Option A: Configure Docker daemon certificates (Recommended)](#option-a-configure-docker-daemon-certificates-recommended)
         - [Option B: System-wide trust (macOS)](#option-b-system-wide-trust-macos)
       - [Step 2: Configure Docker Hub Mirror](#step-2-configure-docker-hub-mirror)
+        - [Rootless Docker](#rootless-docker)
         - [macOS (Docker Desktop)](#macos-docker-desktop)
-        - [Linux](#linux)
+        - [Linux (Regular Docker)](#linux-regular-docker)
         - [Verify Mirror Configuration](#verify-mirror-configuration)
     - [Test Registry Access](#test-registry-access)
   - [Monitoring and Observability](#monitoring-and-observability)
@@ -51,9 +63,12 @@ This repository provides a complete setup for a local Docker registry that acts 
   - [Management Commands](#management-commands)
     - [Docker Compose Operations](#docker-compose-operations)
     - [Registry Maintenance](#registry-maintenance)
+    - [Alloy Management](#alloy-management)
   - [Security Considerations](#security-considerations)
   - [Troubleshooting](#troubleshooting)
-    - [Loki/Alloy Issues](#lokialloy-issues)
+    - [Rootless Docker Issues](#rootless-docker-issues)
+    - [Alloy Issues](#alloy-issues)
+    - [Volume Permission Issues](#volume-permission-issues)
     - [Certificate Issues](#certificate-issues)
     - [Registry Connection Issues](#registry-connection-issues)
     - [Metrics Not Appearing](#metrics-not-appearing)
@@ -65,9 +80,11 @@ This repository provides a complete setup for a local Docker registry that acts 
 
 This setup creates a production-ready local Docker registry with:
 
+- **Rootless Docker**: Enhanced security with user-namespace isolation
 - **Docker Hub Mirror**: Acts as a pull-through cache that automatically intercepts and caches Docker Hub images
 - **TLS Security**: Self-signed certificates using CFSSL with proper certificate chain
 - **Bandwidth Optimization**: Caches images locally to reduce repeated downloads from Docker Hub
+- **Native Alloy**: Grafana Alloy runs as a native systemd service for better Docker socket access
 - **Distributed Tracing**: OpenTelemetry integration with Jaeger
 - **Metrics Collection**: Prometheus scraping with pre-configured dashboards
 - **Log Aggregation**: Loki for centralized log collection and querying
@@ -79,27 +96,20 @@ When properly configured, all `docker pull` commands for Docker Hub images will 
 
 ### Required Software
 
-1. **Docker** (20.10.0 or later)
-   - macOS: `brew install --cask docker` or download from [Docker Desktop](https://www.docker.com/products/docker-desktop)
-   - Linux: Follow the [official Docker installation guide](https://docs.docker.com/engine/install/)
-   - Verify: `docker --version`
+1. **CFSSL** (CloudFlare's PKI toolkit)
 
-2. **Docker Compose** (2.0.0 or later)
-   - Usually included with Docker Desktop on macOS/Windows
-   - Linux: `sudo apt-get install docker-compose-plugin` or follow [official guide](https://docs.docker.com/compose/install/)
-   - Verify: `docker-compose --version`
-
-3. **CFSSL** (CloudFlare's PKI toolkit)
    - macOS: `brew install cfssl`
    - Linux: `sudo apt-get install golang-cfssl` or download from [CFSSL releases](https://github.com/cloudflare/cfssl/releases)
    - Verify: `cfssl version`
 
-4. **Make** (GNU Make 3.81 or later)
+1. **Make** (GNU Make 3.81 or later)
+
    - macOS: Included with Xcode Command Line Tools or `brew install make`
    - Linux: `sudo apt-get install build-essential`
    - Verify: `make --version`
 
-5. **OpenSSL** (for certificate verification)
+1. **OpenSSL** (for certificate verification)
+
    - macOS/Linux: Usually pre-installed
    - Verify: `openssl version`
 
@@ -113,7 +123,7 @@ When properly configured, all `docker pull` commands for Docker Hub images will 
 - **Disk Space**: At least 10GB free for Docker images and registry storage
 - **Memory**: Minimum 4GB RAM (8GB recommended for full monitoring stack)
 - **Ports**: Ensure the following ports are available:
-  - 6000: Registry API
+  - 5000: Registry API
   - 3000: Grafana
   - 9090: Prometheus
   - 16686: Jaeger UI
@@ -125,7 +135,217 @@ When properly configured, all `docker pull` commands for Docker Hub images will 
 You'll need a Docker Hub account for the pull-through cache functionality:
 
 1. Create a free account at [hub.docker.com](https://hub.docker.com)
-2. Note your username and password for the `.env` configuration
+1. Note your username and password for the `.env` configuration
+
+## Rootless Docker Setup
+
+### 1. Remove Regular Docker (if installed)
+
+```bash
+sudo systemctl stop docker
+sudo systemctl disable docker
+sudo apt remove docker docker-engine docker.io containerd runc
+```
+
+### 2. Install Docker CE
+
+```bash
+# Add Docker's official GPG key
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+
+# Add repository
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+# Install Docker
+sudo apt update
+sudo apt install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+```
+
+### 3. Install Rootless Docker
+
+```bash
+# Install rootless Docker
+dockerd-rootless-setuptool.sh install
+
+# Add to shell profile
+echo 'export PATH=$HOME/bin:$PATH' >> ~/.bashrc
+echo 'export DOCKER_HOST=unix://$XDG_RUNTIME_DIR/docker.sock' >> ~/.bashrc
+source ~/.bashrc
+```
+
+### 4. Start Rootless Docker
+
+```bash
+systemctl --user enable --now docker
+
+# Verify installation
+docker version
+docker info
+```
+
+### 5. Configure Docker Daemon
+
+```bash
+# Create Docker configuration directory
+mkdir -p ~/.config/docker
+
+# Create daemon.json configuration
+tee ~/.config/docker/daemon.json << 'EOF'
+{
+  "data-root": "/home/madmin/.config/containers/storage",
+  "builder": {
+    "gc": {
+      "defaultKeepStorage": "20GB",
+      "enabled": true
+    }
+  },
+  "experimental": false,
+  "insecure-registries": [ "localhost:5000" ],
+  "log-driver": "json-file",
+  "log-opts": {
+    "max-size": "10m",
+    "max-file": "3",
+    "compress": "true"
+  },
+  "features": {
+    "buildkit": true
+  },
+  "registry-mirrors": ["http://localhost:5000"]
+}
+EOF
+
+# Restart Docker to apply configuration
+systemctl --user restart docker
+docker info  # Verify configuration
+```
+
+## Install and Configure Alloy
+
+### 1. Download and Install Alloy
+
+```bash
+# Create local bin directory
+mkdir -p ~/.local/bin
+
+# Download Alloy
+cd /tmp
+wget https://github.com/grafana/alloy/releases/download/v1.9.2/alloy-linux-amd64.zip
+unzip alloy-linux-amd64.zip
+mv alloy-linux-amd64 ~/.local/bin/alloy
+chmod +x ~/.local/bin/alloy
+
+# Verify installation
+~/.local/bin/alloy --version
+```
+
+### 2. Create Alloy Configuration
+
+```bash
+# Create config directory
+mkdir -p ~/alloy
+
+# Create configuration file
+tee ~/alloy/config.alloy << 'EOF'
+discovery.docker "containers" {
+  host = "unix:///run/user/1000/docker.sock"
+  refresh_interval = "5s"
+}
+
+discovery.relabel "containers" {
+  targets = discovery.docker.containers.targets
+
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    target_label  = "container"
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_log_stream"]
+    target_label  = "stream"
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_id"]
+    target_label  = "container_id"
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+    target_label  = "service"
+  }
+}
+
+loki.source.file "docker_logs" {
+  targets    = discovery.relabel.containers.output
+  forward_to = [loki.process.docker_logs.receiver]
+}
+
+loki.process.docker_logs "docker_logs" {
+  forward_to = [loki.write.loki.receiver]
+
+  stage.json {
+    expressions = {
+      timestamp = "time",
+      message   = "log",
+    }
+  }
+
+  stage.timestamp {
+    source = "timestamp"
+    format = "RFC3339Nano"
+  }
+
+  stage.labels {
+    values = {
+      level = "level",
+    }
+  }
+}
+
+loki.write "loki" {
+  endpoint {
+    url = "http://localhost:3100/loki/api/v1/push"
+  }
+}
+
+logging {
+  level  = "info"
+  format = "logfmt"
+}
+EOF
+```
+
+### 3. Create Systemd User Service
+
+```bash
+# Create user systemd directory
+mkdir -p ~/.config/systemd/user
+
+# Create service file
+tee ~/.config/systemd/user/alloy.service << 'EOF'
+[Unit]
+Description=Grafana Alloy
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h
+ExecStart=%h/.local/bin/alloy run %h/registry/alloy/config.alloy --server.http.listen-addr=0.0.0.0:12345 --storage.path=%h/.local/share/alloy
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target
+EOF
+
+# Reload and enable service
+systemctl --user daemon-reload
+systemctl --user enable --now alloy
+
+# Enable user services to start at boot (optional)
+sudo loginctl enable-linger $USER
+```
 
 ## Architecture
 
@@ -136,39 +356,48 @@ graph TB
         Client[Docker Client]
     end
 
-    subgraph "Docker Compose Network"
-        subgraph "Registry Service"
-            Reg[Docker Registry<br/>:5000/:5001]
-            TLS[TLS Certificates<br/>Self-signed]
-            Cache[Pull-through Cache]
+    subgraph "Rootless Docker Environment"
+        subgraph "Docker Compose Network"
+            subgraph "Registry Service"
+                Reg[Docker Registry<br/>:5000]
+                TLS[TLS Certificates<br/>Self-signed]
+                Cache[Pull-through Cache]
 
-            Reg --> TLS
-            Reg --> Cache
+                Reg --> TLS
+                Reg --> Cache
+            end
+
+            subgraph "Monitoring Stack"
+                Jaeger[Jaeger<br/>:4318 OTLP]
+                Prom[Prometheus<br/>:9090]
+                Loki[Loki<br/>:3100]
+                Grafana[Grafana<br/>:3000]
+
+                Prom --> Grafana
+                Jaeger --> Grafana
+                Loki --> Grafana
+            end
+
+            subgraph "Rootless Docker Infrastructure"
+                Docker[Rootless Docker Daemon<br/>~/.local/share/docker]
+                Logs[Container Logs<br/>~/.local/share/docker/containers]
+                Socket[Docker Socket<br/>/run/user/1000/docker.sock]
+
+                Docker --> Logs
+                Docker --> Socket
+            end
         end
 
-        subgraph "Monitoring Stack"
-            Jaeger[Jaeger<br/>:4318 OTLP]
-            Prom[Prometheus<br/>:9090]
-            Loki[Loki<br/>:3100]
-            Alloy[Grafana Alloy<br/>:12345]
-            Grafana[Grafana<br/>:3000]
+        subgraph "Native Services"
+            Alloy[Grafana Alloy<br/>:12345<br/>Systemd User Service]
 
-            Prom --> Grafana
-            Jaeger --> Grafana
-            Loki --> Grafana
-            Alloy -->|Push logs| Loki
-        end
-
-        subgraph "Docker Infrastructure"
-            Docker[Docker Daemon]
-            Logs[Container Logs<br/>/var/lib/docker/containers]
-
-            Docker --> Logs
+            Alloy -->|Read| Socket
             Alloy -->|Read| Logs
+            Alloy -->|Push logs| Loki
         end
     end
 
-    Client -->|HTTPS :6000| Reg
+    Client -->|HTTPS :5000| Reg
     Cache -->|Proxy| DH
     Reg -->|Traces| Jaeger
     Prom -->|Scrape :5001/metrics| Reg
@@ -186,6 +415,7 @@ graph TB
     style Cache fill:#404040,color:#ffffff
     style Docker fill:#00ff00,color:#000000
     style Logs fill:#404040,color:#ffffff
+    style Socket fill:#404040,color:#ffffff
 ```
 
 ## Available Commands
@@ -210,6 +440,12 @@ make trust-cert                          # Trust CA in system keychain (macOS)
 make list-repos                          # List all repositories
 make list-tags REPO=library/alpine       # List tags for a repository
 make get-manifest REPO=library/alpine TAG=latest  # Get image manifest
+
+# Alloy management
+make alloy-start                         # Start Alloy service
+make alloy-stop                          # Stop Alloy service
+make alloy-status                        # Check Alloy status
+make alloy-logs                          # View Alloy logs
 ```
 
 ## Quick Start
@@ -225,13 +461,27 @@ make get-manifest REPO=library/alpine TAG=latest  # Get image manifest
    EOF
    ```
 
-2. **Quick start (generates certs and starts services)**:
+1. **Setup rootless Docker** (if not already done):
+
+   Follow the [Rootless Docker Setup](#rootless-docker-setup) section above.
+
+1. **Install and configure Alloy** (if not already done):
+
+   Follow the [Install and Configure Alloy](#install-and-configure-alloy) section above.
+
+1. **Quick start (generates certs and starts services)**:
 
    ```bash
    make quickstart
    ```
 
-3. **Configure Docker to trust the registry**:
+1. **Start Alloy service**:
+
+   ```bash
+   systemctl --user start alloy
+   ```
+
+1. **Configure Docker to trust the registry**:
 
    ```bash
    # Required: Configure Docker daemon to trust the registry
@@ -241,25 +491,27 @@ make get-manifest REPO=library/alpine TAG=latest  # Get image manifest
    make trust-cert
    ```
 
-4. **Access services**:
+1. **Access services**:
 
    ```bash
    make status  # Shows all service URLs and status
    ```
 
    Service URLs:
-   - Registry API: <https://localhost:6000/v2/> (Docker Registry HTTP API V2)
+
+   - Registry API: <https://localhost:5000/v2/> (Docker Registry HTTP API V2)
    - Grafana: <http://localhost:3000> (admin/admin)
    - Prometheus: <http://localhost:9090>
    - Jaeger: <http://localhost:16686>
    - Loki: <http://localhost:3100>
    - Alloy: <http://localhost:12345> (Grafana Alloy UI)
 
-5. **View logs in Grafana**:
+1. **View logs in Grafana**:
+
    - Navigate to <http://localhost:3000>
    - Login with admin/admin
    - Go to Explore → Select Loki datasource
-   - Try queries like `{container_name="registry"}` or `{job="docker_logs"}`
+   - Try queries like `{container="registry"}` or `{job="docker_logs"}`
 
 ## CFSSL Configuration
 
@@ -271,13 +523,13 @@ Edit the following fields in `cfssl/ca.json`:
 
 ```json
 {
-  "CN": "Your Organization Root CA",     // Replace with your root CA name
+  "CN": "Smigula Root CA",     // Replace with your root CA name
   "names": [{
     "C": "US",                           // Your country code
-    "L": "Your City",                    // Your city
-    "O": "Your Organization",            // Your organization name
-    "OU": "Your Department",             // Your department/unit
-    "ST": "Your State"                   // Your state/province
+    "L": "Tampa",                    // Your city
+    "O": "Smigula",            // Your organization name
+    "OU": "development",             // Your department/unit
+    "ST": "FL"                   // Your state/province
   }]
 }
 ```
@@ -288,13 +540,13 @@ Update the same fields in `cfssl/intermediate-ca.json`:
 
 ```json
 {
-  "CN": "Your Organization Intermediate CA",
+  "CN": "Smigula Intermediate CA",
   "names": [{
     "C": "US",
-    "L": "Your City",
-    "O": "Your Organization",
-    "OU": "Your Department",
-    "ST": "Your State"
+    "L": "Tampa",
+    "O": "Smigula",
+    "OU": "development",
+    "ST": "FL"
   }],
   "ca": {
     "expiry": "42720h"    // 5 years - adjust as needed
@@ -308,9 +560,9 @@ This is the most important configuration to customize:
 
 ```json
 {
-  "CN": "registry.yourdomain.com",        // Your registry's FQDN
+  "CN": "registry.smigula.io",        // Your registry's FQDN
   "hosts": [
-    "registry.yourdomain.com",            // Your registry's domain
+    "registry.smigula.io",            // Your registry's domain
     "registry",                           // Short hostname
     "localhost",                          // Keep for local testing
     "127.0.0.1",                          // Localhost IP
@@ -318,10 +570,10 @@ This is the most important configuration to customize:
   ],
   "names": [{
     "C": "US",
-    "L": "Your City",
-    "O": "Your Organization",
-    "OU": "Your Department",
-    "ST": "Your State"
+    "L": "Tampa",
+    "O": "Smigula",
+    "OU": "development",
+    "ST": "FL"
   }]
 }
 ```
@@ -350,17 +602,20 @@ The default profiles are suitable for most use cases, but you can adjust certifi
 ### Common Customizations
 
 1. **For Local Development**:
+
    - Keep "localhost" and "127.0.0.1" in the hosts array
    - Add your machine's hostname
    - Use a simple organization name like "Development"
 
-2. **For Production**:
+1. **For Production**:
+
    - Use proper FQDN for the registry
    - Add all possible access names (load balancer DNS, service names, etc.)
    - Set appropriate certificate expiry times
    - Use official organization details
 
-3. **For Kubernetes**:
+1. **For Kubernetes**:
+
    - Add service names: `registry.namespace.svc.cluster.local`
    - Add service IPs if using ClusterIP
    - Include any ingress hostnames
@@ -422,10 +677,10 @@ make verify-certs
 The Makefile automates the following steps:
 
 1. Generates root CA certificate
-2. Generates intermediate CA certificate
-3. Signs intermediate CA with root CA
-4. Generates registry certificates (peer, server, client profiles)
-5. Creates certificate chain for the registry
+1. Generates intermediate CA certificate
+1. Signs intermediate CA with root CA
+1. Generates registry certificates (peer, server, client profiles)
+1. Creates certificate chain for the registry
 
 ## Registry Configuration
 
@@ -484,7 +739,7 @@ health:
 
 ## Services Architecture
 
-### Docker Registry (port 6000)
+### Docker Registry (port 5000)
 
 - **Purpose**: Local Docker image storage and Docker Hub proxy cache
 - **Features**:
@@ -492,14 +747,14 @@ health:
   - Pull-through cache for Docker Hub
   - OpenTelemetry tracing to Jaeger
   - Prometheus metrics exposure
-- **API Endpoints** (accessible at `https://localhost:6000`):
+- **API Endpoints** (accessible at `https://localhost:5000`):
   - `/v2/` - API version check
   - `/v2/_catalog` - List all repositories
   - `/v2/{name}/tags/list` - List tags for a repository
   - `/v2/{name}/manifests/{reference}` - Get/Put/Delete manifests
   - `/v2/{name}/blobs/{digest}` - Get/Put/Delete blobs
 - **Internal endpoints**:
-  - `:5000` - Main API (mapped to host port 6000)
+  - `:5000` - Main API (mapped to host port 5000)
   - `:5001` - Debug/metrics (internal only)
 
 ### Jaeger (port 16686)
@@ -522,6 +777,7 @@ health:
   - Self-monitoring
 - **Configuration**: `prometheus/prometheus.yml`
 - **TLS Setup**: Uses registry certificates for client authentication when scraping metrics
+- **Rootless considerations**: Uses init container to set proper permissions
 
 ### Loki (port 3100)
 
@@ -541,21 +797,26 @@ health:
   - `:3100/ready` - Health check endpoint
   - `:3100/loki/api/v1/push` - Log ingestion endpoint
   - `:3100/loki/api/v1/query_range` - Query endpoint for log ranges
-- **Log Collection**: Uses Grafana Alloy to collect Docker container logs
+- **Rootless considerations**: Uses init container to set proper permissions (UID 10001)
 
-### Grafana Alloy (port 12345)
+### Grafana Alloy (port 12345) - Native Installation
 
-- **Purpose**: Modern observability collector that replaces Promtail
+- **Purpose**: Modern observability collector running as native systemd user service
 - **Features**:
-  - Automatically discovers Docker containers via Docker API
-  - Collects and processes container logs
+  - Automatically discovers Docker containers via rootless Docker socket
+  - Collects and processes container logs from `~/.local/share/docker/containers`
   - Extracts metadata and labels from containers
   - Parses JSON log format and extracts fields
   - Provides a web UI for monitoring collection status
   - Supports complex processing pipelines
-- **Configuration**: `alloy/config.alloy`
+- **Configuration**: `~/alloy/config.alloy`
+- **Service Management**: `systemctl --user {start|stop|status} alloy`
 - **UI Access**: <http://localhost:12345>
-- **Note**: Requires access to Docker socket and container log files
+- **Rootless advantages**:
+  - Direct access to rootless Docker socket (`/run/user/1000/docker.sock`)
+  - No namespace isolation issues
+  - Better performance than containerized version
+  - Easier debugging and configuration
 
 ### Grafana (port 3000)
 
@@ -567,6 +828,49 @@ health:
   - Anonymous viewer access enabled
 - **Default credentials**: Configured in `.env`
 
+## Docker Compose Configuration
+
+The docker-compose.yml has been optimized for rootless Docker:
+
+```yaml
+services:
+  # Prometheus init container for permissions
+  prometheus-init:
+    image: alpine:latest
+    container_name: prometheus-init
+    volumes:
+      - prometheus-data:/prometheus
+    command: >
+      sh -c "
+        chown -R 65534:65534 /prometheus &&
+        chmod -R 755 /prometheus
+      "
+    restart: "no"
+
+  # Loki init container for permissions
+  loki-init:
+    image: alpine:latest
+    container_name: loki-init
+    volumes:
+      - loki-data:/loki
+    command: >
+      sh -c "
+        chown -R 10001:10001 /loki &&
+        chmod -R 755 /loki
+      "
+    restart: "no"
+
+  # Note: Alloy service is removed from docker-compose
+  # It runs as a native systemd user service instead
+```
+
+**Key changes for rootless Docker**:
+
+- Added init containers to fix volume permissions
+- Removed Alloy from docker-compose (runs natively)
+- Updated health checks and dependencies
+- Optimized for user namespace isolation
+
 ## Testing the Registry
 
 ### Configure Docker to Trust the Registry
@@ -577,39 +881,39 @@ Before Docker can communicate with the registry, you need to configure both TLS 
 
 ##### Option A: Configure Docker daemon certificates (Recommended)
 
-**Linux:**
+**Rootless Docker:**
 
 ```bash
 # Create Docker certificate directory for the registry
-sudo mkdir -p /etc/docker/certs.d/localhost:6000
+mkdir -p ~/.docker/certs.d/localhost:5000
 
 # Copy the CA certificate (required)
-sudo cp certs/ca.pem /etc/docker/certs.d/localhost:6000/ca.crt
-
-# Set proper permissions
-sudo chmod 644 /etc/docker/certs.d/localhost:6000/ca.crt
+cp certs/ca.pem ~/.docker/certs.d/localhost:5000/ca.crt
 
 # Optional: For mutual TLS authentication
-sudo cp certs/registry-peer.pem /etc/docker/certs.d/localhost:6000/client.cert
-sudo cp certs/registry-peer-key.pem /etc/docker/certs.d/localhost:6000/client.key
-sudo chmod 644 /etc/docker/certs.d/localhost:6000/client.cert
-sudo chmod 600 /etc/docker/certs.d/localhost:6000/client.key
+cp certs/registry-peer.pem ~/.docker/certs.d/localhost:5000/client.cert
+cp certs/registry-peer-key.pem ~/.docker/certs.d/localhost:5000/client.key
+chmod 644 ~/.docker/certs.d/localhost:5000/client.cert
+chmod 600 ~/.docker/certs.d/localhost:5000/client.key
 ```
 
-**macOS:**
+**Linux (Regular Docker):**
 
 ```bash
 # Create Docker certificate directory for the registry
-mkdir -p $HOME/.docker/certs.d/localhost:6000
+sudo mkdir -p /etc/docker/certs.d/localhost:5000
 
 # Copy the CA certificate (required)
-cp certs/ca.pem $HOME/.docker/certs.d/localhost:6000/ca.crt
+sudo cp certs/ca.pem /etc/docker/certs.d/localhost:5000/ca.crt
+
+# Set proper permissions
+sudo chmod 644 /etc/docker/certs.d/localhost:5000/ca.crt
 
 # Optional: For mutual TLS authentication
-cp certs/registry-peer.pem $HOME/.docker/certs.d/localhost:6000/client.cert
-cp certs/registry-peer-key.pem $HOME/.docker/certs.d/localhost:6000/client.key
-chmod 644 $HOME/.docker/certs.d/localhost:6000/client.cert
-chmod 600 $HOME/.docker/certs.d/localhost:6000/client.key
+sudo cp certs/registry-peer.pem /etc/docker/certs.d/localhost:5000/client.cert
+sudo cp certs/registry-peer-key.pem /etc/docker/certs.d/localhost:5000/client.key
+sudo chmod 644 /etc/docker/certs.d/localhost:5000/client.cert
+sudo chmod 600 /etc/docker/certs.d/localhost:5000/client.key
 ```
 
 ##### Option B: System-wide trust (macOS)
@@ -628,21 +932,47 @@ sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keyc
 
 To use this registry as a pull-through cache for Docker Hub, update your Docker daemon configuration:
 
+##### Rootless Docker
+
+```bash
+# Edit daemon configuration
+nano ~/.config/docker/daemon.json
+
+# Add or update the configuration:
+{
+  "registry-mirrors": ["https://localhost:5000"],
+  "log-driver": "json-file",
+  "log-opts": {
+    "max-size": "10m",
+    "max-file": "3",
+    "compress": "true"
+  },
+  "storage-driver": "overlay2",
+  "features": {
+    "buildkit": true
+  },
+  "insecure-registries": ["localhost:5000"]
+}
+
+# Restart Docker
+systemctl --user restart docker
+```
+
 ##### macOS (Docker Desktop)
 
 1. Open Docker Desktop preferences
-2. Go to Docker Engine settings
-3. Update the JSON configuration:
+1. Go to Docker Engine settings
+1. Update the JSON configuration:
 
 ```json
 {
-  "registry-mirrors": ["https://localhost:6000"]
+  "registry-mirrors": ["https://localhost:5000"]
 }
 ```
 
 4. Click "Apply & Restart"
 
-##### Linux
+##### Linux (Regular Docker)
 
 1. Edit or create `/etc/docker/daemon.json`:
 
@@ -654,7 +984,7 @@ sudo nano /etc/docker/daemon.json
 
 ```json
 {
-  "registry-mirrors": ["https://localhost:6000"]
+  "registry-mirrors": ["https://localhost:5000"]
 }
 ```
 
@@ -672,7 +1002,7 @@ docker info | grep -A1 "Registry Mirrors"
 
 # Should show:
 # Registry Mirrors:
-#  https://localhost:6000/
+#  https://localhost:5000/
 ```
 
 ### Test Registry Access
@@ -684,50 +1014,50 @@ docker info | grep -A1 "Registry Mirrors"
    docker pull alpine:latest
 
    # Check that the image was cached in your registry
-   curl -sk https://localhost:6000/v2/_catalog
+   curl -sk https://localhost:5000/v2/_catalog
    # Should show: {"repositories":["library/alpine"]}
    ```
 
-2. **Test direct registry access**:
+1. **Test direct registry access**:
 
    ```bash
    # Pull directly from the registry (bypasses mirror config)
    make test-pull
-   # Or: docker pull localhost:6000/library/alpine:latest
+   # Or: docker pull localhost:5000/library/alpine:latest
    ```
 
-3. **Test pushing to the registry**:
+1. **Test pushing to the registry**:
 
    ```bash
    # Push a local image to the registry
    make test-push
-   # Or: docker tag alpine:latest localhost:6000/myimage:latest
-   #     docker push localhost:6000/myimage:latest
+   # Or: docker tag alpine:latest localhost:5000/myimage:latest
+   #     docker push localhost:5000/myimage:latest
    ```
 
-   Note: When configured as a mirror, the registry only caches images from Docker Hub. 
-   To push your own images, you must use the full registry URL (localhost:6000).
+   Note: When configured as a mirror, the registry only caches images from Docker Hub.
+   To push your own images, you must use the full registry URL (localhost:5000).
 
-4. **Access the Registry API directly**:
+1. **Access the Registry API directly**:
 
    The registry implements the [Docker Registry HTTP API V2](https://docs.docker.com/registry/spec/api/). Common endpoints:
 
    ```bash
    # Check registry availability
-   curl -k https://localhost:6000/v2/
+   curl -k https://localhost:5000/v2/
 
    # List all repositories
-   curl -k https://localhost:6000/v2/_catalog
+   curl -k https://localhost:5000/v2/_catalog
 
    # List tags for a specific repository
-   curl -k https://localhost:6000/v2/library/alpine/tags/list
+   curl -k https://localhost:5000/v2/library/alpine/tags/list
 
    # Get manifest for a specific tag
-   curl -k https://localhost:6000/v2/library/alpine/manifests/latest
+   curl -k https://localhost:5000/v2/library/alpine/manifests/latest
 
    # Get image configuration
    curl -k -H "Accept: application/vnd.docker.distribution.manifest.v2+json" \
-        https://localhost:6000/v2/library/alpine/manifests/latest
+        https://localhost:5000/v2/library/alpine/manifests/latest
    ```
 
    Note: The registry does not have a web UI. All interactions are through the Docker client or the HTTP API.
@@ -737,14 +1067,14 @@ docker info | grep -A1 "Registry Mirrors"
 ### Grafana Dashboard
 
 1. Access at <http://localhost:3000>
-2. Login with configured credentials
-3. Navigate to **Dashboards → Docker Registry**
-4. Monitor:
+1. Login with configured credentials
+1. Navigate to **Dashboards → Docker Registry**
+1. Monitor:
    - HTTP request rates and latencies
    - Cache hit ratios
    - Response code distribution
    - Storage metrics
-5. For log exploration:
+1. For log exploration:
    - Navigate to **Explore → Loki**
    - Query registry logs using LogQL
 
@@ -766,8 +1096,8 @@ rate(registry_storage_cache_hits_total[5m]) / rate(registry_storage_cache_reques
 ### Jaeger Traces
 
 1. Access at <http://localhost:16686>
-2. Select service: `docker-registry`
-3. View traces for:
+1. Select service: `docker-registry`
+1. View traces for:
    - Image pulls/pushes
    - Manifest operations
    - Blob uploads/downloads
@@ -781,31 +1111,28 @@ Access Loki through Grafana's Explore interface or use these example LogQL queri
 {job="docker_logs"}
 
 # View logs from the registry container
-{container_name="registry"}
+{container="registry"}
 
 # Filter by compose service
-{compose_service="registry"}
+{service="registry"}
 
 # Filter registry logs by level
-{container_name="registry"} |= "level=error"
+{container="registry"} |= "level=error"
 
 # Search for specific operations in registry
-{container_name="registry"} |= "pull" |= "manifest"
+{container="registry"} |= "pull" |= "manifest"
 
 # View logs from all monitoring stack containers
-{compose_project="registry"} |> {container_name=~"registry|prometheus|grafana|loki|alloy"}
+{compose_project="registry"} |> {container=~"registry|prometheus|grafana|loki"}
 
 # Parse and filter registry logs by HTTP status
-{container_name="registry"} | json | line_format "{{.log}}" | regexp `(?P<method>\S+)\s+(?P<path>\S+)\s+(?P<status>\d{3})` | status >= 400
+{container="registry"} | json | line_format "{{.log}}" | regexp `(?P<method>\S+)\s+(?P<path>\S+)\s+(?P<status>\d{3})` | status >= 400
 
 # Show logs for specific image pulls
-{container_name="registry"} |= "library/alpine"
+{container="registry"} |= "library/alpine"
 
 # Rate of errors over time
-rate({container_name="registry"} |= "error" [5m])
-
-# View Alloy collector logs
-{container_name="alloy"}
+rate({container="registry"} |= "error" [5m])
 ```
 
 ## Management Commands
@@ -829,7 +1156,6 @@ make logs-prometheus   # Prometheus only
 make logs-grafana      # Grafana only
 make logs-jaeger       # Jaeger only
 make logs-loki         # Loki only
-make logs-alloy        # Alloy only
 
 # Clean up (including volumes)
 make clean
@@ -848,65 +1174,152 @@ make gc
 make health
 
 # List repositories in registry
-curl -k https://localhost:6000/v2/_catalog
+curl -k https://localhost:5000/v2/_catalog
 
 # Get repository tags
-curl -k https://localhost:6000/v2/<repository>/tags/list
+curl -k https://localhost:5000/v2/<repository>/tags/list
 
 # View registry metrics
 make metrics
 ```
 
+### Alloy Management
+
+```bash
+# Start Alloy service
+systemctl --user start alloy
+# Or: make alloy-start
+
+# Stop Alloy service
+systemctl --user stop alloy
+# Or: make alloy-stop
+
+# Check Alloy status
+systemctl --user status alloy
+# Or: make alloy-status
+
+# View Alloy logs
+journalctl --user -u alloy -f
+# Or: make alloy-logs
+
+# Restart Alloy service
+systemctl --user restart alloy
+
+# Access Alloy UI
+curl http://localhost:12345
+# Or open http://localhost:12345 in browser
+```
+
 ## Security Considerations
 
+1. **Rootless Docker**: Provides better security isolation with user-namespace separation
 1. **Self-signed certificates**: Not suitable for production environments
-2. **Credentials**: Stored in `.env` file - ensure it's in `.gitignore`
-3. **Network isolation**: Internal service ports not exposed to host
-4. **TLS enforcement**: Minimum TLS 1.2 with strong cipher suites
-5. **Mutual TLS**: Prometheus authenticates to registry using client certificates
-6. **Access control**: Consider implementing token authentication for production
+1. **Credentials**: Stored in `.env` file - ensure it's in `.gitignore`
+1. **Network isolation**: Internal service ports not exposed to host
+1. **TLS enforcement**: Minimum TLS 1.2 with strong cipher suites
+1. **Mutual TLS**: Prometheus authenticates to registry using client certificates
+1. **User services**: Alloy runs as user service with limited privileges
+1. **Socket access**: Rootless Docker socket has restricted access
+1. **Volume permissions**: Init containers ensure proper ownership
 
 ## Troubleshooting
 
-### Loki/Alloy Issues
+### Rootless Docker Issues
 
-1. **No logs appearing in Grafana**:
-   - Check if Alloy is running and healthy:
-     ```bash
-     docker-compose logs alloy
-     ```
-   - Access Alloy UI at <http://localhost:12345> to check status
-   - Verify Docker container logs location exists:
-     ```bash
-     ls -la /var/lib/docker/containers/
-     ```
-   - Check if Alloy is discovering containers properly in the UI
+1. **Docker daemon not starting**:
 
-2. **"failed to tail file" errors in Alloy logs**:
-   - This usually means the log file path pattern is incorrect
-   - Docker logs are stored as `<container_id>/<container_id>-json.log`
-   - Ensure the Alloy config uses the correct path pattern
+   ```bash
+   # Check rootless Docker status
+   systemctl --user status docker
 
-3. **Loki configuration errors**:
-   - Modern Loki requires schema v13 and TSDB index type
-   - If you see schema-related errors, ensure you're using the latest config
-   - Check Loki logs: `docker-compose logs loki`
+   # Check for namespace issues
+   echo $XDG_RUNTIME_DIR
+   ls -la /run/user/$(id -u)/docker.sock
 
-4. **Permission denied errors**:
-   - Alloy needs read access to Docker container logs
-   - The Docker socket mount is required for container discovery
-   - On some systems, you may need to adjust permissions
+   # Restart rootless Docker
+   systemctl --user restart docker
+   ```
 
-5. **Debugging tips**:
-   - Access the Alloy UI at <http://localhost:12345>
-   - Navigate to the graph page to see component status
-   - Check discovered targets and their labels
-   - Use Loki's API to verify log ingestion:
-     ```bash
-     curl -G -s --data-urlencode 'query={job="docker_logs"}' \
-          --data-urlencode 'limit=5' \
-          http://localhost:3100/loki/api/v1/query_range
-     ```
+1. **Resource control warnings**:
+
+   ```bash
+   # Expected warnings in docker info (these are normal)
+   WARNING: No cpuset support
+   WARNING: No io.weight support
+
+   # Enable cgroup delegation if needed
+   sudo mkdir -p /etc/systemd/system/user@.service.d
+   sudo tee /etc/systemd/system/user@.service.d/delegate.conf << 'EOF'
+   [Service]
+   Delegate=cpu cpuset io memory pids
+   EOF
+   sudo systemctl daemon-reload
+   sudo systemctl restart user@$(id -u).service
+   ```
+
+### Alloy Issues
+
+1. **Cannot connect to Docker socket**:
+
+   ```bash
+   # Check socket path and permissions
+   ls -la /run/user/$(id -u)/docker.sock
+
+   # Verify Alloy configuration
+   ~/.local/bin/alloy fmt ~/alloy/config.alloy
+
+   # Test manually
+   ~/.local/bin/alloy run ~/alloy/config.alloy --server.http.listen-addr=0.0.0.0:12345
+   ```
+
+1. **Service fails to start**:
+
+   ```bash
+   # Check service logs
+   journalctl --user -u alloy -f
+
+   # Verify binary location
+   ls -la ~/.local/bin/alloy
+
+   # Check service configuration
+   systemctl --user cat alloy
+   ```
+
+1. **No containers discovered**:
+
+   ```bash
+   # Access Alloy UI to debug
+   curl http://localhost:12345
+
+   # Check if Docker is running containers
+   docker ps
+
+   # Verify socket access
+   docker version
+   ```
+
+### Volume Permission Issues
+
+1. **Prometheus/Loki permission denied**:
+
+   ```bash
+   # Check init containers ran successfully
+   docker-compose logs prometheus-init
+   docker-compose logs loki-init
+
+   # Manual permission fix if needed
+   docker run --rm -v prometheus-data:/data alpine chown -R 65534:65534 /data
+   docker run --rm -v loki-data:/data alpine chown -R 10001:10001 /data
+   ```
+
+1. **Volume ownership issues**:
+
+   ```bash
+   # Remove and recreate volumes
+   docker-compose down
+   docker volume rm $(docker-compose config --volumes)
+   docker-compose up -d
+   ```
 
 ### Certificate Issues
 
@@ -916,6 +1329,10 @@ make verify-certs
 
 # Test TLS connection
 make test-tls
+
+# Check Docker certificate configuration
+ls -la ~/.docker/certs.d/localhost:5000/  # Rootless
+ls -la /etc/docker/certs.d/localhost:5000/ # Regular Docker
 ```
 
 ### Registry Connection Issues
@@ -925,11 +1342,14 @@ make test-tls
 make health
 
 # Test specific API endpoints
-curl -k https://localhost:6000/v2/
-curl -k https://localhost:6000/v2/_catalog
+curl -k https://localhost:5000/v2/
+curl -k https://localhost:5000/v2/_catalog
 
 # View detailed logs
 make logs-registry
+
+# Check Docker daemon configuration
+docker info | grep -A1 "Registry Mirrors"
 ```
 
 ### Metrics Not Appearing
@@ -940,32 +1360,22 @@ make logs-registry
    make prometheus-targets
    ```
 
-2. Verify registry metrics endpoint:
+1. Verify registry metrics endpoint:
 
    ```bash
    make metrics
    ```
 
-3. Check Prometheus logs:
+1. Check Prometheus logs:
 
    ```bash
    make logs-prometheus
    ```
 
-4. Verify TLS certificates are properly mounted in Prometheus container:
+1. Verify TLS certificates are properly mounted in Prometheus container:
 
    ```bash
    make verify-prometheus-certs
-   ```
-
-5. Check Docker certificate configuration:
-
-   ```bash
-   # Linux
-   ls -la /etc/docker/certs.d/localhost:6000/
-
-   # macOS
-   ls -la $HOME/.docker/certs.d/localhost:6000/
    ```
 
 ## File Structure
@@ -982,16 +1392,23 @@ make logs-registry
 │   └── prometheus.yml        # Scrape configurations with TLS client auth
 ├── loki/                     # Loki configuration
 │   └── loki-config.yaml      # Loki server configuration
-├── alloy/                    # Grafana Alloy configuration
-│   └── config.alloy          # Alloy collector configuration
 ├── grafana/                  # Grafana provisioning
 │   └── provisioning/
 │       ├── datasources/      # Pre-configured datasources (Prometheus, Jaeger, Loki)
 │       └── dashboards/       # Pre-configured dashboards
 ├── config.yaml               # Registry configuration
-├── docker-compose.yaml       # Service definitions
+├── docker-compose.yaml       # Service definitions (without Alloy)
 ├── .env.example              # Environment template
-└── .gitignore                # Git ignore patterns
+├── .gitignore                # Git ignore patterns
+└── README.md                 # This file
+
+# User-specific files (rootless Docker)
+~/.config/docker/daemon.json  # Docker daemon configuration
+~/.local/bin/alloy            # Alloy binary
+~/alloy/config.alloy          # Alloy configuration
+~/.config/systemd/user/alloy.service  # Alloy systemd service
+~/.local/share/docker/        # Docker data directory
+~/.local/share/alloy/         # Alloy data directory
 ```
 
 ## Performance Tuning
@@ -1000,10 +1417,17 @@ make logs-registry
 - **Concurrent operations**: Modify `tag.concurrencylimit` based on load
 - **Storage driver**: Consider S3 or other drivers for production
 - **Resource limits**: Add CPU/memory limits in docker-compose.yaml
+- **Rootless optimizations**:
+  - Use cgroup delegation for better resource control
+  - Consider running critical services natively (like Alloy)
+  - Monitor resource usage with `docker stats`
 
 ## References
 
 - [Docker Registry Configuration Reference](https://distribution.github.io/distribution/about/configuration/)
 - [Docker Hub Registry Mirror Documentation](https://docs.docker.com/docker-hub/image-library/mirror/)
+- [Rootless Docker Documentation](https://docs.docker.com/engine/security/rootless/)
 - [CFSSL Documentation](https://github.com/cloudflare/cfssl)
+- [Grafana Alloy Documentation](https://grafana.com/docs/alloy/)
 - [OpenTelemetry Registry Instrumentation](https://opentelemetry.io/)
+- [Loki LogQL Documentation](https://grafana.com/docs/loki/latest/logql/)
