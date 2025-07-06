@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smigula.io - Infrastructure Services</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container {
+            text-align: center;
+            padding: 2rem;
+            max-width: 800px;
+        }
+
+        .logo {
+            font-size: 3rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            margin-bottom: 3rem;
+            opacity: 0.9;
+        }
+
+        .services {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .service-card {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 2rem;
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            text-decoration: none;
+            color: inherit;
+            display: block;
+        }
+
+        .service-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .service-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .service-title {
+            font-size: 1.3rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+
+        .service-description {
+            font-size: 0.9rem;
+            opacity: 0.8;
+            line-height: 1.4;
+        }
+
+        .footer {
+            opacity: 0.7;
+            font-size: 0.9rem;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background: #4CAF50;
+            border-radius: 50%;
+            margin-right: 8px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        @media (max-width: 768px) {
+            .logo {
+                font-size: 2rem;
+            }
+            .services {
+                grid-template-columns: 1fr;
+            }
+            .container {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">🚀 Smigula.io</div>
+        <div class="subtitle">Infrastructure & Development Services</div>
+        <div class="services">
+            <a href="https://grafana.smigula.io" class="service-card">
+                <div class="service-icon">📊</div>
+                <div class="service-title">
+                    <span class="status-indicator"></span>
+                    Grafana
+                </div>
+                <div class="service-description">
+                    Monitoring dashboards, metrics visualization, and alerting platform
+                </div>
+            </a>
+            <a href="https://jaeger.smigula.io" class="service-card">
+                <div class="service-icon">🔍</div>
+                <div class="service-title">
+                    <span class="status-indicator"></span>
+                    Jaeger
+                </div>
+                <div class="service-description">
+                    Distributed tracing system for monitoring and troubleshooting microservices
+                </div>
+            </a>
+            <a href="https://registry.smigula.io/v2/" class="service-card">
+                <div class="service-icon">📦</div>
+                <div class="service-title">
+                    <span class="status-indicator"></span>
+                    Docker Registry
+                </div>
+                <div class="service-description">
+                    Private Docker image registry with Docker Hub mirroring capabilities
+                </div>
+            </a>
+        </div>
+        <div class="footer">
+            <p>Powered by Docker & Caddy • Secured with automatic HTTPS</p>
+        </div>
+    </div>
+
+    <script>
+        // Simple health check for status indicators
+        async function checkServices() {
+            const services = [
+                { url: 'https://grafana.smigula.io', selector: '.service-card:nth-child(1) .status-indicator' },
+                { url: 'https://jaeger.smigula.io', selector: '.service-card:nth-child(2) .status-indicator' },
+                { url: 'https://registry.smigula.io/v2/', selector: '.service-card:nth-child(3) .status-indicator' }
+            ];
+
+            services.forEach(async (service) => {
+                try {
+                    const response = await fetch(service.url, { mode: 'no-cors' });
+                    // Since we can't read the response due to CORS, we assume it's healthy if no error
+                    document.querySelector(service.selector).style.background = '#4CAF50';
+                } catch (error) {
+                    document.querySelector(service.selector).style.background = '#f44336';
+                }
+            });
+        }
+
+        // Check services on load
+        document.addEventListener('DOMContentLoaded', checkServices);
+
+        // Refresh status every 30 seconds
+        setInterval(checkServices, 30000);
+    </script>
+</body>
+</html>
