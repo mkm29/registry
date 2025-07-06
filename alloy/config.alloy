@@ -2,7 +2,7 @@
 
 // Discovery component to find Docker containers
 discovery.docker "containers" {
-  host = "unix:///var/run/docker.sock"
+  host = "unix:///run/user/1000/docker.sock"
 }
 
 // Relabel to extract container metadata
