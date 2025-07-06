@@ -289,3 +289,27 @@ request.smigula.io {
 }
 
 # Plex
+plex.smigula.io {
+	basic_auth {
+		smigula $2a$14$oIo.CMitlcZBdt9/vFxPHuUT.Zvhnby7bohaTq53N8cX1sehsIldq
+	}
+	reverse_proxy 127.0.0.1:32400 {
+		header_up Host {upstream_hostport}
+		header_up X-Real-IP {remote_host}
+		# Removed X-Forwarded-For and X-Forwarded-Proto as they're automatic
+	}
+
+	# Security headers
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "SAMEORIGIN"
+		Referrer-Policy "strict-origin-when-cross-origin"
+	}
+
+	# Logging
+	log {
+		output file /var/log/caddy/plex.smigula.io.log
+		format json
+	}
+}

@@ -1,114 +1,213 @@
 // Grafana Alloy configuration for Docker log collection
 
+// Configuration variables
+argument "base_path" {
+	optional = true
+	default  = env("HOME")
+}
+
+argument "project_path" {
+	optional = true
+	default  = argument.base_path.value + "/registry"
+}
+
 // Discovery component to find Docker containers
 discovery.docker "containers" {
-  host = "unix:///run/user/1000/docker.sock"
-  refresh_interval = "5s"
+	host             = "unix:///run/user/1000/docker.sock"
+	refresh_interval = "5s"
 }
 
 // Relabel to extract container metadata
 discovery.relabel "containers" {
-  targets = discovery.docker.containers.targets
+	targets = discovery.docker.containers.targets
 
-  // Keep container name
-  rule {
-    source_labels = ["__meta_docker_container_name"]
-    regex         = "/(.*)"
-    target_label  = "container_name"
-  }
+	// Keep container name
+	rule {
+		source_labels = ["__meta_docker_container_name"]
+		regex         = "/(.*)"
+		target_label  = "container_name"
+	}
 
-  // Keep container ID
-  rule {
-    source_labels = ["__meta_docker_container_id"]
-    target_label  = "container_id"
-  }
+	// Keep container ID
+	rule {
+		source_labels = ["__meta_docker_container_id"]
+		target_label  = "container_id"
+	}
 
-  // Keep container image
-  rule {
-    source_labels = ["__meta_docker_container_image"]
-    target_label  = "container_image"
-  }
+	// Keep container image
+	rule {
+		source_labels = ["__meta_docker_container_image"]
+		target_label  = "container_image"
+	}
 
-  // Add job label
-  rule {
-    target_label = "job"
-    replacement  = "docker_logs"
-  }
+	// Add job label
+	rule {
+		target_label = "job"
+		replacement  = "docker_logs"
+	}
 
-  // Set the log path
-  rule {
-    source_labels = ["__meta_docker_container_id"]
-    target_label  = "__path__"
-    replacement   = "/home/madmin/.config/containers/storage/$1/$1-json.log"
-  }
+	// Set the log path
+	rule {
+		source_labels = ["__meta_docker_container_id"]
+		target_label  = "__path__"
+		replacement   = argument.base_path.value + "/.local/share/containers/storage/overlay-containers/$1/userdata/ctr.log"
+	}
 
-  // Add compose project name
-  rule {
-    source_labels = ["__meta_docker_container_label_com_docker_compose_project"]
-    target_label  = "compose_project"
-  }
+	// Add compose project name
+	rule {
+		source_labels = ["__meta_docker_container_label_com_docker_compose_project"]
+		target_label  = "compose_project"
+	}
 
-  // Add compose service name
-  rule {
-    source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
-    target_label  = "compose_service"
-  }
+	// Add compose service name
+	rule {
+		source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+		target_label  = "compose_service"
+	}
 }
 
 // Local file source to read Docker container logs
 loki.source.file "docker_logs" {
-  targets    = discovery.relabel.containers.output
-  forward_to = [loki.process.docker_logs.receiver]
+	targets    = discovery.relabel.containers.output
+	forward_to = [loki.process.docker_logs.receiver]
 }
 
 // Process pipeline for Docker logs
 loki.process "docker_logs" {
-  forward_to = [loki.write.loki.receiver]
+	forward_to = [loki.write.loki.receiver]
 
-  // Parse JSON logs
-  stage.json {
-    expressions = {
-      output    = "log",
-      stream    = "stream",
-      timestamp = "time",
-    }
-  }
+	// Parse JSON logs
+	stage.json {
+		expressions = {
+			output    = "log",
+			stream    = "stream",
+			timestamp = "time",
+		}
+	}
 
-  // Use timestamp from Docker
-  stage.timestamp {
-    source = "timestamp"
-    format = "RFC3339Nano"
-  }
+	// Use timestamp from Docker
+	stage.timestamp {
+		source = "timestamp"
+		format = "RFC3339Nano"
+	}
 
-  // Parse registry logs format if present
-  stage.regex {
-    expression = "^(?P<timestamp>\\S+)\\s+(?P<level>\\S+)\\s+(?P<component>\\S+)\\s+(?P<msg>.*)"
-    source     = "output"
-  }
+	// Parse registry logs format if present
+	stage.regex {
+		expression = "^(?P<timestamp>\\S+)\\s+(?P<level>\\S+)\\s+(?P<component>\\S+)\\s+(?P<msg>.*)"
+		source     = "output"
+	}
 
-  // Set output to the actual log message
-  stage.output {
-    source = "output"
-  }
+	// Set output to the actual log message
+	stage.output {
+		source = "output"
+	}
 
-  // Add labels
-  stage.labels {
-    values = {
-      level     = "level",
-      component = "component",
-      stream    = "stream",
-    }
-  }
+	// Add labels
+	stage.labels {
+		values = {
+			level     = "level",
+			component = "component",
+			stream    = "stream",
+		}
+	}
 
-  // Drop empty lines
-  stage.drop {
-    expression = "^\\s*$"
-  }
+	// Drop empty lines
+	stage.drop {
+		expression = "^\\s*$"
+	}
+}
+
+// Static targets for Caddy logs using glob pattern
+discovery.static "caddy_logs" {
+	target {
+		__path__ = argument.project_path.value + "/caddy/logs/*.smigula.io.log"
+		job      = "caddy_logs"
+	}
+}
+
+// Relabel to extract service name from filename
+discovery.relabel "caddy_logs" {
+	targets = discovery.static.caddy_logs.targets
+
+	// Extract service name from filename (e.g., grafana.smigula.io.log -> grafana.smigula.io)
+	rule {
+		source_labels = ["__path__"]
+		regex         = ".*/([^/]+)\\.log"
+		target_label  = "service"
+	}
+}
+
+// File source for Caddy logs
+loki.source.file "caddy_logs" {
+	targets    = discovery.relabel.caddy_logs.output
+	forward_to = [loki.process.caddy_logs.receiver]
+}
+
+// Process pipeline for Caddy logs
+loki.process "caddy_logs" {
+	forward_to = [loki.write.loki.receiver]
+
+	// Parse JSON format from Caddy
+	stage.json {
+		expressions = {
+			ts           = "ts",
+			level        = "level",
+			msg          = "msg",
+			request      = "request",
+			user_id      = "user_id",
+			duration     = "duration",
+			size         = "size",
+			status       = "status",
+			resp_headers = "resp_headers",
+		}
+	}
+
+	// Parse timestamp
+	stage.timestamp {
+		source = "ts"
+		format = "unix"
+	}
+
+	// Parse request details if present
+	stage.json {
+		source      = "request"
+		expressions = {
+			method      = "method",
+			uri         = "uri",
+			proto       = "proto",
+			remote_ip   = "remote_ip",
+			remote_port = "remote_port",
+			client_ip   = "client_ip",
+			host        = "host",
+			headers     = "headers",
+		}
+	}
+
+	// Add labels
+	stage.labels {
+		values = {
+			level     = "level",
+			method    = "method",
+			status    = "status",
+			host      = "host",
+			client_ip = "client_ip",
+		}
+	}
+
+	// Set output to the message
+	stage.output {
+		source = "msg"
+	}
+
+	// Drop empty lines
+	stage.drop {
+		expression = "^\\s*$"
+	}
 }
 
 // Write logs to Loki
 loki.write "loki" {
-  endpoint {
-    url = "http://loki:3100/loki/api/v1/push"
-  }
+	endpoint {
+		url = "http://loki:3100/loki/api/v1/push"
+	}
 }
