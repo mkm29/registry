@@ -15,6 +15,8 @@ services:
     ports:
       - ${RADARR_PORT}:7878
     restart: unless-stopped
+    networks:
+      - mediaserver
 
   # TV
   sonarr:
@@ -31,6 +33,8 @@ services:
     ports:
       - ${SONARR_PORT}:8989
     restart: unless-stopped
+    networks:
+      - mediaserver
 
   # Subtitles
   bazarr:
@@ -47,6 +51,8 @@ services:
     ports:
       - ${BAZARR_PORT}:6767
     restart: unless-stopped
+    networks:
+      - mediaserver
 
   # Indexer
   prowlarr:
@@ -61,6 +67,8 @@ services:
     ports:
       - ${PROWLARR_PORT}:9696
     restart: unless-stopped
+    networks:
+      - mediaserver
 
   # Torrent Client
   qbittorrent:
@@ -81,6 +89,8 @@ services:
       - ${QBITTORRENT_TORRENTING_PORT}:6881
       - ${QBITTORRENT_TORRENTING_PORT}:6881/udp
     restart: unless-stopped
+    networks:
+      - mediaserver
 
   # Requesting Web App
   overseerr:
@@ -95,6 +105,8 @@ services:
     ports:
       - ${OVERSEERR_PORT}:5055
     restart: unless-stopped
+    networks:
+      - mediaserver
 
   # Media Server
   plex:
@@ -112,6 +124,7 @@ services:
       - ${DATA_ROOT}/media/tv:/tv
       - ${DATA_ROOT}/media/movies:/movies
     restart: unless-stopped
+    # Note: Plex uses host networking for better performance and compatibility
 
   # VPN
   nordlynx:
@@ -121,3 +134,8 @@ services:
     environment:
       - PRIVATE_KEY=${NORDLYNX_PRIVATE_KEY}
     restart: unless-stopped
+    network_mode: host
+
+networks:
+  mediaserver:
+    driver: bridge

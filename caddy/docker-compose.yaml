@@ -12,14 +12,14 @@ services:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
+      - ./logs:/var/log/caddy
     environment:
       # Optional: Set email for Let's Encrypt notifications
       - ACME_EMAIL=admin@smigula.io
     networks:
       - caddy-proxy
       - registry_monitoring
-      - host
-      - bridge
+      - mediaserver
 
   landing:
     image: nginx:alpine
@@ -42,4 +42,6 @@ networks:
   caddy-proxy:
     driver: bridge
   registry_monitoring:
+    external: true
+  mediaserver:
     external: true
