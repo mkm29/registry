@@ -113,8 +113,6 @@ services:
     container_name: alloy
     restart: always
     network_mode: host
-    ports:
-      - "12345:12345"  # Alloy UI
     volumes:
       - ./alloy/config.alloy:/etc/alloy/config.alloy:ro
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
@@ -126,8 +124,6 @@ services:
       - --storage.path=/var/lib/alloy/data
     environment:
       - HOSTNAME=alloy
-    networks:
-      - monitoring
     depends_on:
       - loki
 
