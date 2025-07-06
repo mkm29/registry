@@ -6,7 +6,7 @@ certs/
 *.csr
 
 # Environment files with secrets
-.env
+.envrc
 .env.local
 .env.*.local
 
