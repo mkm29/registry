@@ -112,6 +112,7 @@ services:
     image: grafana/alloy:latest
     container_name: alloy
     restart: always
+    network_mode: host
     ports:
       - "12345:12345"  # Alloy UI
     volumes:
