@@ -69,7 +69,6 @@ acme_ca https://acme-v02.api.letsencrypt.org/directory
 ## Management Commands
 
 ```bash
-./setup.sh   # Setup script to initialize environment
 ./status.sh  # Check status and certificates
 ```
 
