@@ -1,6 +1,6 @@
 services:
   caddy:
-    image: caddy:2-alpine
+    image: caddy:2.10.0-alpine
     container_name: caddy-proxy
     restart: unless-stopped
     ports:
@@ -35,3 +35,7 @@ volumes:
 networks:
   caddy-proxy:
     driver: bridge
+  registry_monitoring:
+    external: true
+  mediaserver:
+    external: true
