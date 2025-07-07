@@ -3,15 +3,9 @@
 	# Use Let's Encrypt for automatic TLS certificates
 	acme_ca https://acme-v02.api.letsencrypt.org/directory
 
-	# Alternative: Use ZeroSSL (uncomment to use instead of Let's Encrypt)
-	# acme_ca https://acme.zerossl.com/v2/DV90
-
 	# Email for certificate notifications
 	email admin@smigula.io
 
-	# Note: auto_https is enabled by default, no need to specify it
-
-	# Log level (DEBUG, INFO, WARN, ERROR)
 	log {
 		level INFO
 	}
@@ -38,14 +32,12 @@ smigula.io {
 		Referrer-Policy "strict-origin-when-cross-origin"
 	}
 
-	# Logging
 	log {
 		output file /data/logs/smigula.io.log
 		format json
 	}
 }
 
-# Grafana subdomain
 grafana.smigula.io {
 	basic_auth {
 		smigula $2a$14$oIo.CMitlcZBdt9/vFxPHuUT.Zvhnby7bohaTq53N8cX1sehsIldq
@@ -54,10 +46,8 @@ grafana.smigula.io {
 		# Preserve original host header
 		header_up Host {upstream_hostport}
 		header_up X-Real-IP {remote_host}
-		# Removed X-Forwarded-For and X-Forwarded-Proto as they're automatic
 	}
 
-	# Security headers
 	header {
 		Strict-Transport-Security "max-age=31536000; includeSubDomains"
 		X-Content-Type-Options "nosniff"
@@ -65,14 +55,12 @@ grafana.smigula.io {
 		Referrer-Policy "strict-origin-when-cross-origin"
 	}
 
-	# Logging
 	log {
 		output file /data/logs/grafana.smigula.io.log
 		format json
 	}
 }
 
-# Jaeger subdomain
 jaeger.smigula.io {
 	basic_auth {
 		smigula $2a$14$oIo.CMitlcZBdt9/vFxPHuUT.Zvhnby7bohaTq53N8cX1sehsIldq
@@ -80,10 +68,8 @@ jaeger.smigula.io {
 	reverse_proxy jaeger:16686 {
 		header_up Host {upstream_hostport}
 		header_up X-Real-IP {remote_host}
-		# Removed X-Forwarded-For and X-Forwarded-Proto as they're automatic
 	}
 
-	# Security headers
 	header {
 		Strict-Transport-Security "max-age=31536000; includeSubDomains"
 		X-Content-Type-Options "nosniff"
@@ -91,14 +77,12 @@ jaeger.smigula.io {
 		Referrer-Policy "strict-origin-when-cross-origin"
 	}
 
-	# Logging
 	log {
 		output file /data/logs/jaeger.smigula.io.log
 		format json
 	}
 }
 
-# Docker Registry subdomain
 registry.smigula.io {
 	basic_auth {
 		smigula $2a$14$oIo.CMitlcZBdt9/vFxPHuUT.Zvhnby7bohaTq53N8cX1sehsIldq
@@ -106,14 +90,11 @@ registry.smigula.io {
 	reverse_proxy registry:5000 {
 		header_up Host {upstream_hostport}
 		header_up X-Real-IP {remote_host}
-		# Removed X-Forwarded-For and X-Forwarded-Proto as they're automatic
-
 		# Docker registry specific headers
 		header_up X-Forwarded-Port {server_port}
 		header_up Docker-Distribution-Api-Version "registry/2.0"
 	}
 
-	# Security headers
 	header {
 		Strict-Transport-Security "max-age=31536000; includeSubDomains"
 		X-Content-Type-Options "nosniff"
@@ -121,7 +102,6 @@ registry.smigula.io {
 		Referrer-Policy "strict-origin-when-cross-origin"
 	}
 
-	# Logging
 	log {
 		output file /data/logs/registry.smigula.io.log
 		format json

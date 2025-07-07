@@ -19,12 +19,14 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            padding: 2rem 0;
         }
 
         .container {
             text-align: center;
             padding: 2rem;
-            max-width: 800px;
+            max-width: 1200px;
+            width: 100%;
         }
 
         .logo {
@@ -40,16 +42,28 @@
             opacity: 0.9;
         }
 
+        .section {
+            margin-bottom: 3rem;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            opacity: 0.9;
+        }
+
         .services {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 2rem;
-            margin-bottom: 3rem;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
         }
 
         .service-card {
             background: rgba(255, 255, 255, 0.1);
-            padding: 2rem;
+            padding: 1.5rem;
             border-radius: 12px;
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.2);
@@ -65,18 +79,18 @@
         }
 
         .service-icon {
-            font-size: 2.5rem;
-            margin-bottom: 1rem;
+            font-size: 2rem;
+            margin-bottom: 0.75rem;
         }
 
         .service-title {
-            font-size: 1.3rem;
+            font-size: 1.1rem;
             font-weight: bold;
             margin-bottom: 0.5rem;
         }
 
         .service-description {
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             opacity: 0.8;
             line-height: 1.4;
         }
@@ -119,38 +133,119 @@
     <div class="container">
         <div class="logo">🚀 Smigula.io</div>
         <div class="subtitle">Infrastructure & Development Services</div>
-        <div class="services">
-            <a href="https://grafana.smigula.io" class="service-card">
-                <div class="service-icon">📊</div>
-                <div class="service-title">
-                    <span class="status-indicator"></span>
-                    Grafana
-                </div>
-                <div class="service-description">
-                    Monitoring dashboards, metrics visualization, and alerting platform
-                </div>
-            </a>
-            <a href="https://jaeger.smigula.io" class="service-card">
-                <div class="service-icon">🔍</div>
-                <div class="service-title">
-                    <span class="status-indicator"></span>
-                    Jaeger
-                </div>
-                <div class="service-description">
-                    Distributed tracing system for monitoring and troubleshooting microservices
-                </div>
-            </a>
-            <a href="https://registry.smigula.io/v2/" class="service-card">
-                <div class="service-icon">📦</div>
-                <div class="service-title">
-                    <span class="status-indicator"></span>
-                    Docker Registry
-                </div>
-                <div class="service-description">
-                    Private Docker image registry with Docker Hub mirroring capabilities
-                </div>
-            </a>
+        
+        <div class="section">
+            <h2 class="section-title">Infrastructure</h2>
+            <div class="services">
+                <a href="https://grafana.smigula.io" class="service-card">
+                    <div class="service-icon">📊</div>
+                    <div class="service-title">
+                        <span class="status-indicator"></span>
+                        Grafana
+                    </div>
+                    <div class="service-description">
+                        Monitoring dashboards, metrics visualization, and alerting platform
+                    </div>
+                </a>
+                <a href="https://jaeger.smigula.io" class="service-card">
+                    <div class="service-icon">🔍</div>
+                    <div class="service-title">
+                        <span class="status-indicator"></span>
+                        Jaeger
+                    </div>
+                    <div class="service-description">
+                        Distributed tracing system for monitoring and troubleshooting microservices
+                    </div>
+                </a>
+                <a href="https://registry.smigula.io/v2/" class="service-card">
+                    <div class="service-icon">📦</div>
+                    <div class="service-title">
+                        <span class="status-indicator"></span>
+                        Docker Registry
+                    </div>
+                    <div class="service-description">
+                        Private Docker image registry with Docker Hub mirroring capabilities
+                    </div>
+                </a>
+            </div>
         </div>
+
+        <div class="section">
+            <h2 class="section-title">Media Services</h2>
+            <div class="services">
+                <a href="https://plex.smigula.io" class="service-card">
+                    <div class="service-icon">🎬</div>
+                    <div class="service-title">
+                        <span class="status-indicator"></span>
+                        Plex
+                    </div>
+                    <div class="service-description">
+                        Media server for streaming movies, TV shows, and personal media
+                    </div>
+                </a>
+                <a href="https://request.smigula.io" class="service-card">
+                    <div class="service-icon">🎭</div>
+                    <div class="service-title">
+                        <span class="status-indicator"></span>
+                        Overseerr
+                    </div>
+                    <div class="service-description">
+                        Media request management and discovery tool for Plex libraries
+                    </div>
+                </a>
+                <a href="https://radarr.smigula.io" class="service-card">
+                    <div class="service-icon">🎬</div>
+                    <div class="service-title">
+                        <span class="status-indicator"></span>
+                        Radarr
+                    </div>
+                    <div class="service-description">
+                        Movie collection manager with automatic downloading and organization
+                    </div>
+                </a>
+                <a href="https://sonarr.smigula.io" class="service-card">
+                    <div class="service-icon">📺</div>
+                    <div class="service-title">
+                        <span class="status-indicator"></span>
+                        Sonarr
+                    </div>
+                    <div class="service-description">
+                        TV show collection manager with automatic episode tracking
+                    </div>
+                </a>
+                <a href="https://bazarr.smigula.io" class="service-card">
+                    <div class="service-icon">💬</div>
+                    <div class="service-title">
+                        <span class="status-indicator"></span>
+                        Bazarr
+                    </div>
+                    <div class="service-description">
+                        Subtitle management for movies and TV shows
+                    </div>
+                </a>
+                <a href="https://prowlarr.smigula.io" class="service-card">
+                    <div class="service-icon">🔎</div>
+                    <div class="service-title">
+                        <span class="status-indicator"></span>
+                        Prowlarr
+                    </div>
+                    <div class="service-description">
+                        Indexer manager and proxy for media automation apps
+                    </div>
+                </a>
+                <a href="https://bt.smigula.io" class="service-card">
+                    <div class="service-icon">⬇️</div>
+                    <div class="service-title">
+                        <span class="status-indicator"></span>
+                        qBittorrent
+                    </div>
+                    <div class="service-description">
+                        BitTorrent client with web interface for downloads
+                    </div>
+                </a>
+            </div>
+        </div>
+
         <div class="footer">
             <p>Powered by Docker & Caddy • Secured with automatic HTTPS</p>
         </div>
@@ -160,9 +255,18 @@
         // Simple health check for status indicators
         async function checkServices() {
             const services = [
-                { url: 'https://grafana.smigula.io', selector: '.service-card:nth-child(1) .status-indicator' },
-                { url: 'https://jaeger.smigula.io', selector: '.service-card:nth-child(2) .status-indicator' },
-                { url: 'https://registry.smigula.io/v2/', selector: '.service-card:nth-child(3) .status-indicator' }
+                // Infrastructure
+                { url: 'https://grafana.smigula.io', selector: '.section:nth-child(3) .service-card:nth-child(1) .status-indicator' },
+                { url: 'https://jaeger.smigula.io', selector: '.section:nth-child(3) .service-card:nth-child(2) .status-indicator' },
+                { url: 'https://registry.smigula.io/v2/', selector: '.section:nth-child(3) .service-card:nth-child(3) .status-indicator' },
+                // Media Services
+                { url: 'https://plex.smigula.io', selector: '.section:nth-child(4) .service-card:nth-child(1) .status-indicator' },
+                { url: 'https://request.smigula.io', selector: '.section:nth-child(4) .service-card:nth-child(2) .status-indicator' },
+                { url: 'https://radarr.smigula.io', selector: '.section:nth-child(4) .service-card:nth-child(3) .status-indicator' },
+                { url: 'https://sonarr.smigula.io', selector: '.section:nth-child(4) .service-card:nth-child(4) .status-indicator' },
+                { url: 'https://bazarr.smigula.io', selector: '.section:nth-child(4) .service-card:nth-child(5) .status-indicator' },
+                { url: 'https://prowlarr.smigula.io', selector: '.section:nth-child(4) .service-card:nth-child(6) .status-indicator' },
+                { url: 'https://bt.smigula.io', selector: '.section:nth-child(4) .service-card:nth-child(7) .status-indicator' }
             ];
 
             services.forEach(async (service) => {

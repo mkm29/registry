@@ -4,8 +4,8 @@ services:
     container_name: caddy-proxy
     restart: unless-stopped
     ports:
-      - "80:80"       # Explicit port binding
-      - "443:443"     # Explicit port binding
+      - "80:80"
+      - "443:443"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
