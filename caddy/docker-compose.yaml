@@ -15,7 +15,7 @@ services:
     networks:
       - caddy-proxy
       - registry_monitoring
-      - mediaserver
+      - media_mediaserver
 
   landing:
     image: nginx:alpine
