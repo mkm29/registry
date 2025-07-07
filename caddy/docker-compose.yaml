@@ -14,6 +14,8 @@ services:
       - ACME_EMAIL=admin@smigula.io
     networks:
       - caddy-proxy
+      - registry_monitoring
+      - mediaserver
 
   landing:
     image: nginx:alpine
