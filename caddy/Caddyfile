@@ -24,10 +24,6 @@
 smigula.io {
 	reverse_proxy landing:80
 
-	basic_auth {
-		smigula $2a$14$oIo.CMitlcZBdt9/vFxPHuUT.Zvhnby7bohaTq53N8cX1sehsIldq
-	}
-
 	# Optional: Redirect common paths
 	redir /grafana https://grafana.smigula.io permanent
 	redir /jaeger https://jaeger.smigula.io permanent
@@ -51,6 +47,9 @@ smigula.io {
 
 # Grafana subdomain
 grafana.smigula.io {
+	basic_auth {
+		smigula $2a$14$oIo.CMitlcZBdt9/vFxPHuUT.Zvhnby7bohaTq53N8cX1sehsIldq
+	}
 	reverse_proxy grafana:3000 {
 		# Preserve original host header
 		header_up Host {upstream_hostport}
