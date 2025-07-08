@@ -108,6 +108,24 @@ services:
     networks:
       - mediaserver
 
+  # Plex init service to fix permissions
+  plex-init:
+    image: alpine:latest
+    container_name: plex-init
+    volumes:
+      - ${DATA_ROOT}/media/tv:/tv
+      - ${DATA_ROOT}/media/movies:/movies
+    command: >
+      sh -c "
+        echo 'Fixing permissions for Plex media directories...' &&
+        chown -R 1000:1000 /tv /movies &&
+        chmod -R 755 /tv /movies &&
+        echo 'Permissions fixed successfully'
+      "
+    restart: "no"
+    networks:
+      - mediaserver
+
   # Media Server
   plex:
     image: lscr.io/linuxserver/plex:latest
@@ -136,6 +154,8 @@ services:
     restart: unless-stopped
     networks:
       - mediaserver
+    depends_on:
+      - plex-init
     # Note: Plex uses host networking for better performance and compatibility but in rootless mode you cannot use host networking.
 
   # VPN
