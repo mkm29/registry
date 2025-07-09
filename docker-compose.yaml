@@ -130,6 +130,25 @@ services:
       - jaeger
       - loki
 
+  dozzle:
+    container_name: dozzle
+    image: amir20/dozzle:latest
+    secrets:
+      - source: users
+        target: /data/users.yml
+    volumes:
+      - /run/user/1000/docker.sock:/var/run/docker.sock
+      - dozzle:/data
+    ports:
+      - 8081:8080
+    restart: unless-stopped
+    networks:
+      - mediaserver
+
+secrets:
+  users:
+    file: users.yml
+
 volumes:
   registry-data:
     driver: local
@@ -138,6 +157,8 @@ volumes:
   grafana-data:
     driver: local
   loki-data:
+    driver: local
+  dozzle-data:
     driver: local
 
 networks:

@@ -286,3 +286,25 @@ plex.smigula.io {
 		format json
 	}
 }
+
+# Dozzle
+dozzle.smigula.io {
+	reverse_proxy dozzle:8081 {
+		header_up Host {upstream_hostport}
+		header_up X-Real-IP {remote_host}
+		# Removed X-Forwarded-For and X-Forwarded-Proto as they're automatic
+	}
+	# Security headers
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "SAMEORIGIN"
+		Referrer-Policy "strict-origin-when-cross-origin"
+	}
+
+	# Logging
+	log {
+		output file /var/log/caddy/dozzle.smigula.io.log
+		format json
+	}
+}
