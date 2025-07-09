@@ -169,7 +169,8 @@ services:
       - "12345:12345"
     networks:
       - monitoring
-      - 
+      - caddy_caddy-proxy
+      - media_mediaserver
 
 secrets:
   users:
