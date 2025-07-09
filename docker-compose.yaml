@@ -146,10 +146,30 @@ services:
       - DOZZLE_ADDR=:9080
       - DOZZLE_HOSTNAME=dozzle.smigula.io
       - DOZZLE_LEVEL=debug
-      - DOZZLE_AUTH_PROVIDERsimple
+      - DOZZLE_AUTH_PROVIDER=simple
     restart: unless-stopped
     networks:
       - monitoring
+
+  # Grafana Alloy for observability data collection
+  alloy:
+    image: grafana/alloy:latest
+    container_name: alloy
+    restart: unless-stopped
+    volumes:
+      - /run/user/1000/docker.sock:/var/run/docker.sock:ro
+      - ./alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - alloy-data:/var/lib/alloy
+    command:
+      - run
+      - /etc/alloy/config.alloy
+      - --storage.path=/var/lib/alloy/data
+      - --server.http.listen-addr=0.0.0.0:12345
+    ports:
+      - "12345:12345"
+    networks:
+      - monitoring
+      - 
 
 secrets:
   users:
@@ -166,7 +186,13 @@ volumes:
     driver: local
   dozzle-data:
     driver: local
+  alloy-data:
+    driver: local
 
 networks:
   monitoring:
     driver: bridge
+  media_mediaserver:
+    external: true
+  caddy_caddy-proxy:
+    external: true
