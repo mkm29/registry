@@ -39,7 +39,7 @@ discovery.relabel "containers" {
 	rule {
 		source_labels = ["__meta_docker_container_id"]
 		target_label  = "__path__"
-		replacement   = env("HOME") + "/.local/share/containers/storage/overlay-containers/$1/userdata/ctr.log"
+		replacement   = "/var/log/containers/$1/userdata/ctr.log"
 	}
 
 	// Add compose project name
@@ -109,7 +109,7 @@ loki.process "docker_logs" {
 // Local file matching for Caddy logs using glob pattern
 local.file_match "caddy_logs" {
 	path_targets = [{
-		__path__ = env("HOME") + "/registry/caddy/logs/*.smigula.io.log",
+		__path__ = "/var/log/caddy/*.smigula.io.log",
 		job      = "caddy_logs",
 	}]
 }

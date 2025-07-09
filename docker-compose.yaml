@@ -159,6 +159,8 @@ services:
     volumes:
       - /run/user/1000/docker.sock:/var/run/docker.sock:ro
       - ./alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - ${HOME}/.local/share/containers/storage/overlay-containers:/var/log/containers:ro
+      - ./caddy/logs:/var/log/caddy:ro
       - alloy-data:/var/lib/alloy
     command:
       - run
