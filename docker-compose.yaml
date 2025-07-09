@@ -138,7 +138,7 @@ services:
         target: /data/users.yml
     volumes:
       - /run/user/1000/docker.sock:/var/run/docker.sock
-      - dozzle:/data
+      - dozzle-data:/data
     ports:
       - 8081:8080
     restart: unless-stopped
