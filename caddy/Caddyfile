@@ -39,9 +39,6 @@ smigula.io {
 }
 
 grafana.smigula.io {
-	basic_auth {
-		smigula $2a$14$oIo.CMitlcZBdt9/vFxPHuUT.Zvhnby7bohaTq53N8cX1sehsIldq
-	}
 	reverse_proxy grafana:3000 {
 		# Preserve original host header
 		header_up Host {upstream_hostport}
@@ -110,9 +107,6 @@ registry.smigula.io {
 
 # Radarr
 radarr.smigula.io {
-	basic_auth {
-		smigula $2a$14$oIo.CMitlcZBdt9/vFxPHuUT.Zvhnby7bohaTq53N8cX1sehsIldq
-	}
 	reverse_proxy radarr:7878 {
 		header_up Host {upstream_hostport}
 		header_up X-Real-IP {remote_host}
@@ -136,9 +130,6 @@ radarr.smigula.io {
 
 # Sonarr
 sonarr.smigula.io {
-	basic_auth {
-		smigula $2a$14$oIo.CMitlcZBdt9/vFxPHuUT.Zvhnby7bohaTq53N8cX1sehsIldq
-	}
 	reverse_proxy sonarr:8989 {
 		header_up Host {upstream_hostport}
 		header_up X-Real-IP {remote_host}
@@ -162,9 +153,6 @@ sonarr.smigula.io {
 
 # Bazarr
 bazarr.smigula.io {
-	basic_auth {
-		smigula $2a$14$oIo.CMitlcZBdt9/vFxPHuUT.Zvhnby7bohaTq53N8cX1sehsIldq
-	}
 	reverse_proxy bazarr:6767 {
 		header_up Host {upstream_hostport}
 		header_up X-Real-IP {remote_host}
@@ -188,9 +176,6 @@ bazarr.smigula.io {
 
 # Prowlarr
 prowlarr.smigula.io {
-	basic_auth {
-		smigula $2a$14$oIo.CMitlcZBdt9/vFxPHuUT.Zvhnby7bohaTq53N8cX1sehsIldq
-	}
 	reverse_proxy prowlarr:9696 {
 		header_up Host {upstream_hostport}
 		header_up X-Real-IP {remote_host}
@@ -214,9 +199,6 @@ prowlarr.smigula.io {
 
 # Qbittorrent
 bt.smigula.io {
-	basic_auth {
-		smigula $2a$14$oIo.CMitlcZBdt9/vFxPHuUT.Zvhnby7bohaTq53N8cX1sehsIldq
-	}
 	reverse_proxy qbittorrent:8080 {
 		header_up Host {upstream_hostport}
 		header_up X-Real-IP {remote_host}
@@ -240,9 +222,6 @@ bt.smigula.io {
 
 # Overseerr
 request.smigula.io {
-	basic_auth {
-		smigula $2a$14$oIo.CMitlcZBdt9/vFxPHuUT.Zvhnby7bohaTq53N8cX1sehsIldq
-	}
 	reverse_proxy overseerr:5055 {
 		header_up Host {upstream_hostport}
 		header_up X-Real-IP {remote_host}
