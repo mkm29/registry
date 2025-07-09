@@ -140,7 +140,13 @@ services:
       - /run/user/1000/docker.sock:/var/run/docker.sock
       - dozzle-data:/data
     ports:
-      - 8081:8080
+      - 9080:9080
+    environment:
+      - DOZZLE_NO_ANALYTICS=true
+      - DOZZLE_ADDR=:9080
+      - DOZZLE_HOSTNAME=dozzle.smigula.io
+      - DOZZLE_LEVEL=debug
+      - DOZZLE_AUTH_PROVIDERsimple
     restart: unless-stopped
     networks:
       - monitoring
