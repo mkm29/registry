@@ -1,16 +1,5 @@
 // Grafana Alloy configuration for Docker log collection
 
-// Configuration variables
-argument "base_path" {
-	optional = true
-	default  = env("HOME")
-}
-
-argument "project_path" {
-	optional = true
-	default  = argument.base_path.value + "/registry"
-}
-
 // Discovery component to find Docker containers
 discovery.docker "containers" {
 	host             = "unix:///run/user/1000/docker.sock"
@@ -50,7 +39,7 @@ discovery.relabel "containers" {
 	rule {
 		source_labels = ["__meta_docker_container_id"]
 		target_label  = "__path__"
-		replacement   = argument.base_path.value + "/.local/share/containers/storage/overlay-containers/$1/userdata/ctr.log"
+		replacement   = env("HOME") + "/.local/share/containers/storage/overlay-containers/$1/userdata/ctr.log"
 	}
 
 	// Add compose project name
@@ -117,17 +106,17 @@ loki.process "docker_logs" {
 	}
 }
 
-// Static targets for Caddy logs using glob pattern
-discovery.static "caddy_logs" {
-	target {
-		__path__ = argument.project_path.value + "/caddy/logs/*.smigula.io.log"
-		job      = "caddy_logs"
-	}
+// Local file matching for Caddy logs using glob pattern
+local.file_match "caddy_logs" {
+	path_targets = [{
+		__path__ = env("HOME") + "/registry/caddy/logs/*.smigula.io.log",
+		job      = "caddy_logs",
+	}]
 }
 
 // Relabel to extract service name from filename
 discovery.relabel "caddy_logs" {
-	targets = discovery.static.caddy_logs.targets
+	targets = local.file_match.caddy_logs.targets
 
 	// Extract service name from filename (e.g., grafana.smigula.io.log -> grafana.smigula.io)
 	rule {
