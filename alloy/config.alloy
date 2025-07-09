@@ -1,9 +1,19 @@
-// Grafana Alloy configuration for Docker log collection
+// Grafana Alloy configuration for Docker monitoring (logs and metrics)
 
 // Discovery component to find Docker containers
 discovery.docker "containers" {
 	host             = "unix:///var/run/docker.sock"
 	refresh_interval = "5s"
+}
+
+// Docker log source - reads logs directly from Docker API
+loki.source.docker "docker_logs" {
+	host       = "unix:///var/run/docker.sock"
+	targets    = discovery.relabel.containers.output
+	forward_to = [loki.process.docker_logs.receiver]
+	labels = {
+		job = "docker_logs",
+	}
 }
 
 // Relabel to extract container metadata
@@ -29,19 +39,6 @@ discovery.relabel "containers" {
 		target_label  = "container_image"
 	}
 
-	// Add job label
-	rule {
-		target_label = "job"
-		replacement  = "docker_logs"
-	}
-
-	// Set the log path
-	rule {
-		source_labels = ["__meta_docker_container_id"]
-		target_label  = "__path__"
-		replacement   = "/var/log/containers/$1/userdata/ctr.log"
-	}
-
 	// Add compose project name
 	rule {
 		source_labels = ["__meta_docker_container_label_com_docker_compose_project"]
@@ -53,12 +50,6 @@ discovery.relabel "containers" {
 		source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
 		target_label  = "compose_service"
 	}
-}
-
-// Local file source to read Docker container logs
-loki.source.file "docker_logs" {
-	targets    = discovery.relabel.containers.output
-	forward_to = [loki.process.docker_logs.receiver]
 }
 
 // Process pipeline for Docker logs
@@ -198,5 +189,25 @@ loki.process "caddy_logs" {
 loki.write "loki" {
 	endpoint {
 		url = "http://loki:3100/loki/api/v1/push"
+	}
+}
+
+// Metrics collection using cAdvisor
+prometheus.exporter.cadvisor "docker" {
+	docker_host = "unix:///var/run/docker.sock"
+	storage_duration = "5m"
+}
+
+// Scrape metrics from cAdvisor
+prometheus.scrape "docker_metrics" {
+	targets    = prometheus.exporter.cadvisor.docker.targets
+	forward_to = [prometheus.remote_write.metrics.receiver]
+	scrape_interval = "10s"
+}
+
+// Send metrics to Prometheus
+prometheus.remote_write "metrics" {
+	endpoint {
+		url = "http://prometheus:9090/api/v1/write"
 	}
 }
