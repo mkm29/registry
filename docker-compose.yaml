@@ -163,6 +163,34 @@ services:
     networks:
       - monitoring
 
+  # cAdvisor for container metrics in rootless mode
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    container_name: cadvisor
+    restart: unless-stopped
+    ports:
+      - "9338:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /sys:/sys:ro
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+      - /dev/disk/:/dev/disk:ro
+      - /run/user/1000:/run/user/1000:ro
+      - ${HOME}/.local/share/docker/:/var/lib/docker:ro
+    devices:
+      - /dev/kmsg:/dev/kmsg
+    privileged: true
+    command:
+      - --housekeeping_interval=10s
+      - --docker_only=true
+      - --disable_metrics=percpu,sched,tcp,udp,disk,diskIO,hugetlb,referenced_memory,cpu_topology,resctrl
+      - --store_container_labels=true
+      - --docker=unix:///run/user/1000/docker.sock
+      - --docker_env_metadata_whitelist=CONTAINER_NAME,CONTAINER_IMAGE
+      - --raw_cgroup_prefix_whitelist=/docker
+    networks:
+      - monitoring
+
   # Grafana Alloy for observability data collection
   alloy:
     image: grafana/alloy:latest
