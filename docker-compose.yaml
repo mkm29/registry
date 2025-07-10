@@ -129,6 +129,7 @@ services:
       - GF_SERVER_DOMAIN=grafana.smigula.io
       - GF_SERVER_ROOT_URL=https://grafana.smigula.io
       - GF_SERVER_SERVE_FROM_SUB_PATH=true
+      - GF_SECURITY_CSRF_TRUSTED_ORIGINS=https://grafana.smigula.io
     env_file:
       - .env
     networks:
