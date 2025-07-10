@@ -186,9 +186,8 @@ services:
       - --disable_metrics=percpu,sched,tcp,udp,disk,diskIO,hugetlb,referenced_memory,cpu_topology,resctrl
       - --store_container_labels=true
       - --docker=unix:///run/user/1000/docker.sock
-      - --docker_env_metadata_whitelist=CONTAINER_NAME,CONTAINER_IMAGE
-      - --raw_cgroup_prefix_whitelist=/user.slice,/user.slice/user-1000.slice/user@1000.service,/user.slice/user-1000.slice/session-*.scope
-      - --cgroup_root=/sys/fs/cgroup
+      - --env_metadata_whitelist=CONTAINER_NAME,CONTAINER_IMAGE
+      - --raw_cgroup_prefix_whitelist=/user.slice,/user.slice/user-1000.slice/user@1000.service,/user.slice/user-1000.slice/session-2.scope,/user.slice/user-1000.slice/session-7.scope,/user.slice/user-1000.slice/session-9.scope
       - --enable_load_reader=false
       - --max_procs=4
     networks:
