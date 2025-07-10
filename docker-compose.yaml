@@ -133,7 +133,6 @@ services:
       - GF_SERVER_PROTOCOL=http
       - GF_SERVER_ENABLE_GZIP=true
       - GF_SERVER_USE_X_FORWARDED=true
-      - GF_LOG_LEVEL=debug
     env_file:
       - .env
     networks:
