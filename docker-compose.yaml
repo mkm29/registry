@@ -165,7 +165,7 @@ services:
 
   # cAdvisor for container metrics in rootless mode
   cadvisor:
-    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    image: gcr.io/cadvisor/cadvisor:v0.52.0
     container_name: cadvisor
     restart: unless-stopped
     ports:
@@ -187,7 +187,10 @@ services:
       - --store_container_labels=true
       - --docker=unix:///run/user/1000/docker.sock
       - --docker_env_metadata_whitelist=CONTAINER_NAME,CONTAINER_IMAGE
-      - --raw_cgroup_prefix_whitelist=/docker
+      - --raw_cgroup_prefix_whitelist=/user.slice,/user.slice/user-1000.slice/user@1000.service,/user.slice/user-1000.slice/session-*.scope
+      - --cgroup_root=/sys/fs/cgroup
+      - --enable_load_reader=false
+      - --max_procs=4
     networks:
       - monitoring
 

@@ -200,45 +200,53 @@ prometheus.scrape "cadvisor" {
 			job         = "integrations/cadvisor",
 		},
 	]
-	forward_to      = [prometheus.remote_write.metrics.receiver]
+	forward_to      = [prometheus.relabel.cadvisor_metrics.receiver]
 	scrape_interval = "30s"
 	scrape_timeout  = "10s"
+}
 
-	// Add relabeling to extract container info
-	metric_relabeling {
-		// Extract container name from the 'name' label
-		rule {
-			source_labels = ["name"]
-			regex         = "^/docker/([a-zA-Z0-9][a-zA-Z0-9_.-]+)$"
-			target_label  = "container_name"
-			replacement   = "$1"
-		}
+// Relabel metrics from cAdvisor
+prometheus.relabel "cadvisor_metrics" {
+	forward_to = [prometheus.remote_write.metrics.receiver]
 
-		// Extract compose service name
-		rule {
-			source_labels = ["container_label_com_docker_compose_service"]
-			target_label  = "service"
-		}
+	// Extract container name from the 'name' label
+	rule {
+		source_labels = ["name"]
+		regex         = "^/docker/([a-zA-Z0-9][a-zA-Z0-9_.-]+)$"
+		target_label  = "container_name"
+		replacement   = "${1}"
+	}
 
-		// Extract compose project name
-		rule {
-			source_labels = ["container_label_com_docker_compose_project"]
-			target_label  = "project"
-		}
+	// Extract compose service name
+	rule {
+		source_labels = ["container_label_com_docker_compose_service"]
+		target_label  = "service"
+	}
 
-		// Drop metrics for the cAdvisor container itself to reduce noise
-		rule {
-			source_labels = ["name"]
-			regex         = ".*cadvisor.*"
-			action        = "drop"
-		}
+	// Extract compose project name
+	rule {
+		source_labels = ["container_label_com_docker_compose_project"]
+		target_label  = "project"
+	}
 
-		// Keep only important metrics to reduce cardinality
-		rule {
-			source_labels = ["__name__"]
-			regex         = "container_(cpu_.*|memory_.*|network_.*|fs_.*)"
-			action        = "keep"
-		}
+	// Add container image label
+	rule {
+		source_labels = ["image"]
+		target_label  = "container_image"
+	}
+
+	// Keep only container metrics
+	rule {
+		source_labels = ["__name__"]
+		regex         = "container_(cpu_.*|memory_.*|network_.*|fs_.*)"
+		action        = "keep"
+	}
+
+	// Drop metrics for the root cgroup (not actual containers)
+	rule {
+		source_labels = ["id"]
+		regex         = "^/$"
+		action        = "drop"
 	}
 }
 
