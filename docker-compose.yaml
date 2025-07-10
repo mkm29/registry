@@ -1,3 +1,17 @@
+x-minio-common: &minio-common
+  image: minio/minio:latest
+  command: server --console-address ":9001" /data
+  ports:
+    - "9000:9000"
+    - "9001:9001"
+  healthcheck:
+    test: ["CMD", "curk", "-f", "--tries=1", "http://localhost:9000/minio/health/live"]
+    interval: 30s
+    timeout: 20s
+    retries: 3
+  networks:
+    - monitoring
+
 services:
   # Docker Registry with TLS
   registry:
@@ -215,6 +229,16 @@ services:
       - caddy_caddy-proxy
       - media_mediaserver
 
+  minio1:
+    <<: *minio-common
+    container_name: minio1
+    hostname: minio1
+    volumes:
+      - minio-data:/data
+    env_file:
+      - .env
+    restart: unless-stopped
+
 secrets:
   users:
     file: users.yml
@@ -232,6 +256,12 @@ volumes:
     driver: local
   alloy-data:
     driver: local
+  minio-data:
+    driver: local
+    driver_opts:
+      type: none
+      device: /mnt/data/minio
+      o: bind
 
 networks:
   monitoring:
