@@ -175,7 +175,7 @@ services:
       - /sys:/sys:ro
       - /sys/fs/cgroup:/sys/fs/cgroup:ro
       - /dev/disk/:/dev/disk:ro
-      - /run/user/1000:/run/user/1000:ro
+      - /run/user/1000/docker.sock:/var/run/docker.sock:ro
       - ${HOME}/.local/share/docker/:/var/lib/docker:ro
     devices:
       - /dev/kmsg:/dev/kmsg
