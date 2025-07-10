@@ -30,6 +30,9 @@ smigula.io {
 		X-Frame-Options "DENY"
 		X-XSS-Protection "1; mode=block"
 		Referrer-Policy "strict-origin-when-cross-origin"
+		X-Real-IP {remote}
+		X-Forwarded-For {remote}
+		X-Forwarded-Proto {scheme}
 	}
 
 	log {
@@ -40,16 +43,19 @@ smigula.io {
 
 grafana.smigula.io {
 	reverse_proxy grafana:3000 {
-		# Preserve original host header
-		header_up Host {upstream_hostport}
+		header_up Host {host}
 		header_up X-Real-IP {remote_host}
+		header_up X-Forwarded-For {remote_host}
+		header_up X-Forwarded-Proto {scheme}
+		header_up Origin {http.request.header.Origin}
 	}
-
 	header {
 		Strict-Transport-Security "max-age=31536000; includeSubDomains"
 		X-Content-Type-Options "nosniff"
-		X-Frame-Options "SAMEORIGIN" # Grafana needs iframe support
-		Referrer-Policy "strict-origin-when-cross-origin"
+		X-Frame-Options "SAMEORIGIN"
+		Access-Control-Allow-Origin "https://grafana.smigula.io"
+		Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
+		Access-Control-Allow-Headers "Origin, Content-Type, Accept, Authorization"
 	}
 
 	log {

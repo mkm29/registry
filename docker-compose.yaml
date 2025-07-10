@@ -46,6 +46,8 @@ services:
         chown -R 65534:65534 /prometheus &&
         chmod -R 755 /prometheus
       "
+    networks:
+      - monitoring
     restart: "no"
 
   # Prometheus for metrics collection
@@ -67,6 +69,7 @@ services:
       - '--web.console.libraries=/usr/share/prometheus/console_libraries'
       - '--web.console.templates=/usr/share/prometheus/consoles'
       - '--web.enable-lifecycle'
+      - '--web.enable-remote-write-receiver'
     networks:
       - monitoring
     depends_on:
@@ -83,6 +86,8 @@ services:
         chown -R 10001:10001 /loki &&
         chmod -R 755 /loki
       "
+    networks:
+      - monitoring
     restart: "no"
 
   # Loki for log aggregation
@@ -121,6 +126,13 @@ services:
       - GF_USERS_ALLOW_ORG_CREATE=false
       - GF_AUTH_ANONYMOUS_ENABLED=true
       - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
+      - GF_SERVER_DOMAIN=grafana.smigula.io
+      - GF_SERVER_ROOT_URL=https://grafana.smigula.io
+      - GF_SERVER_SERVE_FROM_SUB_PATH=true
+      - GF_SECURITY_CSRF_TRUSTED_ORIGINS=https://grafana.smigula.io
+      - GF_SERVER_PROTOCOL=http
+      - GF_SERVER_ENABLE_GZIP=true
+      - GF_SERVER_USE_X_FORWARDED=true
     env_file:
       - .env
     networks:
@@ -146,10 +158,32 @@ services:
       - DOZZLE_ADDR=:9080
       - DOZZLE_HOSTNAME=dozzle.smigula.io
       - DOZZLE_LEVEL=debug
-      - DOZZLE_AUTH_PROVIDERsimple
+      - DOZZLE_AUTH_PROVIDER=simple
     restart: unless-stopped
     networks:
       - monitoring
+
+  # Grafana Alloy for observability data collection
+  alloy:
+    image: grafana/alloy:latest
+    container_name: alloy
+    restart: unless-stopped
+    volumes:
+      - /run/user/1000/docker.sock:/var/run/docker.sock:ro
+      - ./alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - ./caddy/logs:/var/log/caddy:ro
+      - alloy-data:/var/lib/alloy
+    command:
+      - run
+      - /etc/alloy/config.alloy
+      - --storage.path=/var/lib/alloy/data
+      - --server.http.listen-addr=0.0.0.0:12345
+    ports:
+      - "12345:12345"
+    networks:
+      - monitoring
+      - caddy_caddy-proxy
+      - media_mediaserver
 
 secrets:
   users:
@@ -166,7 +200,13 @@ volumes:
     driver: local
   dozzle-data:
     driver: local
+  alloy-data:
+    driver: local
 
 networks:
   monitoring:
     driver: bridge
+  media_mediaserver:
+    external: true
+  caddy_caddy-proxy:
+    external: true
