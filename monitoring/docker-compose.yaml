@@ -48,7 +48,6 @@ services:
     networks:
       - monitoring
     depends_on:
-      - registry
       - prometheus-init
 
   loki-init:
