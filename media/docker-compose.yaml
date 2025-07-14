@@ -279,6 +279,6 @@ services:
 
 networks:
   mediaserver:
-    driver: bridge
+    external: true
   zot_registry:
     external: true
