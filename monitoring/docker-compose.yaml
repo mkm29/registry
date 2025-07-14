@@ -1,7 +1,7 @@
 services:
   # Jaeger for distributed tracing
   jaeger:
-    image: localhost:5000/docker/jaegertracing/all-in-one:latest
+    image: registry:5000/docker/jaegertracing/all-in-one:latest
     container_name: jaeger
     restart: always
     ports:
@@ -12,7 +12,7 @@ services:
       - monitoring
 
   prometheus-init:
-    image: localhost:5000/docker/alpine:latest
+    image: registry:5000/docker/alpine:latest
     container_name: prometheus-init
     volumes:
       - prometheus-data:/prometheus
@@ -27,7 +27,7 @@ services:
 
   # Prometheus for metrics collection
   prometheus:
-    image: localhost:5000/docker/prom/prometheus:latest
+    image: registry:5000/docker/prom/prometheus:latest
     container_name: prometheus
     restart: always
     ports:
@@ -51,7 +51,7 @@ services:
       - prometheus-init
 
   loki-init:
-    image: localhost:5000/docker/alpine:latest
+    image: registry:5000/docker/alpine:latest
     container_name: loki-init
     volumes:
       - loki-data:/loki
@@ -66,7 +66,7 @@ services:
 
   # Loki for log aggregation
   loki:
-    image: localhost:5000/docker/grafana/loki:latest
+    image: registry:5000/docker/grafana/loki:latest
     container_name: loki
     restart: always
     ports:
@@ -87,7 +87,7 @@ services:
       - loki-init
   # Grafana for visualization
   grafana:
-    image: localhost:5000/docker/grafana/grafana:latest
+    image: registry:5000/docker/grafana/grafana:latest
     container_name: grafana
     restart: always
     ports:
@@ -118,7 +118,7 @@ services:
 
   dozzle:
     container_name: dozzle
-    image: localhost:5000/docker/amir20/dozzle:latest
+    image: registry:5000/docker/amir20/dozzle:latest
     secrets:
       - source: users
         target: /data/users.yml
@@ -139,7 +139,7 @@ services:
 
   # cAdvisor for container metrics in rootless mode
   cadvisor:
-    image: localhost:5000/gcr/cadvisor/cadvisor:v0.52.0
+    image: registry:5000/gcr/cadvisor/cadvisor:v0.52.0
     container_name: cadvisor
     restart: unless-stopped
     ports:
@@ -169,7 +169,7 @@ services:
 
   # Grafana Alloy for observability data collection
   alloy:
-    image: localhost:5000/docker/grafana/alloy:latest
+    image: registry:5000/docker/grafana/alloy:latest
     container_name: alloy
     restart: unless-stopped
     volumes:

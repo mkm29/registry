@@ -1,6 +1,6 @@
 services:
   caddy:
-    image: localhost:5000/docker/caddy:2.10.0-alpine
+    image: registry:5000/docker/caddy:2.10.0-alpine
     container_name: caddy-proxy
     restart: unless-stopped
     ports:
@@ -19,7 +19,7 @@ services:
       - media_mediaserver
 
   landing:
-    image: localhost:5000/docker/nginx:alpine
+    image: registry:5000/docker/nginx:alpine
     container_name: landing-page
     restart: unless-stopped
     volumes:
