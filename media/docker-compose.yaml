@@ -254,7 +254,7 @@ services:
 
   # VPN
   # nordlynx:
-  #   image: ghcr.io/bubuntux/nordlynx
+  #   image: localhost:5000/ghcr/bubuntux/nordlynx
   #   cap_add:
   #     - NET_ADMIN
   #   environment:

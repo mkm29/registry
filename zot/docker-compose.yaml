@@ -1,0 +1,38 @@
+services:
+  # Docker Registry with TLS
+  registry:
+    image: ghcr.io/project-zot/zot-linux-amd64:v2.1.5
+    container_name: registry
+    restart: always
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./config/config.yaml:/etc/zot/config.yaml:ro
+      - ./config/credentials.yaml:/etc/zot/credentials.yaml:ro
+      - ${HOME}/.docker/config.json:/home/zot/.docker/config.json:ro
+      # - ./certs/registry.crt:/etc/ssl/certs/registry.crt:ro
+      # - ./certs/registry.key:/etc/ssl/private/registry.key:ro
+      # - ./certs/registry1-ca:/etc/zot/certs/registry1-ca:ro
+      - zot-data:/var/lib/zot
+    networks:
+      - registry
+    command:
+      - 'serve /etc/zot/config.yaml'
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5000/v2/", "--no-check-certificate"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  zot-data:
+    driver: local
+    driver_opts:
+      type: none
+      device: /mnt/data/zot
+      o: bind
+
+networks:
+  registry:
+    driver: bridge
