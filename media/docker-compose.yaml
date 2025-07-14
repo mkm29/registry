@@ -278,7 +278,7 @@ services:
   #     - zot_registry
 
 networks:
-  mediaserver:
+  media_mediaserver:
     external: true
   zot_registry:
     external: true
