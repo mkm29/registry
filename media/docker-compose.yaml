@@ -17,6 +17,7 @@ services:
     restart: "no"
     networks:
       - mediaserver
+      - zot_registry
   # Movies
   radarr:
     image: localhost:5000/docker/lscr.io/linuxserver/radarr:latest
@@ -34,6 +35,7 @@ services:
     restart: unless-stopped
     networks:
       - mediaserver
+      - zot_registry
     depends_on:
       - radarr-init
 
@@ -54,6 +56,7 @@ services:
     restart: "no"
     networks:
       - mediaserver
+      - zot_registry
   # TV
   sonarr:
     image: localhost:5000/docker/lscr.io/linuxserver/sonarr:latest
@@ -71,6 +74,7 @@ services:
     restart: unless-stopped
     networks:
       - mediaserver
+      - zot_registry
     depends_on:
       - sonarr-init
 
@@ -91,6 +95,7 @@ services:
     restart: unless-stopped
     networks:
       - mediaserver
+      - zot_registry
 
   prowlarr-init:
     image: localhost:5000/docker/alpine:latest
@@ -107,6 +112,7 @@ services:
     restart: "no"
     networks:
       - mediaserver
+      - zot_registry
 
   # Indexer
   prowlarr:
@@ -123,6 +129,7 @@ services:
     restart: unless-stopped
     networks:
       - mediaserver
+      - zot_registry
     depends_on:
       - prowlarr-init
 
@@ -143,6 +150,7 @@ services:
     restart: "no"
     networks:
       - mediaserver
+      - zot_registry
 
   # Torrent Client
   qbittorrent:
@@ -165,6 +173,7 @@ services:
     restart: unless-stopped
     networks:
       - mediaserver
+      - zot_registry
     depends_on:
       - qbittorrent-init
 
@@ -183,6 +192,7 @@ services:
     restart: "no"
     networks:
       - mediaserver
+      - zot_registry
 
   # Requesting Web App
   overseerr:
@@ -199,6 +209,7 @@ services:
     restart: unless-stopped
     networks:
       - mediaserver
+      - zot_registry
     depends_on:
       - overseerr-init
 
@@ -219,6 +230,7 @@ services:
     restart: "no"
     networks:
       - mediaserver
+      - zot_registry
 
   # Media Server
   plex:
@@ -248,6 +260,7 @@ services:
     restart: unless-stopped
     networks:
       - mediaserver
+      - zot_registry
     depends_on:
       - plex-init
     # Note: Plex uses host networking for better performance and compatibility but in rootless mode you cannot use host networking.
@@ -260,8 +273,12 @@ services:
   #   environment:
   #     - PRIVATE_KEY=${NORDLYNX_PRIVATE_KEY}
   #   restart: unless-stopped
-  #   network_mode: host
+  #   networks: host
+  #     - mediaserver
+  #     - zot_registry
 
 networks:
   mediaserver:
     driver: bridge
+  zot_registry:
+    external: true
