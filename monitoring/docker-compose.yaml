@@ -207,7 +207,7 @@ volumes:
 
 networks:
   monitoring:
-    external: true
+    driver: bridge
   media_mediaserver:
     external: true
   caddy_caddy-proxy:
