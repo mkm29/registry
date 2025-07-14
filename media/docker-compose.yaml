@@ -1,7 +1,7 @@
 services:
 
   radarr-init:
-    image: localhost:5000/docker/alpine:latest
+    image: alpine:latest
     container_name: radarr-init
     volumes:
       - ${CONFIG_ROOT}/radarr:/config
@@ -20,7 +20,7 @@ services:
       - zot_registry
   # Movies
   radarr:
-    image: localhost:5000/docker/lscr.io/linuxserver/radarr:latest
+    image: lscr.io/linuxserver/radarr:latest
     container_name: radarr
     environment:
       - PUID=1000
@@ -40,7 +40,7 @@ services:
       - radarr-init
 
   sonarr-init:
-    image: localhost:5000/docker/alpine:latest
+    image: alpine:latest
     container_name: sonarr-init
     volumes:
       - ${CONFIG_ROOT}/sonarr:/config
@@ -59,7 +59,7 @@ services:
       - zot_registry
   # TV
   sonarr:
-    image: localhost:5000/docker/lscr.io/linuxserver/sonarr:latest
+    image: lscr.io/linuxserver/sonarr:latest
     container_name: sonarr
     environment:
       - PUID=1000
@@ -80,7 +80,7 @@ services:
 
   # Subtitles
   bazarr:
-    image: localhost:5000/docker/lscr.io/linuxserver/bazarr:latest
+    image: lscr.io/linuxserver/bazarr:latest
     container_name: bazarr
     environment:
       - PUID=1000
@@ -98,7 +98,7 @@ services:
       - zot_registry
 
   prowlarr-init:
-    image: localhost:5000/docker/alpine:latest
+    image: alpine:latest
     container_name: prowlarr-init
     volumes:
       - ${CONFIG_ROOT}/prowlarr:/config
@@ -116,7 +116,7 @@ services:
 
   # Indexer
   prowlarr:
-    image: localhost:5000/docker/lscr.io/linuxserver/prowlarr:latest
+    image: lscr.io/linuxserver/prowlarr:latest
     container_name: prowlarr
     environment:
       - PUID=1000
@@ -134,7 +134,7 @@ services:
       - prowlarr-init
 
   qbittorrent-init:
-    image: localhost:5000/docker/alpine:latest
+    image: alpine:latest
     container_name: qbittorrent-init
     volumes:
       - ${CONFIG_ROOT}/qbittorrent:/config
@@ -154,7 +154,7 @@ services:
 
   # Torrent Client
   qbittorrent:
-    image: localhost:5000/docker/lscr.io/linuxserver/qbittorrent:latest
+    image: lscr.io/linuxserver/qbittorrent:latest
     container_name: qbittorrent
     environment:
       - PUID=1000
@@ -178,7 +178,7 @@ services:
       - qbittorrent-init
 
   overseerr-init:
-    image: localhost:5000/docker/alpine:latest
+    image: alpine:latest
     container_name: overseerr-init
     volumes:
       - ${CONFIG_ROOT}/overseerr:/config
@@ -196,7 +196,7 @@ services:
 
   # Requesting Web App
   overseerr:
-    image: localhost:5000/docker/lscr.io/linuxserver/overseerr:latest
+    image: lscr.io/linuxserver/overseerr:latest
     container_name: overseerr
     environment:
       - PUID=1000
@@ -215,7 +215,7 @@ services:
 
   # Plex init service to fix permissions
   plex-init:
-    image: localhost:5000/docker/alpine:latest
+    image: alpine:latest
     container_name: plex-init
     volumes:
       - ${DATA_ROOT}/media/tv:/tv
@@ -234,7 +234,7 @@ services:
 
   # Media Server
   plex:
-    image: localhost:5000/docker/lscr.io/linuxserver/plex:latest
+    image: lscr.io/linuxserver/plex:latest
     container_name: plex
     environment:
       - PUID=1000
