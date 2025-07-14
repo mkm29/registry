@@ -17,6 +17,7 @@ services:
       - caddy-proxy
       - registry_monitoring
       - media_mediaserver
+      - zot_registry
 
   landing:
     image: registry:5000/docker/nginx:alpine
@@ -26,6 +27,7 @@ services:
       - ./html:/usr/share/nginx/html:ro
     networks:
       - caddy-proxy
+      - zot_registry
     expose:
       - "80"
 
