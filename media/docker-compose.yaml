@@ -16,7 +16,7 @@ services:
       "
     restart: "no"
     networks:
-      - mediaserver
+      - media_mediaserver
       - zot_registry
   # Movies
   radarr:
@@ -34,7 +34,7 @@ services:
       - ${RADARR_PORT}:7878
     restart: unless-stopped
     networks:
-      - mediaserver
+      - media_mediaserver
       - zot_registry
     depends_on:
       - radarr-init
@@ -55,7 +55,7 @@ services:
       "
     restart: "no"
     networks:
-      - mediaserver
+      - media_mediaserver
       - zot_registry
   # TV
   sonarr:
@@ -73,7 +73,7 @@ services:
       - ${SONARR_PORT}:8989
     restart: unless-stopped
     networks:
-      - mediaserver
+      - media_mediaserver
       - zot_registry
     depends_on:
       - sonarr-init
@@ -94,7 +94,7 @@ services:
       - ${BAZARR_PORT}:6767
     restart: unless-stopped
     networks:
-      - mediaserver
+      - media_mediaserver
       - zot_registry
 
   prowlarr-init:
@@ -111,7 +111,7 @@ services:
       "
     restart: "no"
     networks:
-      - mediaserver
+      - media_mediaserver
       - zot_registry
 
   # Indexer
@@ -128,7 +128,7 @@ services:
       - ${PROWLARR_PORT}:9696
     restart: unless-stopped
     networks:
-      - mediaserver
+      - media_mediaserver
       - zot_registry
     depends_on:
       - prowlarr-init
@@ -149,7 +149,7 @@ services:
       "
     restart: "no"
     networks:
-      - mediaserver
+      - media_mediaserver
       - zot_registry
 
   # Torrent Client
@@ -172,7 +172,7 @@ services:
       - ${QBITTORRENT_TORRENTING_PORT}:6881/udp
     restart: unless-stopped
     networks:
-      - mediaserver
+      - media_mediaserver
       - zot_registry
     depends_on:
       - qbittorrent-init
@@ -191,7 +191,7 @@ services:
       "
     restart: "no"
     networks:
-      - mediaserver
+      - media_mediaserver
       - zot_registry
 
   # Requesting Web App
@@ -208,7 +208,7 @@ services:
       - ${OVERSEERR_PORT}:5055
     restart: unless-stopped
     networks:
-      - mediaserver
+      - media_mediaserver
       - zot_registry
     depends_on:
       - overseerr-init
@@ -229,7 +229,7 @@ services:
       "
     restart: "no"
     networks:
-      - mediaserver
+      - media_mediaserver
       - zot_registry
 
   # Media Server
@@ -259,7 +259,7 @@ services:
       - "32469:32469"   # DLNA
     restart: unless-stopped
     networks:
-      - mediaserver
+      - media_mediaserver
       - zot_registry
     depends_on:
       - plex-init
@@ -274,7 +274,7 @@ services:
   #     - PRIVATE_KEY=${NORDLYNX_PRIVATE_KEY}
   #   restart: unless-stopped
   #   networks: host
-  #     - mediaserver
+  #     - media_mediaserver
   #     - zot_registry
 
 networks:
