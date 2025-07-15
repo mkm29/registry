@@ -87,9 +87,6 @@ jaeger.smigula.io {
 }
 
 registry.smigula.io {
-	basic_auth {
-		smigula $2a$14$oIo.CMitlcZBdt9/vFxPHuUT.Zvhnby7bohaTq53N8cX1sehsIldq
-	}
 	reverse_proxy registry:5000 {
 		header_up Host {upstream_hostport}
 		header_up X-Real-IP {remote_host}

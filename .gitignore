@@ -68,7 +68,8 @@ yarn-error.log*
 # Security - additional patterns
 *.p12
 *.pfx
-.htpasswd
+# .htpasswd - commented out to track auth file
+# htpasswd
 secrets/
 credentials/
 .claude/

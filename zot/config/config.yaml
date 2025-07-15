@@ -5,6 +5,11 @@ storage:
 http:
   address: 0.0.0.0
   port: '5000'
+  externalUrl: https://registry.smigula.io
+  auth:
+    htpasswd:
+      path: /etc/zot/htpasswd
+    failDelay: 5s
 log:
   level: info
 extensions:
