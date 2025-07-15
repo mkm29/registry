@@ -9,7 +9,7 @@ http:
   auth:
     htpasswd:
       path: /etc/zot/htpasswd
-    failDelay: 5s
+    failDelay: 5
 log:
   level: info
 extensions:
