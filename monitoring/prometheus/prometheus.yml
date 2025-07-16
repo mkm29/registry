@@ -19,7 +19,7 @@ scrape_configs:
     #   key_file: /etc/prometheus/certs/registry-key.pem
     metrics_path: '/metrics'
     static_configs:
-      - targets: ['https://registry.smigula.io/']
+      - targets: ['localhost:5000']
     relabel_configs:
       - source_labels: [__address__]
         target_label: instance
