@@ -15,7 +15,7 @@ services:
       - ACME_EMAIL=admin@smigula.io
     networks:
       - caddy-proxy
-      - registry_monitoring
+      - monitoring_monitoring
       - media_mediaserver
       - zot_registry
 
@@ -42,7 +42,7 @@ networks:
     driver: bridge
   zot_registry:
     external: true
-  registry_monitoring:
+  monitoring_monitoring:
     external: true
   media_mediaserver:
     external: true
