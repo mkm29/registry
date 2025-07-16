@@ -9,17 +9,17 @@ scrape_configs:
       - targets: ['localhost:9090']
 
   # Docker Registry metrics
-  - job_name: 'docker-registry'
+  - job_name: 'zot-registry'
     # scheme: https
-    tls_config:
-      insecure_skip_verify: true
-      # Since we're using self-signed certificates, we skip verification
-      # In production, you would provide CA certificate here:
-      cert_file: /etc/prometheus/certs/registry.pem
-      key_file: /etc/prometheus/certs/registry-key.pem
+    # tls_config:
+    #   insecure_skip_verify: true
+    #   # Since we're using self-signed certificates, we skip verification
+    #   # In production, you would provide CA certificate here:
+    #   cert_file: /etc/prometheus/certs/registry.pem
+    #   key_file: /etc/prometheus/certs/registry-key.pem
     metrics_path: '/metrics'
     static_configs:
-      - targets: ['registry:5001']
+      - targets: ['localhost:5000']
     relabel_configs:
       - source_labels: [__address__]
         target_label: instance
