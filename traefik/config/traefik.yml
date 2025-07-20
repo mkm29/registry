@@ -1,3 +1,4 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/SchemaStore/schemastore/master/src/schemas/json/traefik-v3.json
 # Static configuration
 global:
   checkNewVersion: true
@@ -5,7 +6,7 @@ global:
 
 api:
   dashboard: true
-  debug: true
+  debug: false
 
 entryPoints:
   web:
@@ -66,14 +67,15 @@ metrics:
     addServicesLabels: true
     entryPoint: metrics
 
-# Example Jaeger tracing configuration for Traefik v2
+# OpenTelemetry tracing configuration for Traefik v3
+# Temporarily disabled due to editor schema validation issues
 # tracing:
-#   jaeger:
-#     samplingServerURL: http://localhost:5778/sampling
-#     localAgentHostPort: localhost:6831
-#     samplingType: const
-#     samplingParam: 1.0
-#     gen128Bit: true
+#   serviceName: traefik
+#   sampleRate: 1.0
+#   otlp:
+#     grpc:
+#       endpoint: alloy:4317
+#       insecure: true
 
 # Ping for health checks
 ping:
