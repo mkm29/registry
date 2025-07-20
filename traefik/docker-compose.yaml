@@ -17,7 +17,7 @@ services:
     environment:
       - TRAEFIK_LOG_LEVEL=INFO
     networks:
-      - traefik-proxy
+      - default
       - monitoring_monitoring
       - media_mediaserver
       - zot_registry
@@ -29,12 +29,13 @@ services:
     volumes:
       - ../shared/html:/usr/share/nginx/html:ro
     networks:
-      - traefik-proxy
+      - default
       - zot_registry
     expose:
       - "80"
     labels:
       - "traefik.enable=true"
+      - "traefik.docker.network=traefik_default"
       - "traefik.http.routers.landing.rule=Host(`smigula.io`)"
       - "traefik.http.routers.landing.entrypoints=websecure"
       - "traefik.http.routers.landing.tls.certresolver=letsencrypt"
@@ -56,7 +57,7 @@ volumes:
       o: bind
 
 networks:
-  traefik-proxy:
+  default:
     driver: bridge
   zot_registry:
     external: true

@@ -14,7 +14,7 @@ services:
     environment:
       - ACME_EMAIL=admin@smigula.io
     networks:
-      - traefik-proxy
+      - traefik_default
       - monitoring_monitoring
       - media_mediaserver
       - zot_registry
@@ -26,7 +26,7 @@ services:
     volumes:
       - ../shared/html:/usr/share/nginx/html:ro
     networks:
-      - traefik-proxy
+      - traefik_default
       - zot_registry
     expose:
       - "80"
@@ -38,7 +38,7 @@ volumes:
     external: false
 
 networks:
-  traefik-proxy:
+  default:
     driver: bridge
   zot_registry:
     external: true
