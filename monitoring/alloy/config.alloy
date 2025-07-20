@@ -303,18 +303,6 @@ otelcol.receiver.otlp "default" {
   }
 }
 
-// Jaeger receiver for Traefik traces
-otelcol.receiver.jaeger "traefik" {
-  protocols {
-    thrift_compact {
-      endpoint = "0.0.0.0:6831"
-    }
-  }
-
-  output {
-    traces = [otelcol.processor.batch.default.input]
-  }
-}
 
 // Batch processor for better performance
 otelcol.processor.batch "default" {

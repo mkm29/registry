@@ -66,17 +66,7 @@ metrics:
     addServicesLabels: true
     entryPoint: metrics
 
-# Tracing configuration - using Jaeger format
-tracing:
-  serviceName: traefik
-  spanNameLimit: 128
-  jaeger:
-    samplingType: const
-    samplingParam: 1.0
-    localAgentHostPort: alloy:6831
-    gen128Bit: true
-    propagation: jaeger
-    traceContextHeaderName: uber-trace-id
+# Tracing configuration is set via command line arguments to avoid schema conflicts
 
 # Ping for health checks
 ping:
