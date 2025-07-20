@@ -175,7 +175,7 @@ services:
       - "12345:12345"
     networks:
       - monitoring
-      - caddy_default
+      - traefik_default
       - media_mediaserver
 
   # Tempo runs as user 10001, and docker compose creates the volume as root.
@@ -209,7 +209,7 @@ services:
       - tempo-init
     networks:
       - monitoring
-      - caddy_default
+      - traefik_default
       - media_mediaserver
     restart: unless-stopped
 
@@ -236,5 +236,5 @@ networks:
     driver: bridge
   media_mediaserver:
     external: true
-  caddy_default:
+  traefik_default:
     external: true
