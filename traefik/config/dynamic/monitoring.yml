@@ -92,4 +92,4 @@ http:
     dozzle-headers:
       headers:
         customRequestHeaders:
-          Remote-User: "{{.Username}}"
+          Remote-User: "smigula"
