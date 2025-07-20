@@ -1,7 +1,7 @@
 services:
   caddy:
     image: localhost:5000/docker/caddy:2.10.0-alpine
-    container_name: caddy-proxy
+    container_name: traefik-proxy
     restart: unless-stopped
     ports:
       - "80:80"
@@ -14,7 +14,7 @@ services:
     environment:
       - ACME_EMAIL=admin@smigula.io
     networks:
-      - caddy-proxy
+      - traefik-proxy
       - monitoring_monitoring
       - media_mediaserver
       - zot_registry
@@ -26,7 +26,7 @@ services:
     volumes:
       - ./html:/usr/share/nginx/html:ro
     networks:
-      - caddy-proxy
+      - traefik-proxy
       - zot_registry
     expose:
       - "80"
@@ -38,7 +38,7 @@ volumes:
     external: false
 
 networks:
-  caddy-proxy:
+  traefik-proxy:
     driver: bridge
   zot_registry:
     external: true

@@ -173,9 +173,10 @@ services:
       - --server.http.listen-addr=0.0.0.0:12345
     ports:
       - "12345:12345"
+      - "6831:6831/udp"   # Jaeger thrift compact (used by Traefik)
     networks:
       - monitoring
-      - caddy_caddy-proxy
+      - caddy_traefik-proxy
       - media_mediaserver
 
   # Tempo runs as user 10001, and docker compose creates the volume as root.
@@ -209,7 +210,7 @@ services:
       - tempo-init
     networks:
       - monitoring
-      - caddy_caddy-proxy
+      - caddy_traefik-proxy
       - media_mediaserver
     restart: unless-stopped
 
@@ -236,5 +237,5 @@ networks:
     driver: bridge
   media_mediaserver:
     external: true
-  caddy_caddy-proxy:
+  caddy_traefik-proxy:
     external: true

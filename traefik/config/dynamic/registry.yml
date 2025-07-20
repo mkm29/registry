@@ -1,0 +1,25 @@
+http:
+  routers:
+    registry:
+      rule: "Host(`registry.smigula.io`)"
+      service: registry
+      entryPoints:
+        - websecure
+      tls:
+        certResolver: letsencrypt
+      middlewares:
+        - security-headers
+        - registry-headers
+
+  services:
+    registry:
+      loadBalancer:
+        servers:
+          - url: "http://registry:5000"
+
+  middlewares:
+    registry-headers:
+      headers:
+        customRequestHeaders:
+          Docker-Distribution-Api-Version: "registry/2.0"
+          X-Forwarded-Port: "443"

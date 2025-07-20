@@ -250,6 +250,38 @@ prometheus.relabel "cadvisor_metrics" {
 	}
 }
 
+// Scrape metrics from Traefik
+prometheus.scrape "traefik" {
+	targets = [
+		{
+			__address__ = "traefik:8082",
+			job         = "traefik",
+		},
+	]
+	forward_to      = [prometheus.relabel.traefik_metrics.receiver]
+	scrape_interval = "15s"
+	scrape_timeout  = "10s"
+	metrics_path    = "/metrics"
+}
+
+// Relabel metrics from Traefik
+prometheus.relabel "traefik_metrics" {
+	forward_to = [prometheus.remote_write.metrics.receiver]
+
+	// Add instance label
+	rule {
+		source_labels = ["__address__"]
+		target_label  = "instance"
+	}
+
+	// Keep Traefik-specific metrics
+	rule {
+		source_labels = ["__name__"]
+		regex         = "traefik_.*"
+		action        = "keep"
+	}
+}
+
 // Send metrics to Prometheus
 prometheus.remote_write "metrics" {
 	endpoint {
@@ -264,6 +296,19 @@ otelcol.receiver.otlp "default" {
   }
   http {
     endpoint = "0.0.0.0:4318"
+  }
+
+  output {
+    traces = [otelcol.processor.batch.default.input]
+  }
+}
+
+// Jaeger receiver for Traefik traces
+otelcol.receiver.jaeger "traefik" {
+  protocols {
+    thrift_compact {
+      endpoint = "0.0.0.0:6831"
+    }
   }
 
   output {
