@@ -66,7 +66,14 @@ metrics:
     addServicesLabels: true
     entryPoint: metrics
 
-# Tracing configuration is set via command line arguments to avoid schema conflicts
+# Example Jaeger tracing configuration for Traefik v2
+# tracing:
+#   jaeger:
+#     samplingServerURL: http://localhost:5778/sampling
+#     localAgentHostPort: localhost:6831
+#     samplingType: const
+#     samplingParam: 1.0
+#     gen128Bit: true
 
 # Ping for health checks
 ping:
