@@ -213,19 +213,6 @@ services:
       - media_mediaserver
     restart: unless-stopped
 
-  vulture:
-    image: grafana/tempo-vulture:local
-    command:
-      [
-        "-tempo-query-url=http://tempo:3200",
-        "-tempo-push-url=http://tempo:4317",
-      ]
-    depends_on:
-      - tempo
-    networks:
-      - monitoring
-    restart: unless-stopped
-
 secrets:
   users:
     file: users.yml
