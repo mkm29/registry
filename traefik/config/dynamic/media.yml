@@ -94,7 +94,7 @@ http:
     qbittorrent:
       loadBalancer:
         servers:
-          - url: "http://qbittorrent:8080"
+          - url: "http://qbittorrent:10080"
 
     overseerr:
       loadBalancer:

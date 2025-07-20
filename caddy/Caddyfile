@@ -202,7 +202,7 @@ prowlarr.smigula.io {
 
 # Qbittorrent
 bt.smigula.io {
-	reverse_proxy qbittorrent:8080 {
+	reverse_proxy qbittorrent:10080 {
 		header_up Host {upstream_hostport}
 		header_up X-Real-IP {remote_host}
 		# Removed X-Forwarded-For and X-Forwarded-Proto as they're automatic

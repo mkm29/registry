@@ -160,14 +160,14 @@ services:
       - PUID=1000
       - PGID=1000
       - TZ=America/New_York
-      - WEBUI_PORT=8080
+      - WEBUI_PORT=10080
       - TORRENTING_PORT=6881
     volumes:
       - ${CONFIG_ROOT}/qbittorrent:/config
       - ${DATA_ROOT}/torrents:/data/torrents
       - ${DATA_ROOT}/torrents/incomplete:/data/incomplete
     ports:
-      - ${QBITTORRENT_WEB_PORT}:8080
+      - ${QBITTORRENT_WEB_PORT}:10080
       - ${QBITTORRENT_TORRENTING_PORT}:6881
       - ${QBITTORRENT_TORRENTING_PORT}:6881/udp
     restart: unless-stopped
