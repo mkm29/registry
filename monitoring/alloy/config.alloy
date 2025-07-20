@@ -333,6 +333,6 @@ otelcol.exporter.otlp "tempo" {
 	}
 }
 // enable live debugging
-libedebugging {
+livedebugging {
 	enabled = true
 }
