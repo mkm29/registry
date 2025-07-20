@@ -35,7 +35,7 @@ services:
       - "80"
     labels:
       - "traefik.enable=true"
-      - "traefik.docker.network=default"
+      - "traefik.docker.network=traefik_default"
       - "traefik.http.routers.landing.rule=Host(`smigula.io`)"
       - "traefik.http.routers.landing.entrypoints=websecure"
       - "traefik.http.routers.landing.tls.certresolver=letsencrypt"
