@@ -257,7 +257,8 @@ prometheus.remote_write "metrics" {
 	}
 }
 
-otelcol.receiver.otlp "otlp_receiver" {
+// OpenTelemetry receiver for traces
+otelcol.receiver.otlp "default" {
   grpc {
     endpoint = "0.0.0.0:4317"
   }
@@ -266,15 +267,30 @@ otelcol.receiver.otlp "otlp_receiver" {
   }
 
   output {
-    traces = [otelcol.exporter.otlp.grafanacloud.input,]
+    traces = [otelcol.processor.batch.default.input]
   }
 }
 
-otelcol.exporter.otlp "otlp_exporter" {
+// Batch processor for better performance
+otelcol.processor.batch "default" {
+  // Batch timeout - send at least every 200ms
+  timeout = "200ms"
+  
+  // Send batches when they reach 8192 spans
+  send_batch_size = 8192
+
+  output {
+    traces = [otelcol.exporter.otlp.tempo.input]
+  }
+}
+
+// Export traces to Tempo
+otelcol.exporter.otlp "tempo" {
   client {
     endpoint = "tempo:4317"
     tls {
-			insecure = true
-		}
+      insecure = true
+      insecure_skip_verify = true
+    }
   }
 }

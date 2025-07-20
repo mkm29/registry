@@ -7,12 +7,7 @@ datasources:
     url: http://prometheus:9090
     isDefault: true
     editable: false
-
-  - name: Jaeger
-    type: jaeger
-    access: proxy
-    url: http://jaeger:16686
-    editable: false
+    uid: prometheus
 
   - name: Tempo
     type: tempo
@@ -20,7 +15,7 @@ datasources:
     orgId: 1
     url: http://tempo:3200
     basicAuth: false
-    isDefault: true
+    isDefault: false
     version: 1
     editable: false
     apiVersion: 1
@@ -29,5 +24,21 @@ datasources:
       httpMethod: GET
       serviceMap:
         datasourceUid: prometheus
+      nodeGraph:
+        enabled: true
+      search:
+        hide: false
+      lokiSearch:
+        datasourceUid: loki
+      tracesToLogsV2:
+        datasourceUid: loki
+        spanStartTimeShift: "-1h"
+        spanEndTimeShift: "1h"
+        filterByTraceID: true
+        filterBySpanID: true
+      tracesToMetrics:
+        datasourceUid: prometheus
+        spanStartTimeShift: "-1h"
+        spanEndTimeShift: "1h"
       streamingEnabled:
         search: true
