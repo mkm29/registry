@@ -57,6 +57,17 @@ http:
         - auth-basic
         - dozzle-headers
 
+    alloy:
+      rule: "Host(`alloy.smigula.io`)"
+      service: alloy
+      entryPoints:
+        - websecure
+      tls:
+        certResolver: letsencrypt
+      middlewares:
+        - security-headers
+        - auth-basic
+
   services:
     grafana:
       loadBalancer:
@@ -77,6 +88,11 @@ http:
       loadBalancer:
         servers:
           - url: "http://dozzle:9080"
+
+    alloy:
+      loadBalancer:
+        servers:
+          - url: "http://alloy:12345"
 
   middlewares:
     grafana-headers:

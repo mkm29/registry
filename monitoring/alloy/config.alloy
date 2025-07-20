@@ -1,3 +1,7 @@
+logging {
+	format = "json"
+	level  = "debug"
+}
 // Grafana Alloy configuration for Docker monitoring (logs and metrics)
 
 // Discovery component to find Docker containers
@@ -291,39 +295,44 @@ prometheus.remote_write "metrics" {
 
 // OpenTelemetry receiver for traces
 otelcol.receiver.otlp "default" {
-  grpc {
-    endpoint = "0.0.0.0:4317"
-  }
-  http {
-    endpoint = "0.0.0.0:4318"
-  }
+	grpc {
+		endpoint = "0.0.0.0:4317"
+	}
 
-  output {
-    traces = [otelcol.processor.batch.default.input]
-  }
+	http {
+		endpoint = "0.0.0.0:4318"
+	}
+
+	output {
+		traces = [otelcol.processor.batch.default.input]
+	}
 }
-
 
 // Batch processor for better performance
 otelcol.processor.batch "default" {
-  // Batch timeout - send at least every 200ms
-  timeout = "200ms"
-  
-  // Send batches when they reach 8192 spans
-  send_batch_size = 8192
+	// Batch timeout - send at least every 200ms
+	timeout = "200ms"
 
-  output {
-    traces = [otelcol.exporter.otlp.tempo.input]
-  }
+	// Send batches when they reach 8192 spans
+	send_batch_size = 8192
+
+	output {
+		traces = [otelcol.exporter.otlp.tempo.input]
+	}
 }
 
 // Export traces to Tempo
 otelcol.exporter.otlp "tempo" {
-  client {
-    endpoint = "tempo:4317"
-    tls {
-      insecure = true
-      insecure_skip_verify = true
-    }
-  }
+	client {
+		endpoint = "tempo:4317"
+
+		tls {
+			insecure             = true
+			insecure_skip_verify = true
+		}
+	}
+}
+// enable live debugging
+libedebugging {
+	enabled = true
 }
