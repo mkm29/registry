@@ -1,0 +1,107 @@
+http:
+  routers:
+    radarr:
+      rule: "Host(`radarr.smigula.io`)"
+      service: radarr
+      entryPoints:
+        - websecure
+      tls:
+        certResolver: letsencrypt
+      middlewares:
+        - security-headers
+
+    sonarr:
+      rule: "Host(`sonarr.smigula.io`)"
+      service: sonarr
+      entryPoints:
+        - websecure
+      tls:
+        certResolver: letsencrypt
+      middlewares:
+        - security-headers
+
+    bazarr:
+      rule: "Host(`bazarr.smigula.io`)"
+      service: bazarr
+      entryPoints:
+        - websecure
+      tls:
+        certResolver: letsencrypt
+      middlewares:
+        - security-headers
+
+    prowlarr:
+      rule: "Host(`prowlarr.smigula.io`)"
+      service: prowlarr
+      entryPoints:
+        - websecure
+      tls:
+        certResolver: letsencrypt
+      middlewares:
+        - security-headers
+
+    qbittorrent:
+      rule: "Host(`bt.smigula.io`)"
+      service: qbittorrent
+      entryPoints:
+        - websecure
+      tls:
+        certResolver: letsencrypt
+      middlewares:
+        - security-headers
+
+    overseerr:
+      rule: "Host(`request.smigula.io`)"
+      service: overseerr
+      entryPoints:
+        - websecure
+      tls:
+        certResolver: letsencrypt
+      middlewares:
+        - security-headers
+
+    plex:
+      rule: "Host(`plex.smigula.io`)"
+      service: plex
+      entryPoints:
+        - websecure
+      tls:
+        certResolver: letsencrypt
+      middlewares:
+        - security-headers
+
+  services:
+    radarr:
+      loadBalancer:
+        servers:
+          - url: "http://radarr:7878"
+
+    sonarr:
+      loadBalancer:
+        servers:
+          - url: "http://sonarr:8989"
+
+    bazarr:
+      loadBalancer:
+        servers:
+          - url: "http://bazarr:6767"
+
+    prowlarr:
+      loadBalancer:
+        servers:
+          - url: "http://prowlarr:9696"
+
+    qbittorrent:
+      loadBalancer:
+        servers:
+          - url: "http://qbittorrent:10080"
+
+    overseerr:
+      loadBalancer:
+        servers:
+          - url: "http://overseerr:5055"
+
+    plex:
+      loadBalancer:
+        servers:
+          - url: "http://plex:32400"

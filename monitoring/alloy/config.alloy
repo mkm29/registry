@@ -1,3 +1,7 @@
+logging {
+	format = "json"
+	level  = "debug"
+}
 // Grafana Alloy configuration for Docker monitoring (logs and metrics)
 
 // Discovery component to find Docker containers
@@ -250,9 +254,85 @@ prometheus.relabel "cadvisor_metrics" {
 	}
 }
 
+// Scrape metrics from Traefik
+prometheus.scrape "traefik" {
+	targets = [
+		{
+			__address__ = "traefik:8082",
+			job         = "traefik",
+		},
+	]
+	forward_to      = [prometheus.relabel.traefik_metrics.receiver]
+	scrape_interval = "15s"
+	scrape_timeout  = "10s"
+	metrics_path    = "/metrics"
+}
+
+// Relabel metrics from Traefik
+prometheus.relabel "traefik_metrics" {
+	forward_to = [prometheus.remote_write.metrics.receiver]
+
+	// Add instance label
+	rule {
+		source_labels = ["__address__"]
+		target_label  = "instance"
+	}
+
+	// Keep Traefik-specific metrics
+	rule {
+		source_labels = ["__name__"]
+		regex         = "traefik_.*"
+		action        = "keep"
+	}
+}
+
 // Send metrics to Prometheus
 prometheus.remote_write "metrics" {
 	endpoint {
 		url = "http://prometheus:9090/api/v1/write"
 	}
+}
+
+// OpenTelemetry receiver for traces
+otelcol.receiver.otlp "default" {
+	grpc {
+		endpoint = "0.0.0.0:4317"
+	}
+
+	http {
+		endpoint = "0.0.0.0:4318"
+	}
+
+	output {
+		traces = [otelcol.processor.batch.default.input]
+	}
+}
+
+// Batch processor for better performance
+otelcol.processor.batch "default" {
+	// Batch timeout - send at least every 200ms
+	timeout = "200ms"
+
+	// Send batches when they reach 8192 spans
+	send_batch_size = 8192
+
+	output {
+		traces = [otelcol.exporter.otlp.tempo.input]
+	}
+}
+
+// Export traces to Tempo
+otelcol.exporter.otlp "tempo" {
+	client {
+		endpoint = "tempo:4317"
+
+		tls {
+			insecure             = true
+			insecure_skip_verify = true
+		}
+	}
+}
+// enable live debugging
+livedebugging {
+	enabled = true
 }

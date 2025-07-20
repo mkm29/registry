@@ -1,0 +1,17 @@
+http:
+  routers:
+    traefik-metrics:
+      rule: "Host(`traefik.smigula.io`) && Path(`/metrics`)"
+      service: prometheus@internal
+      entryPoints:
+        - websecure
+      tls:
+        certResolver: letsencrypt
+      middlewares:
+        - auth-basic
+
+# Add internal metrics endpoint
+metrics:
+  entryPoints:
+    metrics:
+      address: ":8082"

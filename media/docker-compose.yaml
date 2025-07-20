@@ -16,7 +16,8 @@ services:
       "
     restart: "no"
     networks:
-      - mediaserver
+      - media_mediaserver
+      - zot_registry
   # Movies
   radarr:
     image: lscr.io/linuxserver/radarr:latest
@@ -33,7 +34,8 @@ services:
       - ${RADARR_PORT}:7878
     restart: unless-stopped
     networks:
-      - mediaserver
+      - media_mediaserver
+      - zot_registry
     depends_on:
       - radarr-init
 
@@ -53,7 +55,8 @@ services:
       "
     restart: "no"
     networks:
-      - mediaserver
+      - media_mediaserver
+      - zot_registry
   # TV
   sonarr:
     image: lscr.io/linuxserver/sonarr:latest
@@ -70,7 +73,8 @@ services:
       - ${SONARR_PORT}:8989
     restart: unless-stopped
     networks:
-      - mediaserver
+      - media_mediaserver
+      - zot_registry
     depends_on:
       - sonarr-init
 
@@ -90,7 +94,8 @@ services:
       - ${BAZARR_PORT}:6767
     restart: unless-stopped
     networks:
-      - mediaserver
+      - media_mediaserver
+      - zot_registry
 
   prowlarr-init:
     image: alpine:latest
@@ -106,7 +111,8 @@ services:
       "
     restart: "no"
     networks:
-      - mediaserver
+      - media_mediaserver
+      - zot_registry
 
   # Indexer
   prowlarr:
@@ -122,7 +128,8 @@ services:
       - ${PROWLARR_PORT}:9696
     restart: unless-stopped
     networks:
-      - mediaserver
+      - media_mediaserver
+      - zot_registry
     depends_on:
       - prowlarr-init
 
@@ -142,7 +149,8 @@ services:
       "
     restart: "no"
     networks:
-      - mediaserver
+      - media_mediaserver
+      - zot_registry
 
   # Torrent Client
   qbittorrent:
@@ -152,19 +160,20 @@ services:
       - PUID=1000
       - PGID=1000
       - TZ=America/New_York
-      - WEBUI_PORT=8080
+      - WEBUI_PORT=10080
       - TORRENTING_PORT=6881
     volumes:
       - ${CONFIG_ROOT}/qbittorrent:/config
       - ${DATA_ROOT}/torrents:/data/torrents
       - ${DATA_ROOT}/torrents/incomplete:/data/incomplete
     ports:
-      - ${QBITTORRENT_WEB_PORT}:8080
+      - ${QBITTORRENT_WEB_PORT}:10080
       - ${QBITTORRENT_TORRENTING_PORT}:6881
       - ${QBITTORRENT_TORRENTING_PORT}:6881/udp
     restart: unless-stopped
     networks:
-      - mediaserver
+      - media_mediaserver
+      - zot_registry
     depends_on:
       - qbittorrent-init
 
@@ -182,7 +191,8 @@ services:
       "
     restart: "no"
     networks:
-      - mediaserver
+      - media_mediaserver
+      - zot_registry
 
   # Requesting Web App
   overseerr:
@@ -198,7 +208,8 @@ services:
       - ${OVERSEERR_PORT}:5055
     restart: unless-stopped
     networks:
-      - mediaserver
+      - media_mediaserver
+      - zot_registry
     depends_on:
       - overseerr-init
 
@@ -218,7 +229,8 @@ services:
       "
     restart: "no"
     networks:
-      - mediaserver
+      - media_mediaserver
+      - zot_registry
 
   # Media Server
   plex:
@@ -247,21 +259,26 @@ services:
       - "32469:32469"   # DLNA
     restart: unless-stopped
     networks:
-      - mediaserver
+      - media_mediaserver
+      - zot_registry
     depends_on:
       - plex-init
     # Note: Plex uses host networking for better performance and compatibility but in rootless mode you cannot use host networking.
 
   # VPN
   # nordlynx:
-  #   image: ghcr.io/bubuntux/nordlynx
+  #   image: localhost:5000/ghcr/bubuntux/nordlynx
   #   cap_add:
   #     - NET_ADMIN
   #   environment:
   #     - PRIVATE_KEY=${NORDLYNX_PRIVATE_KEY}
   #   restart: unless-stopped
-  #   network_mode: host
+  #   networks: host
+  #     - media_mediaserver
+  #     - zot_registry
 
 networks:
-  mediaserver:
-    driver: bridge
+  media_mediaserver:
+    external: true
+  zot_registry:
+    external: true
