@@ -11,7 +11,7 @@ services:
     volumes:
       - ./config/traefik.yml:/etc/traefik/traefik.yml:ro
       - ./config/dynamic:/etc/traefik/dynamic:ro
-      - ./logs:/var/log/traefik
+      - logs-data:/var/log/traefik
       - traefik_certs:/letsencrypt
       - /run/user/1000/docker.sock:/var/run/docker.sock:ro
     environment:
@@ -27,7 +27,7 @@ services:
     container_name: landing-page
     restart: unless-stopped
     volumes:
-      - ../caddy/html:/usr/share/nginx/html:ro
+      - ../shared/html:/usr/share/nginx/html:ro
     networks:
       - traefik-proxy
       - zot_registry
@@ -48,6 +48,12 @@ services:
 volumes:
   traefik_certs:
     external: false
+  logs-data:
+    driver: local
+    driver_opts:
+      type: none
+      device: /mnt/data/logs/traefik
+      o: bind
 
 networks:
   traefik-proxy:

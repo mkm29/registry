@@ -24,7 +24,7 @@ services:
     container_name: landing-page
     restart: unless-stopped
     volumes:
-      - ./html:/usr/share/nginx/html:ro
+      - ../shared/html:/usr/share/nginx/html:ro
     networks:
       - traefik-proxy
       - zot_registry
