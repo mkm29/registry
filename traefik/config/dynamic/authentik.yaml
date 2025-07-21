@@ -1,0 +1,60 @@
+http:
+  routers:
+    # Main Authentik server router
+    authentik-server:
+      rule: "Host(`auth.smigula.io`)"
+      service: authentik-server
+      entryPoints:
+        - websecure
+      tls:
+        certResolver: letsencrypt
+      middlewares:
+        - security-headers
+
+    # Authentik outpost router for authentication endpoints
+    authentik-outpost:
+      rule: "Host(`auth.smigula.io`) && PathPrefix(`/outpost.goauthentik.io/`)"
+      service: authentik-server
+      entryPoints:
+        - websecure
+      tls:
+        certResolver: letsencrypt
+      middlewares:
+        - security-headers
+      # Higher priority to match before the main server route
+      priority: 100
+
+  services:
+    authentik-server:
+      loadBalancer:
+        servers:
+          - url: "http://localhost:9000"
+        passHostHeader: true
+
+  middlewares:
+    # Forward auth middleware to be used by protected services
+    authentik:
+      forwardAuth:
+        address: "http://localhost:9000/outpost.goauthentik.io/auth/traefik"
+        trustForwardHeader: true
+        authResponseHeaders:
+          - X-authentik-username
+          - X-authentik-groups
+          - X-authentik-email
+          - X-authentik-name
+          - X-authentik-uid
+          - X-authentik-jwt
+          - X-authentik-meta-jwks
+          - X-authentik-meta-outpost
+          - X-authentik-meta-provider
+          - X-authentik-meta-app
+          - X-authentik-meta-version
+
+    # Headers for Authentik compatibility
+    authentik-headers:
+      headers:
+        customRequestHeaders:
+          X-Forwarded-Proto: "https"
+          X-Forwarded-Host: "auth.smigula.io"
+        customResponseHeaders:
+          X-Frame-Options: "SAMEORIGIN"

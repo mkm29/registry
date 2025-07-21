@@ -21,6 +21,7 @@ services:
       - monitoring
       - mediaserver
       - registry
+      - auth
 
   landing:
     image: nginx:alpine
