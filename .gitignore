@@ -74,3 +74,4 @@ secrets/
 credentials/
 .claude/
 CLAUDE.md
+.secrets.env

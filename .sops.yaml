@@ -1,0 +1,5 @@
+creation_rules:
+  # Encrypt any .secrets.env files in the repository
+  - path_regex: '.*\.secrets\.env$'
+    age: >-
+      age1chya88tugul5h37x7ptag9jn3gx6k5urnpf0pxp7uwf9jpc7eehqv9m250
