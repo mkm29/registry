@@ -39,7 +39,7 @@ services:
       - auth
 
   server:
-    image: registry.smigula.io/ghcr/goauthentik/server:2024.12.2
+    image: registry.smigula.io/ghcr/goauthentik/server:2025.6.3
     container_name: authentik-server
     restart: unless-stopped
     command: server
@@ -59,7 +59,7 @@ services:
       - redis
 
   worker:
-    image: registry.smigula.io/ghcr/goauthentik/server:2024.12.2
+    image: registry.smigula.io/ghcr/goauthentik/server:2025.6.3
     container_name: authentik-worker
     restart: unless-stopped
     command: worker
