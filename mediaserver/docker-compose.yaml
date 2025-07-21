@@ -16,8 +16,8 @@ services:
       "
     restart: "no"
     networks:
-      - default
-      - zot_registry
+      - mediaserver
+      - registry
   # Movies
   radarr:
     image: lscr.io/linuxserver/radarr:latest
@@ -34,8 +34,8 @@ services:
       - ${RADARR_PORT}:7878
     restart: unless-stopped
     networks:
-      - default
-      - zot_registry
+      - mediaserver
+      - registry
     depends_on:
       - radarr-init
 
@@ -55,8 +55,8 @@ services:
       "
     restart: "no"
     networks:
-      - default
-      - zot_registry
+      - mediaserver
+      - registry
   # TV
   sonarr:
     image: lscr.io/linuxserver/sonarr:latest
@@ -73,8 +73,8 @@ services:
       - ${SONARR_PORT}:8989
     restart: unless-stopped
     networks:
-      - default
-      - zot_registry
+      - mediaserver
+      - registry
     depends_on:
       - sonarr-init
 
@@ -94,8 +94,8 @@ services:
       - ${BAZARR_PORT}:6767
     restart: unless-stopped
     networks:
-      - default
-      - zot_registry
+      - mediaserver
+      - registry
 
   prowlarr-init:
     image: alpine:latest
@@ -111,8 +111,8 @@ services:
       "
     restart: "no"
     networks:
-      - default
-      - zot_registry
+      - mediaserver
+      - registry
 
   # Indexer
   prowlarr:
@@ -128,8 +128,8 @@ services:
       - ${PROWLARR_PORT}:9696
     restart: unless-stopped
     networks:
-      - default
-      - zot_registry
+      - mediaserver
+      - registry
     depends_on:
       - prowlarr-init
 
@@ -149,8 +149,8 @@ services:
       "
     restart: "no"
     networks:
-      - default
-      - zot_registry
+      - mediaserver
+      - registry
 
   # Torrent Client
   qbittorrent:
@@ -172,8 +172,8 @@ services:
       - ${QBITTORRENT_TORRENTING_PORT}:6881/udp
     restart: unless-stopped
     networks:
-      - default
-      - zot_registry
+      - mediaserver
+      - registry
     depends_on:
       - qbittorrent-init
 
@@ -191,8 +191,8 @@ services:
       "
     restart: "no"
     networks:
-      - default
-      - zot_registry
+      - mediaserver
+      - registry
 
   # Requesting Web App
   overseerr:
@@ -208,8 +208,8 @@ services:
       - ${OVERSEERR_PORT}:5055
     restart: unless-stopped
     networks:
-      - default
-      - zot_registry
+      - mediaserver
+      - registry
     depends_on:
       - overseerr-init
 
@@ -229,8 +229,8 @@ services:
       "
     restart: "no"
     networks:
-      - default
-      - zot_registry
+      - mediaserver
+      - registry
 
   # Media Server
   plex:
@@ -259,8 +259,8 @@ services:
       - "32469:32469"   # DLNA
     restart: unless-stopped
     networks:
-      - default
-      - zot_registry
+      - mediaserver
+      - registry
     depends_on:
       - plex-init
     # Note: Plex uses host networking for better performance and compatibility but in rootless mode you cannot use host networking.
@@ -275,10 +275,10 @@ services:
   #   restart: unless-stopped
   #   networks: host
   #     - default
-  #     - zot_registry
+  #     - registry
 
 networks:
-  default:
+  mediaserver:
     external: true
-  zot_registry:
+  registry:
     external: true
