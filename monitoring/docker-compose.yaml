@@ -181,7 +181,7 @@ services:
   # Tempo runs as user 10001, and docker compose creates the volume as root.
   # As such, we need to chown the volume in order for Tempo to start correctly.
   tempo-init:
-    image: alpine:latest
+    image: registry.smigula.io/docker/alpine:latest
     container_name: tempo-init
     user: root
     command: >
@@ -195,7 +195,7 @@ services:
       - default
     restart: "no"
   tempo:
-    image: grafana/tempo:latest
+    image: registry.smigula.io/docker/grafana/tempo:latest
     container_name: tempo
     command: [ "-config.file=/etc/tempo.yaml" ]
     volumes:
