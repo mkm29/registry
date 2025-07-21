@@ -175,8 +175,6 @@ services:
       - "12345:12345"
     networks:
       - default
-      - traefik_default
-      - mediaserver_default
 
   # Tempo runs as user 10001, and docker compose creates the volume as root.
   # As such, we need to chown the volume in order for Tempo to start correctly.
@@ -209,8 +207,6 @@ services:
       - tempo-init
     networks:
       - default
-      - traefik_default
-      - mediaserver_default
     restart: unless-stopped
 
 secrets:
@@ -233,7 +229,7 @@ volumes:
 
 networks:
   default:
-    driver: bridge
+    external: true
   mediaserver_default:
     external: true
   traefik_default:
