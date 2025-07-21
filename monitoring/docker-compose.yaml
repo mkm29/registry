@@ -11,7 +11,7 @@ services:
         chmod -R 755 /prometheus
       "
     networks:
-      - monitoring
+      - default
     restart: "no"
 
   # Prometheus for metrics collection
@@ -35,7 +35,7 @@ services:
       - '--web.enable-lifecycle'
       - '--web.enable-remote-write-receiver'
     networks:
-      - monitoring
+      - default
     depends_on:
       - prometheus-init
 
@@ -50,7 +50,7 @@ services:
         chmod -R 755 /loki
       "
     networks:
-      - monitoring
+      - default
     restart: "no"
 
   # Loki for log aggregation
@@ -65,7 +65,7 @@ services:
       - loki-data:/loki
     command: -config.file=/etc/loki/loki-config.yaml
     networks:
-      - monitoring
+      - default
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3100/ready"]
       interval: 15s
@@ -99,7 +99,7 @@ services:
       - GF_SERVER_ENABLE_GZIP=true
       - GF_SERVER_USE_X_FORWARDED=true
     networks:
-      - monitoring
+      - default
     depends_on:
       - prometheus
       - tempo
@@ -124,7 +124,7 @@ services:
       - DOZZLE_AUTH_PROVIDER=simple
     restart: unless-stopped
     networks:
-      - monitoring
+      - default
 
   # cAdvisor for container metrics in rootless mode
   cadvisor:
@@ -154,7 +154,7 @@ services:
       - --enable_load_reader=false
       - --max_procs=4
     networks:
-      - monitoring
+      - default
 
   # Grafana Alloy for observability data collection
   alloy:
@@ -174,9 +174,9 @@ services:
     ports:
       - "12345:12345"
     networks:
-      - monitoring
+      - default
       - traefik_default
-      - media_mediaserver
+      - mediaserver_default
 
   # Tempo runs as user 10001, and docker compose creates the volume as root.
   # As such, we need to chown the volume in order for Tempo to start correctly.
@@ -208,9 +208,9 @@ services:
     depends_on:
       - tempo-init
     networks:
-      - monitoring
+      - default
       - traefik_default
-      - media_mediaserver
+      - mediaserver_default
     restart: unless-stopped
 
 secrets:
@@ -232,9 +232,9 @@ volumes:
     driver: local
 
 networks:
-  monitoring:
+  default:
     driver: bridge
-  media_mediaserver:
+  mediaserver_default:
     external: true
   traefik_default:
     external: true

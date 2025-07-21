@@ -18,9 +18,9 @@ services:
       - TRAEFIK_LOG_LEVEL=INFO
     networks:
       - default
-      - monitoring_monitoring
-      - media_mediaserver
-      - zot_registry
+      - monitoring_default
+      - mediaserver_default
+      - zot_default
 
   landing:
     image: nginx:alpine
@@ -30,7 +30,7 @@ services:
       - ../shared/html:/usr/share/nginx/html:ro
     networks:
       - default
-      - zot_registry
+      - zot_default
     expose:
       - "80"
     labels:
@@ -59,9 +59,9 @@ volumes:
 networks:
   default:
     driver: bridge
-  zot_registry:
+  zot_default:
     external: true
-  monitoring_monitoring:
+  monitoring_default:
     external: true
-  media_mediaserver:
+  mediaserver_default:
     external: true
