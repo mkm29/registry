@@ -42,7 +42,7 @@ services:
       - "traefik.http.routers.landing.tls.certresolver=letsencrypt"
       - "traefik.http.services.landing.loadbalancer.server.port=80"
       # Redirects
-      - "traefik.http.routers.landing.middlewares=landing-redirects"
+      - "traefik.http.routers.landing.middlewares=landing-redirects,authentik@file"
       - "traefik.http.middlewares.landing-redirects.redirectregex.regex=^https://smigula.io/(grafana|jaeger|registry)$$"
       - "traefik.http.middlewares.landing-redirects.redirectregex.replacement=https://$$1.smigula.io"
       - "traefik.http.middlewares.landing-redirects.redirectregex.permanent=true"
