@@ -20,7 +20,7 @@ services:
       - default
       - monitoring_default
       - mediaserver_default
-      - zot_default
+      - zot_registry
 
   landing:
     image: nginx:alpine
@@ -30,7 +30,7 @@ services:
       - ../shared/html:/usr/share/nginx/html:ro
     networks:
       - default
-      - zot_default
+      - zot_registry
     expose:
       - "80"
     labels:
@@ -59,7 +59,7 @@ volumes:
 networks:
   default:
     driver: bridge
-  zot_default:
+  zot_registry:
     external: true
   monitoring_default:
     external: true

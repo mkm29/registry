@@ -17,7 +17,7 @@ services:
     restart: "no"
     networks:
       - default
-      - zot_default
+      - zot_registry
   # Movies
   radarr:
     image: lscr.io/linuxserver/radarr:latest
@@ -35,7 +35,7 @@ services:
     restart: unless-stopped
     networks:
       - default
-      - zot_default
+      - zot_registry
     depends_on:
       - radarr-init
 
@@ -56,7 +56,7 @@ services:
     restart: "no"
     networks:
       - default
-      - zot_default
+      - zot_registry
   # TV
   sonarr:
     image: lscr.io/linuxserver/sonarr:latest
@@ -74,7 +74,7 @@ services:
     restart: unless-stopped
     networks:
       - default
-      - zot_default
+      - zot_registry
     depends_on:
       - sonarr-init
 
@@ -95,7 +95,7 @@ services:
     restart: unless-stopped
     networks:
       - default
-      - zot_default
+      - zot_registry
 
   prowlarr-init:
     image: alpine:latest
@@ -112,7 +112,7 @@ services:
     restart: "no"
     networks:
       - default
-      - zot_default
+      - zot_registry
 
   # Indexer
   prowlarr:
@@ -129,7 +129,7 @@ services:
     restart: unless-stopped
     networks:
       - default
-      - zot_default
+      - zot_registry
     depends_on:
       - prowlarr-init
 
@@ -150,7 +150,7 @@ services:
     restart: "no"
     networks:
       - default
-      - zot_default
+      - zot_registry
 
   # Torrent Client
   qbittorrent:
@@ -173,7 +173,7 @@ services:
     restart: unless-stopped
     networks:
       - default
-      - zot_default
+      - zot_registry
     depends_on:
       - qbittorrent-init
 
@@ -192,7 +192,7 @@ services:
     restart: "no"
     networks:
       - default
-      - zot_default
+      - zot_registry
 
   # Requesting Web App
   overseerr:
@@ -209,7 +209,7 @@ services:
     restart: unless-stopped
     networks:
       - default
-      - zot_default
+      - zot_registry
     depends_on:
       - overseerr-init
 
@@ -230,7 +230,7 @@ services:
     restart: "no"
     networks:
       - default
-      - zot_default
+      - zot_registry
 
   # Media Server
   plex:
@@ -260,7 +260,7 @@ services:
     restart: unless-stopped
     networks:
       - default
-      - zot_default
+      - zot_registry
     depends_on:
       - plex-init
     # Note: Plex uses host networking for better performance and compatibility but in rootless mode you cannot use host networking.
@@ -275,10 +275,10 @@ services:
   #   restart: unless-stopped
   #   networks: host
   #     - default
-  #     - zot_default
+  #     - zot_registry
 
 networks:
   default:
     external: true
-  zot_default:
+  zot_registry:
     external: true

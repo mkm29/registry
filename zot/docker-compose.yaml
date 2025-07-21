@@ -16,7 +16,7 @@ services:
       # - ./certs/registry1-ca:/etc/zot/certs/registry1-ca:ro
       - zot-data:/var/lib/zot
     networks:
-      - registry
+      - default
     command:
       - serve
       - /etc/zot/config.yaml
@@ -36,5 +36,5 @@ volumes:
       o: bind
 
 networks:
-  registry:
+  default:
     driver: bridge
