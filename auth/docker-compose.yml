@@ -74,7 +74,7 @@ services:
     user: root
     volumes:
       - /run/users/1000/docker.sock:/var/run/docker.sock
-      - media:-data:/media
+      - media-data:-data:/media
       - certs-data:/certs
       - templates-data:/templates
     env_file:
