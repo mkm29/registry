@@ -1,7 +1,7 @@
 ---
 services:
   postgresql:
-    image: postgres:16-alpine
+    image: registry.smigula.io/docker/postgres:16-alpine
     container_name: authentik-postgresql
     restart: unless-stopped
     healthcheck:
@@ -19,7 +19,7 @@ services:
       - auth
 
   redis:
-    image: redis:alpine
+    image: registry.smigula.io/docker/redis:alpine
     container_name: authentik-redis
     command: --save 60 1 --loglevel warning
     restart: unless-stopped
@@ -35,7 +35,7 @@ services:
       - auth
 
   server:
-    image: ghcr.io/goauthentik/server:2024.12.2
+    image: registry.smigula.io/ghcr/goauthentik/server:2024.12.2
     container_name: authentik-server
     restart: unless-stopped
     command: server
@@ -55,7 +55,7 @@ services:
       - redis
 
   worker:
-    image: ghcr.io/goauthentik/server:2024.12.2
+    image: registry.smigula.io/ghcr/goauthentik/server:2024.12.2
     container_name: authentik-worker
     restart: unless-stopped
     command: worker
