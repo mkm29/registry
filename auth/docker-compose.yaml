@@ -17,8 +17,8 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     env_file:
-      - .env
       - .secrets.env
+      - .env
     networks:
       - auth
 
@@ -44,8 +44,8 @@ services:
     restart: unless-stopped
     command: server
     env_file:
-      - .env
       - .secrets.env
+      - .env
     volumes:
       - media-data:/media
       - templates-data:/templates
@@ -64,8 +64,8 @@ services:
     restart: unless-stopped
     command: worker
     env_file:
-      - .env
       - .secrets.env
+      - .env
     volumes:
       - /run/users/1000/docker.sock:/var/run/docker.sock
       - media-data:/media
