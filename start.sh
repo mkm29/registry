@@ -6,6 +6,7 @@ networks=(
     registry
     mediaserver
     monitoring
+    auth
 )
 for network in "${networks[@]}"; do
     if ! docker network inspect "$network" &>/dev/null; then
@@ -21,6 +22,7 @@ stacks=(
     mediaserver
     zot
     monitoring
+    auth
 )
 
 for stack in "${stacks[@]}"; do

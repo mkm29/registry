@@ -65,3 +65,5 @@ networks:
     external: true
   mediaserver:
     external: true
+  auth:
+    external: true
