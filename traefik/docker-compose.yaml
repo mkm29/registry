@@ -17,7 +17,7 @@ services:
     environment:
       - TRAEFIK_LOG_LEVEL=INFO
     networks:
-      - default
+      - traefik
       - monitoring
       - mediaserver
       - registry
@@ -30,7 +30,7 @@ services:
     volumes:
       - ../shared/html:/usr/share/nginx/html:ro
     networks:
-      - default
+      - traefik
       - registry
     expose:
       - "80"
