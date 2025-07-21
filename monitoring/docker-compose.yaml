@@ -232,5 +232,5 @@ networks:
     external: true
   mediaserver_default:
     external: true
-  traefik_default:
-    external: true
+  # traefik:
+  #   external: true
