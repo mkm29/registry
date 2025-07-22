@@ -68,13 +68,13 @@ metrics:
 
 # OpenTelemetry tracing configuration for Traefik v3
 # Temporarily disabled due to editor schema validation issues
-# tracing:
-#   serviceName: traefik
-#   sampleRate: 1.0
-#   otlp:
-#     grpc:
-#       endpoint: alloy:4317
-#       insecure: true
+tracing:
+  serviceName: traefik
+  sampleRate: 1.0
+  otlp:
+    grpc:
+      endpoint: alloy:4317
+      insecure: true
 
 # Ping for health checks
 ping:
@@ -85,3 +85,6 @@ experimental:
     traefik-oidc-auth:
       moduleName: "github.com/sevensolutions/traefik-oidc-auth"
       version: "v0.13.0"
+    traefik-plugin-geoblock:
+      moduleName: "github.com/nscuro/traefik-plugin-geoblock"
+      version: "v0.14.0"
