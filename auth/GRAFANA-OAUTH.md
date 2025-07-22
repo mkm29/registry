@@ -12,8 +12,11 @@
    - Redirect URIs: `https://grafana.smigula.io/login/generic_oauth`
    - Signing Key: Select available key
    - Subject mode: Based on the User's hashed ID
-   - Include claims in id_token: ✓
+   - Include claims in id_token: ✓ (REQUIRED)
    - Scopes: Select `openid`, `profile`, `email`
+   - Under "Advanced protocol settings":
+     - Include claims in id_token: ✓ (must be checked)
+     - Token validity: (keep defaults or adjust as needed)
 
 ## 2. Create Application in Authentik
 
