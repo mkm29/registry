@@ -65,7 +65,8 @@ http:
       tls:
         certResolver: letsencrypt
       middlewares:
-        - smigula-oidc-auth
+        - security-headers
+        - authentik
 
   services:
     grafana:
