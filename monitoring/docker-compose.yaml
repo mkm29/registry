@@ -84,8 +84,8 @@ services:
     volumes:
       - grafana-data:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/grafana.ini:/etc/grafana/grafana.ini:ro
     env_file:
-      - .grafana.env
       - .grafana-secrets.env
     networks:
       - monitoring
