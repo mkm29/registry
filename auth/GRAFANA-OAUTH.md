@@ -7,7 +7,7 @@
 3. Configure:
    - Name: `Grafana OAuth`
    - Client type: Confidential
-   - Client ID: (auto-generated or custom)
+   - Client ID: `lxEIE09Ya7A8m2PSAIMpLVLMpFBtHQMwxLPC2KlE` (or auto-generated)
    - Client Secret: (copy this for Grafana config)
    - Redirect URIs: `https://grafana.smigula.io/login/generic_oauth`
    - Signing Key: Select available key
@@ -17,6 +17,8 @@
    - Under "Advanced protocol settings":
      - Include claims in id_token: ✓ (must be checked)
      - Token validity: (keep defaults or adjust as needed)
+     - **IMPORTANT**: Ensure "Include User claims from scopes in id_token" is checked
+     - Sub Mode: Based on the User's hashed ID
 
 ## 2. Create Application in Authentik
 
@@ -29,20 +31,36 @@
 
 ## 3. Configure Grafana
 
-Add these environment variables to your Grafana container:
+Grafana is configured via `grafana.ini` with the following OAuth settings:
 
-```yaml
-environment:
-  - GF_AUTH_GENERIC_OAUTH_ENABLED=true
-  - GF_AUTH_GENERIC_OAUTH_NAME=Authentik
-  - GF_AUTH_GENERIC_OAUTH_ALLOW_SIGN_UP=true
-  - GF_AUTH_GENERIC_OAUTH_CLIENT_ID=<your-client-id>
-  - GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET=<your-client-secret>
-  - GF_AUTH_GENERIC_OAUTH_SCOPES=openid profile email
-  - GF_AUTH_GENERIC_OAUTH_AUTH_URL=https://auth.smigula.io/application/o/authorize/
-  - GF_AUTH_GENERIC_OAUTH_TOKEN_URL=https://auth.smigula.io/application/o/token/
-  - GF_AUTH_GENERIC_OAUTH_API_URL=https://auth.smigula.io/application/o/userinfo/
-  - GF_AUTH_GENERIC_OAUTH_ROLE_ATTRIBUTE_PATH=contains(groups[*], 'Grafana Admins') && 'Admin' || contains(groups[*], 'Grafana Editors') && 'Editor' || 'Viewer'
+```ini
+[auth.generic_oauth]
+enabled = true
+name = Authentik
+icon = signin
+client_id = lxEIE09Ya7A8m2PSAIMpLVLMpFBtHQMwxLPC2KlE
+# client_secret is set via environment variable
+scopes = openid email profile
+empty_scopes = false
+email_claim = email
+login_claim = preferred_username
+name_claim = name
+auth_url = https://auth.smigula.io/application/o/authorize/
+token_url = https://auth.smigula.io/application/o/token/
+api_url = https://auth.smigula.io/application/o/userinfo/
+signout_redirect_url = https://auth.smigula.io/application/o/grafana/end-session/
+# Role mapping
+role_attribute_path = contains(groups[*], 'Grafana Admins') && 'Admin' || contains(groups[*], 'Grafana Editors') && 'Editor' || 'Viewer'
+groups_attribute_path = groups
+# Settings
+allow_sign_up = true
+use_pkce = true
+use_refresh_token = true
+```
+
+The client secret is stored in `.grafana-secrets.env`:
+```
+GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET=<your-client-secret>
 ```
 
 ## 4. Create Groups in Authentik (Optional)

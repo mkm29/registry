@@ -21,7 +21,6 @@ http:
       middlewares:
         - security-headers
         - grafana-headers
-        - authentik
 
     # Note: Jaeger should be replaced with Tempo
     tempo:

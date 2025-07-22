@@ -1,0 +1,42 @@
+http:
+  middlewares:
+    # Middleware to handle Grafana's /emails endpoint bug
+    grafana-oauth-emails-fix:
+      plugin:
+        rewriteBody:
+          # Rewrite requests to /emails endpoint
+          rewrites:
+            - regex: "^(.*)/emails$"
+              replacement: "$1"
+    
+    # Alternative: Strip /emails from the path
+    grafana-strip-emails:
+      stripPrefix:
+        prefixes:
+          - "/emails"
+        forceSlash: false
+    
+    # Alternative: Replace path regex
+    grafana-emails-rewrite:
+      replacePathRegex:
+        regex: "^(.*)/emails$"
+        replacement: "$1"
+    
+    # Chain middleware for Grafana OAuth fix
+    grafana-oauth-fix-chain:
+      chain:
+        middlewares:
+          - grafana-emails-rewrite
+          - security-headers
+
+  # Example router configuration with the fix
+  # routers:
+  #   authentik-userinfo:
+  #     rule: "Host(`auth.smigula.io`) && PathPrefix(`/application/o/userinfo`)"
+  #     service: authentik-server
+  #     entryPoints:
+  #       - websecure
+  #     tls:
+  #       certResolver: letsencrypt
+  #     middlewares:
+  #       - grafana-oauth-emails-fix
