@@ -43,7 +43,7 @@ http:
         certResolver: letsencrypt
       middlewares:
         - security-headers
-        - smigula-oidc-auth@file
+        - smigula-oidc-auth
 
     dozzle:
       rule: "Host(`dozzle.smigula.io`)"
@@ -54,7 +54,7 @@ http:
         certResolver: letsencrypt
       middlewares:
         - security-headers
-        - smigula-oidc-auth@file
+        - smigula-oidc-auth
         - dozzle-headers
 
     alloy:
@@ -65,7 +65,7 @@ http:
       tls:
         certResolver: letsencrypt
       middlewares:
-        - security-headers
+        - smigula-oidc-auth
 
   services:
     grafana:
