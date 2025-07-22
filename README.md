@@ -151,8 +151,8 @@ When properly configured, Zot will automatically cache images from multiple regi
 For authenticated registries, you'll need credentials:
 
 1. **Docker Hub**: Create a free account at [hub.docker.com](https://hub.docker.com)
-2. **GitHub Container Registry**: Use your GitHub username and a [personal access token](https://github.com/settings/tokens)
-3. **Other registries**: Most public images don't require authentication
+1. **GitHub Container Registry**: Use your GitHub username and a [personal access token](https://github.com/settings/tokens)
+1. **Other registries**: Most public images don't require authentication
 
 ## Rootless Docker Setup
 
@@ -473,8 +473,8 @@ The Zot registry is configured with HTTP basic authentication for secure access.
 ### Authentication Configuration
 
 1. **HTPasswd File**: Located at `zot/auth/htpasswd`
-2. **Default User**: `smigula`
-3. **Password**: Set during setup (default: `Registry363502`)
+1. **Default User**: `smigula`
+1. **Password**: Set during setup (default: `Registry363502`)
 
 ### Creating/Updating Users
 
@@ -487,6 +487,7 @@ htpasswd -bBn smigula Registry363502 > zot/auth/htpasswd
 ```
 
 **Important Notes**:
+
 - The `-B` flag uses bcrypt hashing (required by Zot)
 - Passwords are hashed and stored securely
 - After updating the htpasswd file, restart the Zot container
@@ -517,8 +518,8 @@ docker pull localhost:5000/docker/nginx:latest
 ### Authentication Flow
 
 1. **External Access**: Caddy provides TLS termination and forwards requests to Zot
-2. **Zot Authentication**: Zot validates credentials against the htpasswd file
-3. **Failed Authentication**: Returns 401 Unauthorized with a 5-second delay (configurable)
+1. **Zot Authentication**: Zot validates credentials against the htpasswd file
+1. **Failed Authentication**: Returns 401 Unauthorized with a 5-second delay (configurable)
 
 ## Available Commands
 
@@ -568,7 +569,7 @@ journalctl --user -u alloy -f    # View Alloy logs
    ```bash
    # Create htpasswd file for registry authentication
    htpasswd -bBn smigula Registry363502 > zot/auth/htpasswd
-   
+
    # Create credentials file for upstream registries (optional)
    cat <<EOF > zot/config/credentials.yaml
    registry-1.docker.io:
@@ -600,11 +601,11 @@ journalctl --user -u alloy -f    # View Alloy logs
    # Start Zot registry
    cd zot
    docker-compose up -d
-   
+
    # Start Caddy reverse proxy
    cd ../caddy
    docker-compose up -d
-   
+
    # Start monitoring stack
    cd ../monitoring
    docker-compose up -d
@@ -621,7 +622,7 @@ journalctl --user -u alloy -f    # View Alloy logs
    ```bash
    # For external HTTPS access
    docker login registry.smigula.io -u smigula -p Registry363502
-   
+
    # For local HTTP access, add to insecure registries
    # See "Configure Docker for Insecure Registry" section below
    ```
@@ -1040,6 +1041,7 @@ services:
 ```
 
 **Key features**:
+
 - All monitoring images pulled through Zot registry
 - Init containers fix volume permissions for rootless Docker
 - Alloy runs as native systemd service (not in Docker)
@@ -1112,12 +1114,13 @@ sudo systemctl restart docker
 1. **Access the Zot Web UI**:
 
    Navigate to <http://localhost:5000/home> to access the Zot web interface where you can:
+
    - Search for images
    - View repository details
    - Check image tags and manifests
    - Monitor sync status
 
-2. **Test pulling images**:
+1. **Test pulling images**:
 
    ```bash
    # Pull nginx from Docker Hub through Zot
@@ -1132,7 +1135,7 @@ sudo systemctl restart docker
    # Should show: {"repositories":["docker/nginx","ghcr/project-zot/zot-linux-amd64","gcr/cadvisor/cadvisor"]}
    ```
 
-3. **Push your own images**:
+1. **Push your own images**:
 
    ```bash
    # Tag and push to Zot
@@ -1140,7 +1143,7 @@ sudo systemctl restart docker
    docker push localhost:5000/myapp:latest
    ```
 
-4. **Access the Registry API**:
+1. **Access the Registry API**:
 
    Zot implements the [OCI Distribution Specification](https://github.com/opencontainers/distribution-spec). Common endpoints:
 
@@ -1440,30 +1443,30 @@ ls -la /etc/docker/certs.d/localhost:5000/ # Regular Docker
    ```bash
    # Test authentication with curl
    curl -u smigula:Registry363502 https://registry.smigula.io/v2/
-   
+
    # Check htpasswd file exists and is mounted
    docker exec registry ls -la /etc/zot/htpasswd
-   
+
    # Verify Zot configuration includes auth section
    docker exec registry cat /etc/zot/config.yaml | grep -A5 auth
    ```
 
-2. **Update password**:
+1. **Update password**:
 
    ```bash
    # Generate new password hash
    htpasswd -bBn smigula NewPassword123 > zot/auth/htpasswd
-   
+
    # Restart Zot to apply changes
    cd zot && docker-compose restart registry
    ```
 
-3. **Docker login issues**:
+1. **Docker login issues**:
 
    ```bash
    # For external access
    docker login registry.smigula.io
-   
+
    # For local access (add to insecure registries first)
    docker login localhost:5000
    ```
@@ -1490,10 +1493,11 @@ docker pull localhost:5000/docker/alpine:latest
 ### Zot-Specific Issues
 
 1. **Images not found**: Remember to use registry prefixes
+
    - Wrong: `docker pull localhost:5000/nginx`
    - Right: `docker pull localhost:5000/docker/nginx`
 
-2. **Authentication errors**: Check credentials.yaml format
+1. **Authentication errors**: Check credentials.yaml format
 
    ```yaml
    registry-1.docker.io:
@@ -1501,7 +1505,7 @@ docker pull localhost:5000/docker/alpine:latest
      password: <pass>
    ```
 
-3. **Sync not working**: Check logs for sync errors
+1. **Sync not working**: Check logs for sync errors
 
    ```bash
    docker logs registry 2>&1 | grep -i "sync\|error"

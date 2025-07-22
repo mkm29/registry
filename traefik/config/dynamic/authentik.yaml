@@ -10,7 +10,6 @@ http:
         certResolver: letsencrypt
       middlewares:
         - security-headers
-
     # Authentik outpost router for authentication endpoints
     authentik-outpost:
       rule: "Host(`auth.smigula.io`) && PathPrefix(`/outpost.goauthentik.io/`)"
@@ -23,14 +22,12 @@ http:
         - security-headers
       # Higher priority to match before the main server route
       priority: 100
-
   services:
     authentik-server:
       loadBalancer:
         servers:
           - url: "http://authentik-server:9000"
         passHostHeader: true
-
   middlewares:
     # Forward auth middleware to be used by protected services
     authentik:
@@ -49,7 +46,6 @@ http:
           - X-authentik-meta-provider
           - X-authentik-meta-app
           - X-authentik-meta-version
-
     # Headers for Authentik compatibility
     authentik-headers:
       headers:

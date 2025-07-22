@@ -10,13 +10,11 @@ http:
       middlewares:
         - security-headers
         - registry-headers
-
   services:
     registry:
       loadBalancer:
         servers:
           - url: "http://registry:5000"
-
   middlewares:
     registry-headers:
       headers:

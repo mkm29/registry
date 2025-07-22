@@ -3,11 +3,9 @@
 global:
   checkNewVersion: true
   sendAnonymousUsage: false
-
 api:
   dashboard: true
   debug: false
-
 entryPoints:
   web:
     address: ":80"
@@ -21,7 +19,6 @@ entryPoints:
     address: ":443"
   metrics:
     address: ":8082"
-
 providers:
   docker:
     endpoint: "unix:///var/run/docker.sock"
@@ -30,7 +27,6 @@ providers:
   file:
     directory: /etc/traefik/dynamic
     watch: true
-
 certificatesResolvers:
   letsencrypt:
     acme:
@@ -40,12 +36,10 @@ certificatesResolvers:
         entryPoint: web
       # Uncomment for staging/testing
       # caServer: https://acme-staging-v02.api.letsencrypt.org/directory
-
 log:
   level: INFO
   filePath: /var/log/traefik/traefik.log
   format: json
-
 accessLog:
   filePath: /var/log/traefik/access.log
   format: json
@@ -53,7 +47,6 @@ accessLog:
     defaultMode: keep
     headers:
       defaultMode: keep
-
 # Enable metrics
 metrics:
   prometheus:
@@ -65,7 +58,6 @@ metrics:
     addEntryPointsLabels: true
     addServicesLabels: true
     entryPoint: metrics
-
 # OpenTelemetry tracing configuration for Traefik v3
 # Temporarily disabled due to editor schema validation issues
 tracing:
@@ -75,11 +67,9 @@ tracing:
     grpc:
       endpoint: alloy:4317
       insecure: true
-
 # Ping for health checks
 ping:
   entryPoint: web
-
 experimental:
   plugins:
     traefik-oidc-auth:

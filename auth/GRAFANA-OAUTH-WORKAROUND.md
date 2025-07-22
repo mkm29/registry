@@ -3,9 +3,10 @@
 ## The Problem
 
 Grafana 12.0.2 has a hardcoded bug where it:
+
 1. Always appends `/emails` to the userinfo endpoint
-2. Ignores the `email_claim` configuration
-3. Uses hardcoded `user:email` scope instead of configured scopes
+1. Ignores the `email_claim` configuration
+1. Uses hardcoded `user:email` scope instead of configured scopes
 
 ## Solution: Custom OIDC Provider Configuration
 
@@ -14,31 +15,37 @@ Since we can't fix Grafana's behavior, we need to configure Authentik to handle 
 ### Option 1: Use a Custom Scope Mapping (Recommended)
 
 1. In Authentik, create a custom Property Mapping:
+
    - Go to Customization → Property Mappings → Create
    - Name: `Grafana Email Endpoint`
    - Object field: `email`
    - Expression:
+
    ```python
    # Return email in the format Grafana expects for /emails endpoint
    return [{"email": request.user.email, "primary": True, "verified": True}]
    ```
 
-2. Create a custom Scope:
-   - Go to System → Scopes → Create  
+1. Create a custom Scope:
+
+   - Go to System → Scopes → Create
    - Name: `grafana-email`
    - Description: `Grafana email endpoint compatibility`
    - Property mappings: Select "Grafana Email Endpoint"
 
-3. Update your OAuth provider:
+1. Update your OAuth provider:
+
    - Add the `grafana-email` scope to your provider
    - Ensure it's included in the available scopes
 
 ### Option 2: Use Expression Policy
 
 Create an Expression Policy that handles the `/emails` path:
+
 1. Go to System → Policies → Create → Expression Policy
-2. Name: `Grafana Emails Handler`
-3. Expression:
+1. Name: `Grafana Emails Handler`
+1. Expression:
+
 ```python
 import re
 if re.match(r'.*/emails$', request.http_request.path):
@@ -51,6 +58,7 @@ return False
 Add a rewrite rule in your reverse proxy to redirect `/emails` requests:
 
 For Traefik:
+
 ```yaml
 middlewares:
   grafana-oauth-fix:
@@ -59,11 +67,9 @@ middlewares:
       replacement: "$1"
 ```
 
-### Option 4: Use Different Grafana Version
+### Option 4: Wait for Future Grafana Release
 
-The bug is fixed in Grafana 12.1+:
-- Upgrade to Grafana 12.1 or later
-- Or downgrade to Grafana 11.x which doesn't have this bug
+Since Grafana 12.0.2 is the latest release, we must use one of the workarounds above until Grafana releases a fix for this bug in a future version.
 
 ## Current Status
 

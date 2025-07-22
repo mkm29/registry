@@ -3,6 +3,7 @@
 ## For Each Service You Want to Protect
 
 ### 1. Create a Proxy Provider
+
 - Go to Applications → Providers → Create
 - Select "Proxy Provider"
 - Configure:
@@ -12,6 +13,7 @@
   - Internal host: Leave empty (Traefik handles routing)
 
 ### 2. Create an Application
+
 - Go to Applications → Applications → Create
 - Configure:
   - Name: `<Service>` (e.g., "Alloy")
@@ -20,11 +22,13 @@
   - Launch URL: `https://<service>.smigula.io`
 
 ### 3. Configure the Outpost
+
 - Go to Applications → Outposts
 - Edit existing or create new proxy outpost
 - Add your application to the outpost
 
 ### 4. Update Traefik Configuration
+
 In your service's Traefik configuration, use the `authentik` middleware:
 
 ```yaml
@@ -40,4 +44,5 @@ middlewares:
 - [ ] Dozzle (dozzle.smigula.io)
 
 ## Testing
+
 After configuration, accessing the service should redirect to Authentik for login.

@@ -5,6 +5,7 @@
 Here's how to update your monitoring services to use Authentik instead of basic auth:
 
 ### Before (using basic auth):
+
 ```yaml
 prometheus:
   rule: "Host(`prometheus.smigula.io`)"
@@ -19,6 +20,7 @@ prometheus:
 ```
 
 ### After (using Authentik):
+
 ```yaml
 prometheus:
   rule: "Host(`prometheus.smigula.io`)"
@@ -35,11 +37,11 @@ prometheus:
 ## Step-by-Step Migration Process
 
 1. **Start Authentik and complete initial setup**
-2. **Create the provider and outpost in Authentik** (see README.md)
-3. **Update service configurations** one by one:
+1. **Create the provider and outpost in Authentik** (see README.md)
+1. **Update service configurations** one by one:
    - Replace `auth-basic` with `authentik` in middleware lists
    - Test each service after updating
-4. **Configure access policies** in Authentik for each service
+1. **Configure access policies** in Authentik for each service
 
 ## Services to Migrate
 
@@ -57,16 +59,19 @@ prometheus:
 You can create different applications in Authentik for different access levels:
 
 1. **Admin Services** (full infrastructure access):
+
    - Create an "Infrastructure Admin" application
    - Bind to admin group only
    - Use for: Traefik dashboard, Prometheus, Dozzle
 
-2. **Monitoring Services** (read-only access):
+1. **Monitoring Services** (read-only access):
+
    - Create a "Monitoring" application
    - Allow broader access
    - Use for: Grafana, Tempo
 
-3. **Media Services** (entertainment access):
+1. **Media Services** (entertainment access):
+
    - Create separate application with different policies
    - Can have different authentication flows
 
@@ -102,6 +107,7 @@ middlewares:
 ## Testing the Migration
 
 1. **Keep basic auth as fallback** initially:
+
    ```yaml
    middlewares:
      - security-headers
@@ -109,12 +115,14 @@ middlewares:
      # - auth-basic  # Commented out but available
    ```
 
-2. **Test with different user accounts**:
+1. **Test with different user accounts**:
+
    - Admin user
    - Regular user
    - Unauthenticated access
 
-3. **Monitor logs** during testing:
+1. **Monitor logs** during testing:
+
    ```bash
    docker logs authentik-server -f
    docker logs traefik -f

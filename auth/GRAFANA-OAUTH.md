@@ -3,8 +3,8 @@
 ## 1. Create OAuth2/OpenID Provider in Authentik
 
 1. Go to Applications → Providers → Create
-2. Select "OAuth2/OpenID Provider"
-3. Configure:
+1. Select "OAuth2/OpenID Provider"
+1. Configure:
    - Name: `Grafana OAuth`
    - Client type: Confidential
    - Client ID: `lxEIE09Ya7A8m2PSAIMpLVLMpFBtHQMwxLPC2KlE` (or auto-generated)
@@ -23,7 +23,7 @@
 ## 2. Create Application in Authentik
 
 1. Go to Applications → Applications → Create
-2. Configure:
+1. Configure:
    - Name: `Grafana`
    - Slug: `grafana`
    - Provider: Select "Grafana OAuth" (created above)
@@ -59,6 +59,7 @@ use_refresh_token = true
 ```
 
 The client secret is stored in `.grafana-secrets.env`:
+
 ```
 GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET=<your-client-secret>
 ```
@@ -66,8 +67,9 @@ GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET=<your-client-secret>
 ## 4. Create Groups in Authentik (Optional)
 
 For role mapping:
+
 1. Go to Directory → Groups → Create
-2. Create groups:
+1. Create groups:
    - `Grafana Admins` - Members get Admin role
    - `Grafana Editors` - Members get Editor role
    - Others get Viewer role by default
@@ -93,7 +95,7 @@ grafana:
 ## Testing
 
 1. Restart Grafana with new environment variables
-2. Visit https://grafana.smigula.io
-3. Click "Sign in with Authentik"
-4. Authenticate in Authentik
-5. You should be redirected back to Grafana and logged in
+1. Visit https://grafana.smigula.io
+1. Click "Sign in with Authentik"
+1. Authenticate in Authentik
+1. You should be redirected back to Grafana and logged in

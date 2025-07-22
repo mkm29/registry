@@ -9,7 +9,6 @@ http:
         certResolver: letsencrypt
       middlewares:
         - auth-basic
-
 # Add internal metrics endpoint
 metrics:
   entryPoints:

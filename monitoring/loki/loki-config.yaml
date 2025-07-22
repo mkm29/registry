@@ -1,9 +1,7 @@
 auth_enabled: false
-
 server:
   http_listen_port: 3100
   grpc_listen_port: 9096
-
 common:
   instance_addr: 127.0.0.1
   path_prefix: /loki
@@ -15,14 +13,12 @@ common:
   ring:
     kvstore:
       store: inmemory
-
 query_range:
   results_cache:
     cache:
       embedded_cache:
         enabled: true
         max_size_mb: 100
-
 schema_config:
   configs:
     - from: 2020-10-24
@@ -32,10 +28,8 @@ schema_config:
       index:
         prefix: index_
         period: 24h
-
 ruler:
   alertmanager_url: http://localhost:9093
-
 ingester:
   wal:
     enabled: true
@@ -51,7 +45,6 @@ ingester:
   max_chunk_age: 1h
   chunk_target_size: 1048576
   chunk_retain_period: 30s
-
 storage_config:
   tsdb_shipper:
     active_index_directory: /loki/tsdb-shipper-active
@@ -59,7 +52,6 @@ storage_config:
     cache_ttl: 24h
   filesystem:
     directory: /loki/chunks
-
 compactor:
   working_directory: /loki/compactor
   compaction_interval: 10m
@@ -67,7 +59,6 @@ compactor:
   retention_delete_delay: 2h
   retention_delete_worker_count: 150
   delete_request_store: filesystem
-
 limits_config:
   reject_old_samples: true
   reject_old_samples_max_age: 168h

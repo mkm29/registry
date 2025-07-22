@@ -5,16 +5,19 @@ This directory contains the Authentik authentication server configuration integr
 ## Initial Setup
 
 1. **Create the auth network** (if not already exists):
+
    ```bash
    docker network create auth
    ```
 
-2. **Start Authentik**:
+1. **Start Authentik**:
+
    ```bash
    docker compose up -d
    ```
 
-3. **Complete initial setup**:
+1. **Complete initial setup**:
+
    - Navigate to https://auth.smigula.io/if/flow/initial-setup/
    - Create the admin user (username: akadmin)
    - Set a secure password
@@ -24,6 +27,7 @@ This directory contains the Authentik authentication server configuration integr
 After initial setup, you need to configure Authentik for Traefik integration:
 
 1. **Create a Provider**:
+
    - Go to Applications → Providers
    - Click "Create" and select "Proxy Provider"
    - Name: `traefik-forward-auth`
@@ -31,14 +35,16 @@ After initial setup, you need to configure Authentik for Traefik integration:
    - Mode: Forward auth (single application)
    - External host: `https://auth.smigula.io`
 
-2. **Create an Application**:
+1. **Create an Application**:
+
    - Go to Applications → Applications
    - Click "Create"
    - Name: `Traefik Forward Auth`
    - Slug: `traefik-forward-auth`
    - Provider: Select the provider created above
 
-3. **Create an Outpost**:
+1. **Create an Outpost**:
+
    - Go to Applications → Outposts
    - Click "Create"
    - Name: `traefik`
@@ -90,33 +96,39 @@ http:
 
 In Authentik, you can:
 
-1. **Create Groups**: 
+1. **Create Groups**:
+
    - Admin group for full access
    - Viewer group for read-only access
    - Service-specific groups
 
-2. **Create Policies**:
+1. **Create Policies**:
+
    - Time-based access
    - IP-based restrictions
    - Group membership requirements
 
-3. **Bind Policies to Applications**:
+1. **Bind Policies to Applications**:
+
    - Different services can have different access requirements
    - Users can have different permissions per service
 
 ## Troubleshooting
 
 1. **Check Authentik logs**:
+
    ```bash
    docker logs authentik-server
    docker logs authentik-worker
    ```
 
-2. **Verify network connectivity**:
+1. **Verify network connectivity**:
+
    - Ensure Traefik and Authentik are on the same `auth` network
    - Check that services can reach `authentik-server:9000`
 
-3. **Common issues**:
+1. **Common issues**:
+
    - Clear browser cookies if experiencing redirect loops
    - Ensure the external host in the provider matches your domain
    - Check that all required headers are being passed through
@@ -124,6 +136,7 @@ In Authentik, you can:
 ## Environment Variables
 
 Key variables in `.env`:
+
 - `PG_PASS`: PostgreSQL password (auto-generated)
 - `AUTHENTIK_SECRET_KEY`: Secret key for Authentik (auto-generated)
 - `AUTHENTIK_EMAIL__*`: Email configuration for notifications

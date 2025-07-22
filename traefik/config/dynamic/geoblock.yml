@@ -1,6 +1,6 @@
 http:
-    middlewares:
-        geoblock:
-            plugin:
-                traefik-plugin-geoblock:
-                    enabled: "false"
+  middlewares:
+    geoblock:
+      plugin:
+        traefik-plugin-geoblock:
+          enabled: "false"

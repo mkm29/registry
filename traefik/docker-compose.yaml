@@ -6,8 +6,8 @@ services:
     ports:
       - "80:80"
       - "443:443"
-      - "8080:8080"  # Traefik dashboard
-      - "8082:8082"  # Metrics endpoint
+      - "8080:8080" # Traefik dashboard
+      - "8082:8082" # Metrics endpoint
     volumes:
       - ./config/traefik.yml:/etc/traefik/traefik.yml:ro
       - ./config/dynamic:/etc/traefik/dynamic:ro
@@ -22,7 +22,6 @@ services:
       - mediaserver
       - registry
       - auth
-
   landing:
     image: nginx:alpine
     container_name: landing-page
@@ -46,7 +45,6 @@ services:
       - "traefik.http.middlewares.landing-redirects.redirectregex.regex=^https://smigula.io/(grafana|plex|registry)$$"
       - "traefik.http.middlewares.landing-redirects.redirectregex.replacement=https://$$1.smigula.io"
       - "traefik.http.middlewares.landing-redirects.redirectregex.permanent=true"
-
 volumes:
   traefik_certs:
     external: false
@@ -56,7 +54,6 @@ volumes:
       type: none
       device: /mnt/data/logs/traefik
       o: bind
-
 networks:
   traefik:
     external: true

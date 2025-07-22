@@ -5,13 +5,14 @@ This guide provides step-by-step instructions to configure Authentik to handle G
 ## Step 1: Create Custom Property Mapping
 
 1. Log into Authentik Admin Interface
-2. Navigate to **Customization** → **Property Mappings**
-3. Click **Create** → **Scope Mapping**
-4. Configure the mapping:
+1. Navigate to **Customization** → **Property Mappings**
+1. Click **Create** → **Scope Mapping**
+1. Configure the mapping:
    - **Name**: `Grafana Email Endpoint`
    - **Scope name**: `grafana_emails`
    - **Description**: `Handle Grafana /emails endpoint requests`
    - **Expression**:
+
 ```python
    # Check if this is a request to the /emails endpoint
 if hasattr(request, 'http_request') and request.http_request.path.endswith('/emails'):
@@ -28,8 +29,8 @@ return request.user.email
 ## Step 2: Create Custom Scope
 
 1. Navigate to **System** → **Scopes**
-2. Click **Create**
-3. Configure the scope:
+1. Click **Create**
+1. Configure the scope:
    - **Name**: `grafana-email`
    - **Display name**: `Grafana Email Compatibility`
    - **Description**: `Provides email data in format expected by Grafana /emails endpoint`
@@ -38,11 +39,11 @@ return request.user.email
 ## Step 3: Update OAuth Provider
 
 1. Navigate to **Applications** → **Providers**
-2. Find and edit your **Grafana OAuth** provider
-3. In the **Scopes** section:
+1. Find and edit your **Grafana OAuth** provider
+1. In the **Scopes** section:
    - Add `grafana-email` to the selected scopes
    - Ensure `openid`, `profile`, `email`, and `grafana-email` are all selected
-4. Save the provider
+1. Save the provider
 
 ## Step 4: Alternative Property Mapping (More Robust)
 
@@ -56,7 +57,7 @@ If the above doesn't work, create a more comprehensive Property Mapping:
    # Import required modules
    import json
    from django.http import JsonResponse
-   
+
    # Check if this is an emails endpoint request
    if hasattr(request, 'http_request'):
        path = request.http_request.path
@@ -78,7 +79,7 @@ If the above doesn't work, create a more comprehensive Property Mapping:
                        "visibility": "public"
                    })
            return emails
-   
+
    # Default return for non-emails endpoint
    return request.user.email
    ```
@@ -88,20 +89,22 @@ If the above doesn't work, create a more comprehensive Property Mapping:
 If custom scopes don't work, you can create a custom view in Authentik:
 
 1. Navigate to **Flows & Stages** → **Flows**
-2. Create a new flow for handling /emails endpoint
-3. Use an **Expression Policy** to detect /emails requests
-4. Return the expected JSON structure
+1. Create a new flow for handling /emails endpoint
+1. Use an **Expression Policy** to detect /emails requests
+1. Return the expected JSON structure
 
 ## Step 6: Verify Configuration
 
 1. Test the userinfo endpoint directly:
+
    ```bash
    # Get an access token first, then:
    curl -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
         https://auth.smigula.io/application/o/userinfo/
    ```
 
-2. Test the emails endpoint:
+1. Test the emails endpoint:
+
    ```bash
    curl -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
         https://auth.smigula.io/application/o/userinfo/emails
@@ -123,12 +126,13 @@ scopes = openid email profile grafana-email
 ### If /emails endpoint still returns 404:
 
 1. Check Authentik logs for the request path
-2. Verify the Property Mapping expression is executing
-3. Consider implementing a middleware in Traefik to rewrite the URL
+1. Verify the Property Mapping expression is executing
+1. Consider implementing a middleware in Traefik to rewrite the URL
 
 ### If Grafana still shows InternalError:
 
 1. Enable debug logging in Grafana:
+
    ```ini
    [log]
    level = debug
@@ -136,11 +140,12 @@ scopes = openid email profile grafana-email
    # Your existing config
    ```
 
-2. Check if Grafana is receiving the expected response format
+1. Check if Grafana is receiving the expected response format
 
 ### Expected Response Format
 
 Grafana expects the /emails endpoint to return:
+
 ```json
 [
   {
@@ -153,6 +158,6 @@ Grafana expects the /emails endpoint to return:
 
 ## Notes
 
-- This workaround addresses a bug in Grafana 12.0.2
-- The bug is fixed in Grafana 12.1+
-- Consider upgrading Grafana as a long-term solution
+- This workaround addresses a bug in Grafana 12.0.2 (current latest release)
+- This workaround will be needed until Grafana releases a fix in a future version
+- The custom scope approach is the most reliable solution within Authentik's framework
