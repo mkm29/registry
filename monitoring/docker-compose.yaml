@@ -85,6 +85,8 @@ services:
       - grafana-data:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
       - ./grafana/grafana.ini:/etc/grafana/grafana.ini:ro
+    environment:
+      - "GF_PLUGINS_PREINSTALL=grafana-clock-panel, grafana-simple-json-datasource"
     env_file:
       - .grafana-secrets.env
     networks:
