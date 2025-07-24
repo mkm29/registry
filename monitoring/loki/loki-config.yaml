@@ -5,10 +5,10 @@ server:
 common:
   instance_addr: 127.0.0.1
   path_prefix: /loki
-  # storage:
-  #   filesystem:
-  #     chunks_directory: /loki/chunks
-  #     rules_directory: /loki/rules
+  storage:
+    filesystem:
+      chunks_directory: /loki/chunks
+      rules_directory: /loki/rules
   replication_factor: 1
   ring:
     kvstore:
@@ -50,20 +50,10 @@ storage_config:
     active_index_directory: /loki/tsdb-shipper-active
     cache_location: /loki/tsdb-shipper-cache
     cache_ttl: 24h
-    shared_store: s3
-  filesystem:
-    directory: /loki/chunks
   aws:
-    endpoint: minio:9000
-    bucketnames: loki-chunks,loki-ruler
-    access_key_id: lokiuser
-    secret_access_key: SuperSecret1
-    insecure: true
+    s3: s3://lokiuser:SuperSecret1@minio:9000/loki
     s3forcepathstyle: true
-    region: ""
-#  aws:
-#    s3: s3://lokiuser:SuperSecret1@minio:9000/loki-chunks
-#    s3forcepathstyle: true
+    insecure: true
 compactor:
   working_directory: /loki/compactor
   compaction_interval: 10m
