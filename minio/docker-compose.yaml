@@ -31,7 +31,6 @@ services:
       retries: 3
       start_period: 30s
     networks:
-      - traefik
       - monitoring
     deploy:
       resources:
@@ -89,10 +88,8 @@ services:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin123}
     networks:
-      - traefik
+      - monitoring
 
 networks:
-  traefik:
-    external: true
   monitoring:
     external: true
