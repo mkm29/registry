@@ -1,0 +1,494 @@
+loki  | failed parsing config: /etc/loki/loki-config.yaml: yaml: unmarshal errors:
+loki  |   line 9: field bucketNames not found in type common.Storage
+loki  |   line 12: field type not found in type common.Storage
+loki  |   line 61: field shared_store not found in type indexshipper.Config. Use `-config.expand-env=true` flag if you want to expand environment variables in your config file
+loki  | failed parsing config: /etc/loki/loki-config.yaml: yaml: unmarshal errors:
+loki  |   line 9: field bucketNames not found in type common.Storage
+loki  |   line 12: field type not found in type common.Storage
+loki  |   line 61: field shared_store not found in type indexshipper.Config. Use `-config.expand-env=true` flag if you want to expand environment variables in your config file
+loki  | failed parsing config: /etc/loki/loki-config.yaml: yaml: unmarshal errors:
+loki  |   line 9: field bucketNames not found in type common.Storage
+loki  |   line 12: field type not found in type common.Storage
+loki  |   line 61: field shared_store not found in type indexshipper.Config. Use `-config.expand-env=true` flag if you want to expand environment variables in your config file
+loki  | failed parsing config: /etc/loki/loki-config.yaml: yaml: unmarshal errors:
+loki  |   line 9: field bucketNames not found in type common.Storage
+loki  |   line 12: field type not found in type common.Storage
+loki  |   line 61: field shared_store not found in type indexshipper.Config. Use `-config.expand-env=true` flag if you want to expand environment variables in your config file
+loki  | failed parsing config: /etc/loki/loki-config.yaml: yaml: unmarshal errors:
+loki  |   line 9: field bucketNames not found in type common.Storage
+loki  |   line 12: field type not found in type common.Storage
+loki  |   line 61: field shared_store not found in type indexshipper.Config. Use `-config.expand-env=true` flag if you want to expand environment variables in your config file
+loki  | failed parsing config: /etc/loki/loki-config.yaml: yaml: unmarshal errors:
+loki  |   line 9: field bucketNames not found in type common.Storage
+loki  |   line 12: field type not found in type common.Storage
+loki  |   line 61: field shared_store not found in type indexshipper.Config. Use `-config.expand-env=true` flag if you want to expand environment variables in your config file
+loki  | failed parsing config: /etc/loki/loki-config.yaml: yaml: unmarshal errors:
+loki  |   line 9: field bucketNames not found in type common.Storage
+loki  |   line 12: field type not found in type common.Storage
+loki  |   line 61: field shared_store not found in type indexshipper.Config. Use `-config.expand-env=true` flag if you want to expand environment variables in your config file
+loki  | failed parsing config: /etc/loki/loki-config.yaml: yaml: unmarshal errors:
+loki  |   line 9: field bucketNames not found in type common.Storage
+loki  |   line 12: field type not found in type common.Storage
+loki  |   line 61: field shared_store not found in type indexshipper.Config. Use `-config.expand-env=true` flag if you want to expand environment variables in your config file
+loki  | failed parsing config: /etc/loki/loki-config.yaml: yaml: unmarshal errors:
+loki  |   line 9: field bucketNames not found in type common.Storage
+loki  |   line 12: field type not found in type common.Storage
+loki  |   line 61: field shared_store not found in type indexshipper.Config. Use `-config.expand-env=true` flag if you want to expand environment variables in your config file
+loki  | failed parsing config: /etc/loki/loki-config.yaml: yaml: unmarshal errors:
+loki  |   line 9: field bucketNames not found in type common.Storage
+loki  |   line 12: field type not found in type common.Storage
+loki  |   line 61: field shared_store not found in type indexshipper.Config. Use `-config.expand-env=true` flag if you want to expand environment variables in your config file
+loki  | failed parsing config: /etc/loki/loki-config.yaml: yaml: unmarshal errors:
+loki  |   line 9: field bucketNames not found in type common.Storage
+loki  |   line 12: field type not found in type common.Storage
+loki  |   line 61: field shared_store not found in type indexshipper.Config. Use `-config.expand-env=true` flag if you want to expand environment variables in your config file
+loki  | failed parsing config: /etc/loki/loki-config.yaml: yaml: unmarshal errors:
+loki  |   line 9: field bucketNames not found in type common.Storage
+loki  |   line 12: field type not found in type common.Storage
+loki  |   line 61: field shared_store not found in type indexshipper.Config. Use `-config.expand-env=true` flag if you want to expand environment variables in your config file
+loki  | failed parsing config: /etc/loki/loki-config.yaml: yaml: unmarshal errors:
+loki  |   line 53: field shared_store not found in type indexshipper.Config. Use `-config.expand-env=true` flag if you want to expand environment variables in your config file
+loki  | failed parsing config: /etc/loki/loki-config.yaml: yaml: unmarshal errors:
+loki  |   line 53: field shared_store not found in type indexshipper.Config. Use `-config.expand-env=true` flag if you want to expand environment variables in your config file
+loki  | failed parsing config: /etc/loki/loki-config.yaml: yaml: unmarshal errors:
+loki  |   line 53: field shared_store not found in type indexshipper.Config. Use `-config.expand-env=true` flag if you want to expand environment variables in your config file
+loki  | failed parsing config: /etc/loki/loki-config.yaml: yaml: unmarshal errors:
+loki  |   line 53: field shared_store not found in type indexshipper.Config. Use `-config.expand-env=true` flag if you want to expand environment variables in your config file
+loki  | failed parsing config: /etc/loki/loki-config.yaml: yaml: unmarshal errors:
+loki  |   line 53: field shared_store not found in type indexshipper.Config. Use `-config.expand-env=true` flag if you want to expand environment variables in your config file
+loki  | failed parsing config: /etc/loki/loki-config.yaml: yaml: unmarshal errors:
+loki  |   line 53: field shared_store not found in type indexshipper.Config. Use `-config.expand-env=true` flag if you want to expand environment variables in your config file
+loki  | failed parsing config: /etc/loki/loki-config.yaml: yaml: unmarshal errors:
+loki  |   line 53: field shared_store not found in type indexshipper.Config. Use `-config.expand-env=true` flag if you want to expand environment variables in your config file
+loki  | failed parsing config: /etc/loki/loki-config.yaml: yaml: unmarshal errors:
+loki  |   line 53: field shared_store not found in type indexshipper.Config. Use `-config.expand-env=true` flag if you want to expand environment variables in your config file
+loki  | failed parsing config: /etc/loki/loki-config.yaml: yaml: unmarshal errors:
+loki  |   line 53: field shared_store not found in type indexshipper.Config. Use `-config.expand-env=true` flag if you want to expand environment variables in your config file
+loki  | failed parsing config: /etc/loki/loki-config.yaml: yaml: unmarshal errors:
+loki  |   line 53: field shared_store not found in type indexshipper.Config. Use `-config.expand-env=true` flag if you want to expand environment variables in your config file
+loki  | failed parsing config: /etc/loki/loki-config.yaml: yaml: unmarshal errors:
+loki  |   line 53: field shared_store not found in type indexshipper.Config. Use `-config.expand-env=true` flag if you want to expand environment variables in your config file
+loki  | failed parsing config: /etc/loki/loki-config.yaml: yaml: unmarshal errors:
+loki  |   line 53: field shared_store not found in type indexshipper.Config. Use `-config.expand-env=true` flag if you want to expand environment variables in your config file
+loki  | failed parsing config: /etc/loki/loki-config.yaml: yaml: unmarshal errors:
+loki  |   line 53: field shared_store not found in type indexshipper.Config. Use `-config.expand-env=true` flag if you want to expand environment variables in your config file
+loki  | failed parsing config: /etc/loki/loki-config.yaml: yaml: unmarshal errors:
+loki  |   line 53: field shared_store not found in type indexshipper.Config. Use `-config.expand-env=true` flag if you want to expand environment variables in your config file
+loki  | failed parsing config: /etc/loki/loki-config.yaml: yaml: unmarshal errors:
+loki  |   line 53: field shared_store not found in type indexshipper.Config. Use `-config.expand-env=true` flag if you want to expand environment variables in your config file
+loki  | failed parsing config: /etc/loki/loki-config.yaml: yaml: unmarshal errors:
+loki  |   line 53: field shared_store not found in type indexshipper.Config. Use `-config.expand-env=true` flag if you want to expand environment variables in your config file
+loki  | failed parsing config: /etc/loki/loki-config.yaml: yaml: unmarshal errors:
+loki  |   line 53: field shared_store not found in type indexshipper.Config. Use `-config.expand-env=true` flag if you want to expand environment variables in your config file
+loki  | failed parsing config: /etc/loki/loki-config.yaml: yaml: unmarshal errors:
+loki  |   line 53: field shared_store not found in type indexshipper.Config. Use `-config.expand-env=true` flag if you want to expand environment variables in your config file
+loki  | failed parsing config: /etc/loki/loki-config.yaml: yaml: unmarshal errors:
+loki  |   line 53: field shared_store not found in type indexshipper.Config. Use `-config.expand-env=true` flag if you want to expand environment variables in your config file
+loki  | failed parsing config: /etc/loki/loki-config.yaml: yaml: unmarshal errors:
+loki  |   line 53: field shared_store not found in type indexshipper.Config. Use `-config.expand-env=true` flag if you want to expand environment variables in your config file
+loki  | failed parsing config: /etc/loki/loki-config.yaml: yaml: unmarshal errors:
+loki  |   line 53: field shared_store not found in type indexshipper.Config. Use `-config.expand-env=true` flag if you want to expand environment variables in your config file
+loki  | failed parsing config: /etc/loki/loki-config.yaml: yaml: unmarshal errors:
+loki  |   line 53: field shared_store not found in type indexshipper.Config. Use `-config.expand-env=true` flag if you want to expand environment variables in your config file
+loki  | failed parsing config: /etc/loki/loki-config.yaml: yaml: unmarshal errors:
+loki  |   line 53: field shared_store not found in type indexshipper.Config. Use `-config.expand-env=true` flag if you want to expand environment variables in your config file
+loki  | failed parsing config: /etc/loki/loki-config.yaml: yaml: unmarshal errors:
+loki  |   line 53: field shared_store not found in type indexshipper.Config. Use `-config.expand-env=true` flag if you want to expand environment variables in your config file
+loki  | failed parsing config: /etc/loki/loki-config.yaml: yaml: unmarshal errors:
+loki  |   line 53: field shared_store not found in type indexshipper.Config. Use `-config.expand-env=true` flag if you want to expand environment variables in your config file
+loki  | failed parsing config: /etc/loki/loki-config.yaml: yaml: unmarshal errors:
+loki  |   line 53: field shared_store not found in type indexshipper.Config. Use `-config.expand-env=true` flag if you want to expand environment variables in your config file
+loki  | failed parsing config: /etc/loki/loki-config.yaml: yaml: unmarshal errors:
+loki  |   line 53: field shared_store not found in type indexshipper.Config. Use `-config.expand-env=true` flag if you want to expand environment variables in your config file
+loki  | failed parsing config: /etc/loki/loki-config.yaml: yaml: unmarshal errors:
+loki  |   line 53: field shared_store not found in type indexshipper.Config. Use `-config.expand-env=true` flag if you want to expand environment variables in your config file
+loki  | failed parsing config: /etc/loki/loki-config.yaml: yaml: unmarshal errors:
+loki  |   line 53: field shared_store not found in type indexshipper.Config. Use `-config.expand-env=true` flag if you want to expand environment variables in your config file
+loki  | failed parsing config: /etc/loki/loki-config.yaml: yaml: unmarshal errors:
+loki  |   line 53: field shared_store not found in type indexshipper.Config. Use `-config.expand-env=true` flag if you want to expand environment variables in your config file
+loki  | failed parsing config: /etc/loki/loki-config.yaml: yaml: unmarshal errors:
+loki  |   line 53: field shared_store not found in type indexshipper.Config. Use `-config.expand-env=true` flag if you want to expand environment variables in your config file
+loki  | failed parsing config: /etc/loki/loki-config.yaml: yaml: unmarshal errors:
+loki  |   line 53: field shared_store not found in type indexshipper.Config. Use `-config.expand-env=true` flag if you want to expand environment variables in your config file
+loki  | failed parsing config: /etc/loki/loki-config.yaml: yaml: unmarshal errors:
+loki  |   line 53: field shared_store not found in type indexshipper.Config. Use `-config.expand-env=true` flag if you want to expand environment variables in your config file
+loki  | failed parsing config: /etc/loki/loki-config.yaml: yaml: unmarshal errors:
+loki  |   line 53: field shared_store not found in type indexshipper.Config. Use `-config.expand-env=true` flag if you want to expand environment variables in your config file
+loki  | failed parsing config: /etc/loki/loki-config.yaml: yaml: unmarshal errors:
+loki  |   line 53: field shared_store not found in type indexshipper.Config. Use `-config.expand-env=true` flag if you want to expand environment variables in your config file
+loki  | failed parsing config: /etc/loki/loki-config.yaml: yaml: unmarshal errors:
+loki  |   line 53: field shared_store not found in type indexshipper.Config. Use `-config.expand-env=true` flag if you want to expand environment variables in your config file
+loki  | failed parsing config: /etc/loki/loki-config.yaml: yaml: unmarshal errors:
+loki  |   line 53: field shared_store not found in type indexshipper.Config. Use `-config.expand-env=true` flag if you want to expand environment variables in your config file
+loki  | failed parsing config: /etc/loki/loki-config.yaml: yaml: unmarshal errors:
+loki  |   line 53: field shared_store not found in type indexshipper.Config. Use `-config.expand-env=true` flag if you want to expand environment variables in your config file
+loki  | init compactor: failed to init delete store: MissingEndpoint: 'Endpoint' configuration is required for this service
+loki  | error initialising module: compactor
+loki  | github.com/grafana/dskit/modules.(*Manager).initModule
+loki  | 	/src/loki/vendor/github.com/grafana/dskit/modules/modules.go:138
+loki  | github.com/grafana/dskit/modules.(*Manager).InitModuleServices
+loki  | 	/src/loki/vendor/github.com/grafana/dskit/modules/modules.go:108
+loki  | github.com/grafana/loki/v3/pkg/loki.(*Loki).Run
+loki  | 	/src/loki/pkg/loki/loki.go:531
+loki  | main.main
+loki  | 	/src/loki/cmd/loki/main.go:129
+loki  | runtime.main
+loki  | 	/usr/local/go/src/runtime/proc.go:283
+loki  | runtime.goexit
+loki  | 	/usr/local/go/src/runtime/asm_amd64.s:1700
+loki  | level=info ts=2025-07-24T23:27:59.030630819Z caller=main.go:126 msg="Starting Loki" version="(version=3.5.2, branch=release-3.5.x, revision=257d2f62)"
+loki  | level=info ts=2025-07-24T23:27:59.030651188Z caller=main.go:127 msg="Loading configuration file" filename=/etc/loki/loki-config.yaml
+loki  | level=info ts=2025-07-24T23:27:59.031158573Z caller=server.go:368 msg="server listening on addresses" http=[::]:3100 grpc=[::]:9096
+loki  | level=error ts=2025-07-24T23:27:59.06918271Z caller=log.go:223 msg="error running loki" err="init compactor: failed to init delete store: MissingEndpoint: 'Endpoint' configuration is required for this service\nerror initialising module: compactor\ngithub.com/grafana/dskit/modules.(*Manager).initModule\n\t/src/loki/vendor/github.com/grafana/dskit/modules/modules.go:138\ngithub.com/grafana/dskit/modules.(*Manager).InitModuleServices\n\t/src/loki/vendor/github.com/grafana/dskit/modules/modules.go:108\ngithub.com/grafana/loki/v3/pkg/loki.(*Loki).Run\n\t/src/loki/pkg/loki/loki.go:531\nmain.main\n\t/src/loki/cmd/loki/main.go:129\nruntime.main\n\t/usr/local/go/src/runtime/proc.go:283\nruntime.goexit\n\t/usr/local/go/src/runtime/asm_amd64.s:1700"
+loki  | init compactor: failed to init delete store: MissingEndpoint: 'Endpoint' configuration is required for this service
+loki  | error initialising module: compactor
+loki  | github.com/grafana/dskit/modules.(*Manager).initModule
+loki  | 	/src/loki/vendor/github.com/grafana/dskit/modules/modules.go:138
+loki  | github.com/grafana/dskit/modules.(*Manager).InitModuleServices
+loki  | 	/src/loki/vendor/github.com/grafana/dskit/modules/modules.go:108
+loki  | github.com/grafana/loki/v3/pkg/loki.(*Loki).Run
+loki  | 	/src/loki/pkg/loki/loki.go:531
+loki  | main.main
+loki  | 	/src/loki/cmd/loki/main.go:129
+loki  | runtime.main
+loki  | 	/usr/local/go/src/runtime/proc.go:283
+loki  | runtime.goexit
+loki  | 	/usr/local/go/src/runtime/asm_amd64.s:1700
+loki  | level=info ts=2025-07-24T23:27:59.925772115Z caller=main.go:126 msg="Starting Loki" version="(version=3.5.2, branch=release-3.5.x, revision=257d2f62)"
+loki  | level=info ts=2025-07-24T23:27:59.925789944Z caller=main.go:127 msg="Loading configuration file" filename=/etc/loki/loki-config.yaml
+loki  | level=info ts=2025-07-24T23:27:59.92646758Z caller=server.go:368 msg="server listening on addresses" http=[::]:3100 grpc=[::]:9096
+loki  | level=info ts=2025-07-24T23:27:59.927509167Z caller=table_manager.go:300 index-store=tsdb-2020-10-24 msg="query readiness setup completed" duration=877ns distinct_users_len=0 distinct_users=
+loki  | level=info ts=2025-07-24T23:27:59.927510168Z caller=table_manager.go:136 index-store=tsdb-2020-10-24 msg="uploading tables"
+loki  | level=info ts=2025-07-24T23:27:59.927527145Z caller=shipper.go:165 index-store=tsdb-2020-10-24 msg="starting index shipper in RW mode"
+loki  | level=info ts=2025-07-24T23:27:59.938019382Z caller=head_manager.go:308 index-store=tsdb-2020-10-24 component=tsdb-head-manager msg="loaded wals by period" groups=0
+loki  | level=info ts=2025-07-24T23:27:59.938136006Z caller=manager.go:86 index-store=tsdb-2020-10-24 component=tsdb-manager msg="loaded leftover local indices" err=null successful=true buckets=4 indices=2 failures=0
+loki  | level=info ts=2025-07-24T23:27:59.938147107Z caller=head_manager.go:308 index-store=tsdb-2020-10-24 component=tsdb-head-manager msg="loaded wals by period" groups=0
+loki  | level=error ts=2025-07-24T23:27:59.938734386Z caller=log.go:223 msg="error running loki" err="init compactor: failed to init delete store: MissingEndpoint: 'Endpoint' configuration is required for this service\nerror initialising module: compactor\ngithub.com/grafana/dskit/modules.(*Manager).initModule\n\t/src/loki/vendor/github.com/grafana/dskit/modules/modules.go:138\ngithub.com/grafana/dskit/modules.(*Manager).InitModuleServices\n\t/src/loki/vendor/github.com/grafana/dskit/modules/modules.go:108\ngithub.com/grafana/loki/v3/pkg/loki.(*Loki).Run\n\t/src/loki/pkg/loki/loki.go:531\nmain.main\n\t/src/loki/cmd/loki/main.go:129\nruntime.main\n\t/usr/local/go/src/runtime/proc.go:283\nruntime.goexit\n\t/usr/local/go/src/runtime/asm_amd64.s:1700"
+loki  | init compactor: failed to init delete store: MissingEndpoint: 'Endpoint' configuration is required for this service
+loki  | error initialising module: compactor
+loki  | github.com/grafana/dskit/modules.(*Manager).initModule
+loki  | 	/src/loki/vendor/github.com/grafana/dskit/modules/modules.go:138
+loki  | github.com/grafana/dskit/modules.(*Manager).InitModuleServices
+loki  | 	/src/loki/vendor/github.com/grafana/dskit/modules/modules.go:108
+loki  | github.com/grafana/loki/v3/pkg/loki.(*Loki).Run
+loki  | 	/src/loki/pkg/loki/loki.go:531
+loki  | main.main
+loki  | 	/src/loki/cmd/loki/main.go:129
+loki  | runtime.main
+loki  | 	/usr/local/go/src/runtime/proc.go:283
+loki  | runtime.goexit
+loki  | 	/usr/local/go/src/runtime/asm_amd64.s:1700
+loki  | level=info ts=2025-07-24T23:28:00.736891407Z caller=main.go:126 msg="Starting Loki" version="(version=3.5.2, branch=release-3.5.x, revision=257d2f62)"
+loki  | level=info ts=2025-07-24T23:28:00.736913986Z caller=main.go:127 msg="Loading configuration file" filename=/etc/loki/loki-config.yaml
+loki  | level=info ts=2025-07-24T23:28:00.737577179Z caller=server.go:368 msg="server listening on addresses" http=[::]:3100 grpc=[::]:9096
+loki  | level=info ts=2025-07-24T23:28:00.738505354Z caller=table_manager.go:300 index-store=tsdb-2020-10-24 msg="query readiness setup completed" duration=911ns distinct_users_len=0 distinct_users=
+loki  | level=info ts=2025-07-24T23:28:00.738506931Z caller=table_manager.go:136 index-store=tsdb-2020-10-24 msg="uploading tables"
+loki  | level=info ts=2025-07-24T23:28:00.738524081Z caller=shipper.go:165 index-store=tsdb-2020-10-24 msg="starting index shipper in RW mode"
+loki  | level=info ts=2025-07-24T23:28:00.738626008Z caller=head_manager.go:308 index-store=tsdb-2020-10-24 component=tsdb-head-manager msg="loaded wals by period" groups=0
+loki  | level=info ts=2025-07-24T23:28:00.738721457Z caller=manager.go:86 index-store=tsdb-2020-10-24 component=tsdb-manager msg="loaded leftover local indices" err=null successful=true buckets=4 indices=2 failures=0
+loki  | level=info ts=2025-07-24T23:28:00.738734716Z caller=head_manager.go:308 index-store=tsdb-2020-10-24 component=tsdb-head-manager msg="loaded wals by period" groups=1
+loki  | level=error ts=2025-07-24T23:28:00.775015517Z caller=log.go:223 msg="error running loki" err="init compactor: failed to init delete store: MissingEndpoint: 'Endpoint' configuration is required for this service\nerror initialising module: compactor\ngithub.com/grafana/dskit/modules.(*Manager).initModule\n\t/src/loki/vendor/github.com/grafana/dskit/modules/modules.go:138\ngithub.com/grafana/dskit/modules.(*Manager).InitModuleServices\n\t/src/loki/vendor/github.com/grafana/dskit/modules/modules.go:108\ngithub.com/grafana/loki/v3/pkg/loki.(*Loki).Run\n\t/src/loki/pkg/loki/loki.go:531\nmain.main\n\t/src/loki/cmd/loki/main.go:129\nruntime.main\n\t/usr/local/go/src/runtime/proc.go:283\nruntime.goexit\n\t/usr/local/go/src/runtime/asm_amd64.s:1700"
+loki  | init compactor: failed to init delete store: MissingEndpoint: 'Endpoint' configuration is required for this service
+loki  | error initialising module: compactor
+loki  | github.com/grafana/dskit/modules.(*Manager).initModule
+loki  | 	/src/loki/vendor/github.com/grafana/dskit/modules/modules.go:138
+loki  | github.com/grafana/dskit/modules.(*Manager).InitModuleServices
+loki  | 	/src/loki/vendor/github.com/grafana/dskit/modules/modules.go:108
+loki  | github.com/grafana/loki/v3/pkg/loki.(*Loki).Run
+loki  | 	/src/loki/pkg/loki/loki.go:531
+loki  | main.main
+loki  | 	/src/loki/cmd/loki/main.go:129
+loki  | runtime.main
+loki  | 	/usr/local/go/src/runtime/proc.go:283
+loki  | runtime.goexit
+loki  | 	/usr/local/go/src/runtime/asm_amd64.s:1700
+loki  | level=info ts=2025-07-24T23:28:01.710153636Z caller=main.go:126 msg="Starting Loki" version="(version=3.5.2, branch=release-3.5.x, revision=257d2f62)"
+loki  | level=info ts=2025-07-24T23:28:01.710171183Z caller=main.go:127 msg="Loading configuration file" filename=/etc/loki/loki-config.yaml
+loki  | level=info ts=2025-07-24T23:28:01.71090309Z caller=server.go:368 msg="server listening on addresses" http=[::]:3100 grpc=[::]:9096
+loki  | level=error ts=2025-07-24T23:28:01.712710532Z caller=log.go:223 msg="error running loki" err="init compactor: failed to init delete store: MissingEndpoint: 'Endpoint' configuration is required for this service\nerror initialising module: compactor\ngithub.com/grafana/dskit/modules.(*Manager).initModule\n\t/src/loki/vendor/github.com/grafana/dskit/modules/modules.go:138\ngithub.com/grafana/dskit/modules.(*Manager).InitModuleServices\n\t/src/loki/vendor/github.com/grafana/dskit/modules/modules.go:108\ngithub.com/grafana/loki/v3/pkg/loki.(*Loki).Run\n\t/src/loki/pkg/loki/loki.go:531\nmain.main\n\t/src/loki/cmd/loki/main.go:129\nruntime.main\n\t/usr/local/go/src/runtime/proc.go:283\nruntime.goexit\n\t/usr/local/go/src/runtime/asm_amd64.s:1700"
+loki  | init compactor: failed to init delete store: MissingEndpoint: 'Endpoint' configuration is required for this service
+loki  | error initialising module: compactor
+loki  | github.com/grafana/dskit/modules.(*Manager).initModule
+loki  | 	/src/loki/vendor/github.com/grafana/dskit/modules/modules.go:138
+loki  | github.com/grafana/dskit/modules.(*Manager).InitModuleServices
+loki  | 	/src/loki/vendor/github.com/grafana/dskit/modules/modules.go:108
+loki  | github.com/grafana/loki/v3/pkg/loki.(*Loki).Run
+loki  | 	/src/loki/pkg/loki/loki.go:531
+loki  | main.main
+loki  | 	/src/loki/cmd/loki/main.go:129
+loki  | runtime.main
+loki  | 	/usr/local/go/src/runtime/proc.go:283
+loki  | runtime.goexit
+loki  | 	/usr/local/go/src/runtime/asm_amd64.s:1700
+loki  | level=info ts=2025-07-24T23:28:02.892312887Z caller=main.go:126 msg="Starting Loki" version="(version=3.5.2, branch=release-3.5.x, revision=257d2f62)"
+loki  | level=info ts=2025-07-24T23:28:02.892331501Z caller=main.go:127 msg="Loading configuration file" filename=/etc/loki/loki-config.yaml
+loki  | level=info ts=2025-07-24T23:28:02.892958259Z caller=server.go:368 msg="server listening on addresses" http=[::]:3100 grpc=[::]:9096
+loki  | level=info ts=2025-07-24T23:28:02.894359657Z caller=table_manager.go:136 index-store=tsdb-2020-10-24 msg="uploading tables"
+loki  | level=info ts=2025-07-24T23:28:02.894367571Z caller=table_manager.go:300 index-store=tsdb-2020-10-24 msg="query readiness setup completed" duration=1µs distinct_users_len=0 distinct_users=
+loki  | level=info ts=2025-07-24T23:28:02.894382275Z caller=shipper.go:165 index-store=tsdb-2020-10-24 msg="starting index shipper in RW mode"
+loki  | level=info ts=2025-07-24T23:28:02.894482197Z caller=head_manager.go:308 index-store=tsdb-2020-10-24 component=tsdb-head-manager msg="loaded wals by period" groups=0
+loki  | level=info ts=2025-07-24T23:28:02.894579515Z caller=manager.go:86 index-store=tsdb-2020-10-24 component=tsdb-manager msg="loaded leftover local indices" err=null successful=true buckets=4 indices=2 failures=0
+loki  | level=info ts=2025-07-24T23:28:02.894592237Z caller=head_manager.go:308 index-store=tsdb-2020-10-24 component=tsdb-head-manager msg="loaded wals by period" groups=1
+loki  | level=error ts=2025-07-24T23:28:02.896146734Z caller=log.go:223 msg="error running loki" err="init compactor: failed to init delete store: MissingEndpoint: 'Endpoint' configuration is required for this service\nerror initialising module: compactor\ngithub.com/grafana/dskit/modules.(*Manager).initModule\n\t/src/loki/vendor/github.com/grafana/dskit/modules/modules.go:138\ngithub.com/grafana/dskit/modules.(*Manager).InitModuleServices\n\t/src/loki/vendor/github.com/grafana/dskit/modules/modules.go:108\ngithub.com/grafana/loki/v3/pkg/loki.(*Loki).Run\n\t/src/loki/pkg/loki/loki.go:531\nmain.main\n\t/src/loki/cmd/loki/main.go:129\nruntime.main\n\t/usr/local/go/src/runtime/proc.go:283\nruntime.goexit\n\t/usr/local/go/src/runtime/asm_amd64.s:1700"
+loki  | init compactor: failed to init delete store: MissingEndpoint: 'Endpoint' configuration is required for this service
+loki  | error initialising module: compactor
+loki  | github.com/grafana/dskit/modules.(*Manager).initModule
+loki  | 	/src/loki/vendor/github.com/grafana/dskit/modules/modules.go:138
+loki  | github.com/grafana/dskit/modules.(*Manager).InitModuleServices
+loki  | 	/src/loki/vendor/github.com/grafana/dskit/modules/modules.go:108
+loki  | github.com/grafana/loki/v3/pkg/loki.(*Loki).Run
+loki  | 	/src/loki/pkg/loki/loki.go:531
+loki  | main.main
+loki  | 	/src/loki/cmd/loki/main.go:129
+loki  | runtime.main
+loki  | 	/usr/local/go/src/runtime/proc.go:283
+loki  | runtime.goexit
+loki  | 	/usr/local/go/src/runtime/asm_amd64.s:1700
+loki  | level=info ts=2025-07-24T23:28:04.89131508Z caller=main.go:126 msg="Starting Loki" version="(version=3.5.2, branch=release-3.5.x, revision=257d2f62)"
+loki  | level=info ts=2025-07-24T23:28:04.891334214Z caller=main.go:127 msg="Loading configuration file" filename=/etc/loki/loki-config.yaml
+loki  | level=info ts=2025-07-24T23:28:04.892004528Z caller=server.go:368 msg="server listening on addresses" http=[::]:3100 grpc=[::]:9096
+loki  | level=error ts=2025-07-24T23:28:04.893372603Z caller=log.go:223 msg="error running loki" err="init compactor: failed to init delete store: MissingEndpoint: 'Endpoint' configuration is required for this service\nerror initialising module: compactor\ngithub.com/grafana/dskit/modules.(*Manager).initModule\n\t/src/loki/vendor/github.com/grafana/dskit/modules/modules.go:138\ngithub.com/grafana/dskit/modules.(*Manager).InitModuleServices\n\t/src/loki/vendor/github.com/grafana/dskit/modules/modules.go:108\ngithub.com/grafana/loki/v3/pkg/loki.(*Loki).Run\n\t/src/loki/pkg/loki/loki.go:531\nmain.main\n\t/src/loki/cmd/loki/main.go:129\nruntime.main\n\t/usr/local/go/src/runtime/proc.go:283\nruntime.goexit\n\t/usr/local/go/src/runtime/asm_amd64.s:1700"
+loki  | init compactor: failed to init delete store: MissingEndpoint: 'Endpoint' configuration is required for this service
+loki  | error initialising module: compactor
+loki  | github.com/grafana/dskit/modules.(*Manager).initModule
+loki  | 	/src/loki/vendor/github.com/grafana/dskit/modules/modules.go:138
+loki  | github.com/grafana/dskit/modules.(*Manager).InitModuleServices
+loki  | 	/src/loki/vendor/github.com/grafana/dskit/modules/modules.go:108
+loki  | github.com/grafana/loki/v3/pkg/loki.(*Loki).Run
+loki  | 	/src/loki/pkg/loki/loki.go:531
+loki  | main.main
+loki  | 	/src/loki/cmd/loki/main.go:129
+loki  | runtime.main
+loki  | 	/usr/local/go/src/runtime/proc.go:283
+loki  | runtime.goexit
+loki  | 	/usr/local/go/src/runtime/asm_amd64.s:1700
+loki  | level=info ts=2025-07-24T23:28:08.456885827Z caller=main.go:126 msg="Starting Loki" version="(version=3.5.2, branch=release-3.5.x, revision=257d2f62)"
+loki  | level=info ts=2025-07-24T23:28:08.456901526Z caller=main.go:127 msg="Loading configuration file" filename=/etc/loki/loki-config.yaml
+loki  | level=info ts=2025-07-24T23:28:08.457586357Z caller=server.go:368 msg="server listening on addresses" http=[::]:3100 grpc=[::]:9096
+loki  | level=info ts=2025-07-24T23:28:08.458527698Z caller=table_manager.go:300 index-store=tsdb-2020-10-24 msg="query readiness setup completed" duration=784ns distinct_users_len=0 distinct_users=
+loki  | level=info ts=2025-07-24T23:28:08.458544951Z caller=shipper.go:165 index-store=tsdb-2020-10-24 msg="starting index shipper in RW mode"
+loki  | level=info ts=2025-07-24T23:28:08.458567015Z caller=table_manager.go:136 index-store=tsdb-2020-10-24 msg="uploading tables"
+loki  | level=info ts=2025-07-24T23:28:08.458651704Z caller=head_manager.go:308 index-store=tsdb-2020-10-24 component=tsdb-head-manager msg="loaded wals by period" groups=0
+loki  | level=info ts=2025-07-24T23:28:08.458760144Z caller=manager.go:86 index-store=tsdb-2020-10-24 component=tsdb-manager msg="loaded leftover local indices" err=null successful=true buckets=4 indices=2 failures=0
+loki  | level=info ts=2025-07-24T23:28:08.458773761Z caller=head_manager.go:308 index-store=tsdb-2020-10-24 component=tsdb-head-manager msg="loaded wals by period" groups=1
+loki  | level=error ts=2025-07-24T23:28:08.459818541Z caller=log.go:223 msg="error running loki" err="init compactor: failed to init delete store: MissingEndpoint: 'Endpoint' configuration is required for this service\nerror initialising module: compactor\ngithub.com/grafana/dskit/modules.(*Manager).initModule\n\t/src/loki/vendor/github.com/grafana/dskit/modules/modules.go:138\ngithub.com/grafana/dskit/modules.(*Manager).InitModuleServices\n\t/src/loki/vendor/github.com/grafana/dskit/modules/modules.go:108\ngithub.com/grafana/loki/v3/pkg/loki.(*Loki).Run\n\t/src/loki/pkg/loki/loki.go:531\nmain.main\n\t/src/loki/cmd/loki/main.go:129\nruntime.main\n\t/usr/local/go/src/runtime/proc.go:283\nruntime.goexit\n\t/usr/local/go/src/runtime/asm_amd64.s:1700"
+loki  | init compactor: failed to init delete store: MissingEndpoint: 'Endpoint' configuration is required for this service
+loki  | error initialising module: compactor
+loki  | github.com/grafana/dskit/modules.(*Manager).initModule
+loki  | 	/src/loki/vendor/github.com/grafana/dskit/modules/modules.go:138
+loki  | github.com/grafana/dskit/modules.(*Manager).InitModuleServices
+loki  | 	/src/loki/vendor/github.com/grafana/dskit/modules/modules.go:108
+loki  | github.com/grafana/loki/v3/pkg/loki.(*Loki).Run
+loki  | 	/src/loki/pkg/loki/loki.go:531
+loki  | main.main
+loki  | 	/src/loki/cmd/loki/main.go:129
+loki  | runtime.main
+loki  | 	/usr/local/go/src/runtime/proc.go:283
+loki  | runtime.goexit
+loki  | 	/usr/local/go/src/runtime/asm_amd64.s:1700
+loki  | level=info ts=2025-07-24T23:28:15.265031363Z caller=main.go:126 msg="Starting Loki" version="(version=3.5.2, branch=release-3.5.x, revision=257d2f62)"
+loki  | level=info ts=2025-07-24T23:28:15.26505023Z caller=main.go:127 msg="Loading configuration file" filename=/etc/loki/loki-config.yaml
+loki  | level=info ts=2025-07-24T23:28:15.265723092Z caller=server.go:368 msg="server listening on addresses" http=[::]:3100 grpc=[::]:9096
+loki  | level=info ts=2025-07-24T23:28:15.266742749Z caller=table_manager.go:136 index-store=tsdb-2020-10-24 msg="uploading tables"
+loki  | level=info ts=2025-07-24T23:28:15.266744333Z caller=table_manager.go:300 index-store=tsdb-2020-10-24 msg="query readiness setup completed" duration=892ns distinct_users_len=0 distinct_users=
+loki  | level=info ts=2025-07-24T23:28:15.266762852Z caller=shipper.go:165 index-store=tsdb-2020-10-24 msg="starting index shipper in RW mode"
+loki  | level=info ts=2025-07-24T23:28:15.266861596Z caller=head_manager.go:308 index-store=tsdb-2020-10-24 component=tsdb-head-manager msg="loaded wals by period" groups=0
+loki  | level=info ts=2025-07-24T23:28:15.266957297Z caller=manager.go:86 index-store=tsdb-2020-10-24 component=tsdb-manager msg="loaded leftover local indices" err=null successful=true buckets=4 indices=2 failures=0
+loki  | level=info ts=2025-07-24T23:28:15.266975107Z caller=head_manager.go:308 index-store=tsdb-2020-10-24 component=tsdb-head-manager msg="loaded wals by period" groups=1
+loki  | level=error ts=2025-07-24T23:28:15.267892472Z caller=log.go:223 msg="error running loki" err="init compactor: failed to init delete store: MissingEndpoint: 'Endpoint' configuration is required for this service\nerror initialising module: compactor\ngithub.com/grafana/dskit/modules.(*Manager).initModule\n\t/src/loki/vendor/github.com/grafana/dskit/modules/modules.go:138\ngithub.com/grafana/dskit/modules.(*Manager).InitModuleServices\n\t/src/loki/vendor/github.com/grafana/dskit/modules/modules.go:108\ngithub.com/grafana/loki/v3/pkg/loki.(*Loki).Run\n\t/src/loki/pkg/loki/loki.go:531\nmain.main\n\t/src/loki/cmd/loki/main.go:129\nruntime.main\n\t/usr/local/go/src/runtime/proc.go:283\nruntime.goexit\n\t/usr/local/go/src/runtime/asm_amd64.s:1700"
+loki  | init compactor: failed to init delete store: MissingEndpoint: 'Endpoint' configuration is required for this service
+loki  | error initialising module: compactor
+loki  | github.com/grafana/dskit/modules.(*Manager).initModule
+loki  | 	/src/loki/vendor/github.com/grafana/dskit/modules/modules.go:138
+loki  | github.com/grafana/dskit/modules.(*Manager).InitModuleServices
+loki  | 	/src/loki/vendor/github.com/grafana/dskit/modules/modules.go:108
+loki  | github.com/grafana/loki/v3/pkg/loki.(*Loki).Run
+loki  | 	/src/loki/pkg/loki/loki.go:531
+loki  | main.main
+loki  | 	/src/loki/cmd/loki/main.go:129
+loki  | runtime.main
+loki  | 	/usr/local/go/src/runtime/proc.go:283
+loki  | runtime.goexit
+loki  | 	/usr/local/go/src/runtime/asm_amd64.s:1700
+loki  | level=info ts=2025-07-24T23:28:28.467724188Z caller=main.go:126 msg="Starting Loki" version="(version=3.5.2, branch=release-3.5.x, revision=257d2f62)"
+loki  | level=info ts=2025-07-24T23:28:28.467741391Z caller=main.go:127 msg="Loading configuration file" filename=/etc/loki/loki-config.yaml
+loki  | level=info ts=2025-07-24T23:28:28.468384505Z caller=server.go:368 msg="server listening on addresses" http=[::]:3100 grpc=[::]:9096
+loki  | level=info ts=2025-07-24T23:28:28.469403646Z caller=table_manager.go:136 index-store=tsdb-2020-10-24 msg="uploading tables"
+loki  | level=info ts=2025-07-24T23:28:28.46940928Z caller=table_manager.go:300 index-store=tsdb-2020-10-24 msg="query readiness setup completed" duration=945ns distinct_users_len=0 distinct_users=
+loki  | level=info ts=2025-07-24T23:28:28.469422621Z caller=shipper.go:165 index-store=tsdb-2020-10-24 msg="starting index shipper in RW mode"
+loki  | level=info ts=2025-07-24T23:28:28.469522247Z caller=head_manager.go:308 index-store=tsdb-2020-10-24 component=tsdb-head-manager msg="loaded wals by period" groups=0
+loki  | level=info ts=2025-07-24T23:28:28.469618759Z caller=manager.go:86 index-store=tsdb-2020-10-24 component=tsdb-manager msg="loaded leftover local indices" err=null successful=true buckets=4 indices=2 failures=0
+loki  | level=info ts=2025-07-24T23:28:28.469631778Z caller=head_manager.go:308 index-store=tsdb-2020-10-24 component=tsdb-head-manager msg="loaded wals by period" groups=1
+loki  | level=error ts=2025-07-24T23:28:28.471183497Z caller=log.go:223 msg="error running loki" err="init compactor: failed to init delete store: MissingEndpoint: 'Endpoint' configuration is required for this service\nerror initialising module: compactor\ngithub.com/grafana/dskit/modules.(*Manager).initModule\n\t/src/loki/vendor/github.com/grafana/dskit/modules/modules.go:138\ngithub.com/grafana/dskit/modules.(*Manager).InitModuleServices\n\t/src/loki/vendor/github.com/grafana/dskit/modules/modules.go:108\ngithub.com/grafana/loki/v3/pkg/loki.(*Loki).Run\n\t/src/loki/pkg/loki/loki.go:531\nmain.main\n\t/src/loki/cmd/loki/main.go:129\nruntime.main\n\t/usr/local/go/src/runtime/proc.go:283\nruntime.goexit\n\t/usr/local/go/src/runtime/asm_amd64.s:1700"
+loki  | init compactor: failed to init delete store: MissingEndpoint: 'Endpoint' configuration is required for this service
+loki  | error initialising module: compactor
+loki  | github.com/grafana/dskit/modules.(*Manager).initModule
+loki  | 	/src/loki/vendor/github.com/grafana/dskit/modules/modules.go:138
+loki  | github.com/grafana/dskit/modules.(*Manager).InitModuleServices
+loki  | 	/src/loki/vendor/github.com/grafana/dskit/modules/modules.go:108
+loki  | github.com/grafana/loki/v3/pkg/loki.(*Loki).Run
+loki  | 	/src/loki/pkg/loki/loki.go:531
+loki  | main.main
+loki  | 	/src/loki/cmd/loki/main.go:129
+loki  | runtime.main
+loki  | 	/usr/local/go/src/runtime/proc.go:283
+loki  | runtime.goexit
+loki  | 	/usr/local/go/src/runtime/asm_amd64.s:1700
+loki  | level=info ts=2025-07-24T23:28:54.406477369Z caller=main.go:126 msg="Starting Loki" version="(version=3.5.2, branch=release-3.5.x, revision=257d2f62)"
+loki  | level=info ts=2025-07-24T23:28:54.406494086Z caller=main.go:127 msg="Loading configuration file" filename=/etc/loki/loki-config.yaml
+loki  | level=info ts=2025-07-24T23:28:54.40715733Z caller=server.go:368 msg="server listening on addresses" http=[::]:3100 grpc=[::]:9096
+loki  | level=info ts=2025-07-24T23:28:54.40844767Z caller=table_manager.go:300 index-store=tsdb-2020-10-24 msg="query readiness setup completed" duration=952ns distinct_users_len=0 distinct_users=
+loki  | level=info ts=2025-07-24T23:28:54.408466653Z caller=shipper.go:165 index-store=tsdb-2020-10-24 msg="starting index shipper in RW mode"
+loki  | level=info ts=2025-07-24T23:28:54.408464722Z caller=table_manager.go:136 index-store=tsdb-2020-10-24 msg="uploading tables"
+loki  | level=info ts=2025-07-24T23:28:54.408572174Z caller=head_manager.go:308 index-store=tsdb-2020-10-24 component=tsdb-head-manager msg="loaded wals by period" groups=0
+loki  | level=info ts=2025-07-24T23:28:54.408672158Z caller=manager.go:86 index-store=tsdb-2020-10-24 component=tsdb-manager msg="loaded leftover local indices" err=null successful=true buckets=4 indices=2 failures=0
+loki  | level=info ts=2025-07-24T23:28:54.408685949Z caller=head_manager.go:308 index-store=tsdb-2020-10-24 component=tsdb-head-manager msg="loaded wals by period" groups=1
+loki  | level=error ts=2025-07-24T23:28:54.410532308Z caller=log.go:223 msg="error running loki" err="init compactor: failed to init delete store: MissingEndpoint: 'Endpoint' configuration is required for this service\nerror initialising module: compactor\ngithub.com/grafana/dskit/modules.(*Manager).initModule\n\t/src/loki/vendor/github.com/grafana/dskit/modules/modules.go:138\ngithub.com/grafana/dskit/modules.(*Manager).InitModuleServices\n\t/src/loki/vendor/github.com/grafana/dskit/modules/modules.go:108\ngithub.com/grafana/loki/v3/pkg/loki.(*Loki).Run\n\t/src/loki/pkg/loki/loki.go:531\nmain.main\n\t/src/loki/cmd/loki/main.go:129\nruntime.main\n\t/usr/local/go/src/runtime/proc.go:283\nruntime.goexit\n\t/usr/local/go/src/runtime/asm_amd64.s:1700"
+loki  | init compactor: failed to init delete store: MissingEndpoint: 'Endpoint' configuration is required for this service
+loki  | error initialising module: compactor
+loki  | github.com/grafana/dskit/modules.(*Manager).initModule
+loki  | 	/src/loki/vendor/github.com/grafana/dskit/modules/modules.go:138
+loki  | github.com/grafana/dskit/modules.(*Manager).InitModuleServices
+loki  | 	/src/loki/vendor/github.com/grafana/dskit/modules/modules.go:108
+loki  | github.com/grafana/loki/v3/pkg/loki.(*Loki).Run
+loki  | 	/src/loki/pkg/loki/loki.go:531
+loki  | main.main
+loki  | 	/src/loki/cmd/loki/main.go:129
+loki  | runtime.main
+loki  | 	/usr/local/go/src/runtime/proc.go:283
+loki  | runtime.goexit
+loki  | 	/usr/local/go/src/runtime/asm_amd64.s:1700
+loki  | level=info ts=2025-07-24T23:29:45.977389767Z caller=main.go:126 msg="Starting Loki" version="(version=3.5.2, branch=release-3.5.x, revision=257d2f62)"
+loki  | level=info ts=2025-07-24T23:29:45.977408208Z caller=main.go:127 msg="Loading configuration file" filename=/etc/loki/loki-config.yaml
+loki  | level=info ts=2025-07-24T23:29:45.977781282Z caller=server.go:368 msg="server listening on addresses" http=[::]:3100 grpc=[::]:9096
+loki  | level=error ts=2025-07-24T23:29:45.979387696Z caller=log.go:223 msg="error running loki" err="init compactor: failed to init delete store: MissingEndpoint: 'Endpoint' configuration is required for this service\nerror initialising module: compactor\ngithub.com/grafana/dskit/modules.(*Manager).initModule\n\t/src/loki/vendor/github.com/grafana/dskit/modules/modules.go:138\ngithub.com/grafana/dskit/modules.(*Manager).InitModuleServices\n\t/src/loki/vendor/github.com/grafana/dskit/modules/modules.go:108\ngithub.com/grafana/loki/v3/pkg/loki.(*Loki).Run\n\t/src/loki/pkg/loki/loki.go:531\nmain.main\n\t/src/loki/cmd/loki/main.go:129\nruntime.main\n\t/usr/local/go/src/runtime/proc.go:283\nruntime.goexit\n\t/usr/local/go/src/runtime/asm_amd64.s:1700"
+loki  | init compactor: failed to init delete store: MissingEndpoint: 'Endpoint' configuration is required for this service
+loki  | error initialising module: compactor
+loki  | github.com/grafana/dskit/modules.(*Manager).initModule
+loki  | 	/src/loki/vendor/github.com/grafana/dskit/modules/modules.go:138
+loki  | github.com/grafana/dskit/modules.(*Manager).InitModuleServices
+loki  | 	/src/loki/vendor/github.com/grafana/dskit/modules/modules.go:108
+loki  | github.com/grafana/loki/v3/pkg/loki.(*Loki).Run
+loki  | 	/src/loki/pkg/loki/loki.go:531
+loki  | main.main
+loki  | 	/src/loki/cmd/loki/main.go:129
+loki  | runtime.main
+loki  | 	/usr/local/go/src/runtime/proc.go:283
+loki  | runtime.goexit
+loki  | 	/usr/local/go/src/runtime/asm_amd64.s:1700
+loki  | level=info ts=2025-07-24T23:30:46.349584928Z caller=main.go:126 msg="Starting Loki" version="(version=3.5.2, branch=release-3.5.x, revision=257d2f62)"
+loki  | level=info ts=2025-07-24T23:30:46.349600641Z caller=main.go:127 msg="Loading configuration file" filename=/etc/loki/loki-config.yaml
+loki  | level=info ts=2025-07-24T23:30:46.349971903Z caller=server.go:368 msg="server listening on addresses" http=[::]:3100 grpc=[::]:9096
+loki  | level=info ts=2025-07-24T23:30:46.351846352Z caller=table_manager.go:300 index-store=tsdb-2020-10-24 msg="query readiness setup completed" duration=852ns distinct_users_len=0 distinct_users=
+loki  | level=info ts=2025-07-24T23:30:46.351862138Z caller=shipper.go:165 index-store=tsdb-2020-10-24 msg="starting index shipper in RW mode"
+loki  | level=info ts=2025-07-24T23:30:46.351956537Z caller=head_manager.go:308 index-store=tsdb-2020-10-24 component=tsdb-head-manager msg="loaded wals by period" groups=0
+loki  | level=info ts=2025-07-24T23:30:46.352055588Z caller=manager.go:86 index-store=tsdb-2020-10-24 component=tsdb-manager msg="loaded leftover local indices" err=null successful=true buckets=4 indices=2 failures=0
+loki  | level=info ts=2025-07-24T23:30:46.352068509Z caller=head_manager.go:308 index-store=tsdb-2020-10-24 component=tsdb-head-manager msg="loaded wals by period" groups=1
+loki  | level=info ts=2025-07-24T23:30:46.352910453Z caller=table_manager.go:136 index-store=tsdb-2020-10-24 msg="uploading tables"
+loki  | level=info ts=2025-07-24T23:30:46.35294235Z caller=index_set.go:86 msg="uploading table index_20293"
+loki  | level=info ts=2025-07-24T23:30:46.353640299Z caller=mapper.go:47 msg="cleaning up mapped rules directory" path=/loki/rules-temp
+loki  | level=error ts=2025-07-24T23:30:46.354399742Z caller=log.go:223 msg="error running loki" err="init compactor: failed to init delete store: MissingEndpoint: 'Endpoint' configuration is required for this service\nerror initialising module: compactor\ngithub.com/grafana/dskit/modules.(*Manager).initModule\n\t/src/loki/vendor/github.com/grafana/dskit/modules/modules.go:138\ngithub.com/grafana/dskit/modules.(*Manager).InitModuleServices\n\t/src/loki/vendor/github.com/grafana/dskit/modules/modules.go:108\ngithub.com/grafana/loki/v3/pkg/loki.(*Loki).Run\n\t/src/loki/pkg/loki/loki.go:531\nmain.main\n\t/src/loki/cmd/loki/main.go:129\nruntime.main\n\t/usr/local/go/src/runtime/proc.go:283\nruntime.goexit\n\t/usr/local/go/src/runtime/asm_amd64.s:1700"
+loki  | level=error ts=2025-07-24T23:31:03.482275217Z caller=main.go:70 msg="validating config" err="CONFIG ERROR: invalid compactor config: compactor.delete-request-store should be configured when retention is enabled"
+loki  | level=error ts=2025-07-24T23:31:04.332993467Z caller=main.go:70 msg="validating config" err="CONFIG ERROR: invalid compactor config: compactor.delete-request-store should be configured when retention is enabled"
+loki  | level=error ts=2025-07-24T23:31:05.00956314Z caller=main.go:70 msg="validating config" err="CONFIG ERROR: invalid compactor config: compactor.delete-request-store should be configured when retention is enabled"
+loki  | level=error ts=2025-07-24T23:31:05.918793921Z caller=main.go:70 msg="validating config" err="CONFIG ERROR: invalid compactor config: compactor.delete-request-store should be configured when retention is enabled"
+loki  | level=error ts=2025-07-24T23:31:07.276305071Z caller=main.go:70 msg="validating config" err="CONFIG ERROR: invalid compactor config: compactor.delete-request-store should be configured when retention is enabled"
+loki  | level=error ts=2025-07-24T23:31:09.293061229Z caller=main.go:70 msg="validating config" err="CONFIG ERROR: invalid compactor config: compactor.delete-request-store should be configured when retention is enabled"
+loki  | level=error ts=2025-07-24T23:31:12.843339372Z caller=main.go:70 msg="validating config" err="CONFIG ERROR: invalid compactor config: compactor.delete-request-store should be configured when retention is enabled"
+loki  | level=error ts=2025-07-24T23:31:19.62561296Z caller=main.go:70 msg="validating config" err="CONFIG ERROR: invalid compactor config: compactor.delete-request-store should be configured when retention is enabled"
+loki  | level=error ts=2025-07-24T23:31:32.797041618Z caller=main.go:70 msg="validating config" err="CONFIG ERROR: invalid compactor config: compactor.delete-request-store should be configured when retention is enabled"
+loki  | level=error ts=2025-07-24T23:31:58.750531509Z caller=main.go:70 msg="validating config" err="CONFIG ERROR: invalid compactor config: compactor.delete-request-store should be configured when retention is enabled"
+loki  | level=error ts=2025-07-24T23:32:50.343123732Z caller=main.go:70 msg="validating config" err="CONFIG ERROR: invalid compactor config: compactor.delete-request-store should be configured when retention is enabled"
+loki  | level=error ts=2025-07-24T23:33:50.720043881Z caller=main.go:70 msg="validating config" err="CONFIG ERROR: invalid compactor config: compactor.delete-request-store should be configured when retention is enabled"
+loki  | level=error ts=2025-07-24T23:34:51.127762138Z caller=main.go:70 msg="validating config" err="CONFIG ERROR: invalid compactor config: compactor.delete-request-store should be configured when retention is enabled"
+loki  | level=info ts=2025-07-24T23:35:08.041473957Z caller=main.go:126 msg="Starting Loki" version="(version=3.5.2, branch=release-3.5.x, revision=257d2f62)"
+loki  | level=info ts=2025-07-24T23:35:08.041494855Z caller=main.go:127 msg="Loading configuration file" filename=/etc/loki/loki-config.yaml
+loki  | level=info ts=2025-07-24T23:35:08.04152917Z caller=modules.go:1419 msg="Ruler storage is not configured; ruler will not be started."
+loki  | level=info ts=2025-07-24T23:35:08.042190722Z caller=server.go:368 msg="server listening on addresses" http=[::]:3100 grpc=[::]:9096
+loki  | level=info ts=2025-07-24T23:35:08.063341142Z caller=table_manager.go:300 index-store=tsdb-2020-10-24 msg="query readiness setup completed" duration=1.398µs distinct_users_len=0 distinct_users=
+loki  | level=info ts=2025-07-24T23:35:08.063381436Z caller=shipper.go:165 index-store=tsdb-2020-10-24 msg="starting index shipper in RW mode"
+loki  | level=info ts=2025-07-24T23:35:08.063430404Z caller=table_manager.go:136 index-store=tsdb-2020-10-24 msg="uploading tables"
+loki  | level=info ts=2025-07-24T23:35:08.063518954Z caller=head_manager.go:308 index-store=tsdb-2020-10-24 component=tsdb-head-manager msg="loaded wals by period" groups=0
+loki  | level=info ts=2025-07-24T23:35:08.063536078Z caller=manager.go:86 index-store=tsdb-2020-10-24 component=tsdb-manager msg="loaded leftover local indices" err=null successful=true buckets=0 indices=0 failures=0
+loki  | level=info ts=2025-07-24T23:35:08.063545993Z caller=head_manager.go:308 index-store=tsdb-2020-10-24 component=tsdb-head-manager msg="loaded wals by period" groups=0
+loki  | level=info ts=2025-07-24T23:35:08.065198909Z caller=worker.go:131 component=querier msg="Starting querier worker using query-scheduler and scheduler ring for addresses"
+loki  | level=warn ts=2025-07-24T23:35:08.065886869Z caller=modules.go:1442 msg="RulerStorage is nil. Not starting the ruler."
+loki  | level=info ts=2025-07-24T23:35:08.07498551Z caller=module_service.go:82 msg=starting module=cache-generation-loader
+loki  | level=info ts=2025-07-24T23:35:08.074987384Z caller=module_service.go:82 msg=starting module=server
+loki  | level=info ts=2025-07-24T23:35:08.075000416Z caller=module_service.go:82 msg=starting module=query-frontend-tripperware
+loki  | level=info ts=2025-07-24T23:35:08.075014086Z caller=module_service.go:82 msg=starting module=memberlist-kv
+loki  | level=info ts=2025-07-24T23:35:08.075050651Z caller=module_service.go:82 msg=starting module=query-scheduler-ring
+loki  | level=info ts=2025-07-24T23:35:08.075061868Z caller=module_service.go:82 msg=starting module=ring
+loki  | level=info ts=2025-07-24T23:35:08.075065115Z caller=module_service.go:82 msg=starting module=store
+loki  | level=info ts=2025-07-24T23:35:08.075118787Z caller=ring.go:361 msg="ring doesn't exist in KV store yet"
+loki  | level=info ts=2025-07-24T23:35:08.075117222Z caller=basic_lifecycler.go:301 msg="instance not found in the ring" instance=e6d59dc03acd ring=scheduler
+loki  | level=info ts=2025-07-24T23:35:08.075130654Z caller=basic_lifecycler_delegates.go:63 msg="not loading tokens from file, tokens file path is empty"
+loki  | level=info ts=2025-07-24T23:35:08.075141963Z caller=ring.go:361 msg="ring doesn't exist in KV store yet"
+loki  | level=info ts=2025-07-24T23:35:08.075162711Z caller=module_service.go:82 msg=starting module=analytics
+loki  | level=info ts=2025-07-24T23:35:08.075174165Z caller=module_service.go:82 msg=starting module=ingester-querier
+loki  | level=info ts=2025-07-24T23:35:08.075210998Z caller=ringmanager.go:186 msg="waiting until scheduler is JOINING in the ring"
+loki  | level=info ts=2025-07-24T23:35:08.075214804Z caller=ringmanager.go:190 msg="scheduler is JOINING in the ring"
+loki  | level=info ts=2025-07-24T23:35:08.075228174Z caller=ringmanager.go:199 msg="waiting until scheduler is ACTIVE in the ring"
+loki  | level=info ts=2025-07-24T23:35:08.075264689Z caller=module_service.go:82 msg=starting module=ingester
+loki  | level=info ts=2025-07-24T23:35:08.075272326Z caller=ingester.go:564 component=ingester msg="recovering from checkpoint"
+loki  | level=info ts=2025-07-24T23:35:08.075307656Z caller=module_service.go:82 msg=starting module=compactor
+loki  | level=info ts=2025-07-24T23:35:08.075314572Z caller=module_service.go:82 msg=starting module=rule-evaluator
+loki  | level=info ts=2025-07-24T23:35:08.075326234Z caller=module_service.go:82 msg=starting module=distributor
+loki  | level=info ts=2025-07-24T23:35:08.075333794Z caller=basic_lifecycler.go:301 msg="instance not found in the ring" instance=e6d59dc03acd ring=compactor
+loki  | level=info ts=2025-07-24T23:35:08.075339132Z caller=basic_lifecycler_delegates.go:63 msg="not loading tokens from file, tokens file path is empty"
+loki  | level=error ts=2025-07-24T23:35:08.075345478Z caller=ratestore.go:109 msg="error getting ingester clients" err="empty ring"
+loki  | level=info ts=2025-07-24T23:35:08.075358443Z caller=ring.go:361 msg="ring doesn't exist in KV store yet"
+loki  | level=info ts=2025-07-24T23:35:08.075373257Z caller=compactor.go:443 msg="waiting until compactor is JOINING in the ring"
+loki  | level=info ts=2025-07-24T23:35:08.075380839Z caller=basic_lifecycler.go:301 component=distributor msg="instance not found in the ring" instance=e6d59dc03acd ring=distributor
+loki  | level=info ts=2025-07-24T23:35:08.075388948Z caller=ring.go:361 component=distributor msg="ring doesn't exist in KV store yet"
+loki  | level=info ts=2025-07-24T23:35:08.104194466Z caller=ingester.go:580 component=ingester msg="recovered WAL checkpoint recovery finished" elapsed=28.922429ms errors=false
+loki  | level=info ts=2025-07-24T23:35:08.104220225Z caller=ingester.go:586 component=ingester msg="recovering from WAL"
+loki  | level=info ts=2025-07-24T23:35:08.206579037Z caller=compactor.go:447 msg="compactor is JOINING in the ring"
+loki  | level=info ts=2025-07-24T23:35:08.206734984Z caller=compactor.go:457 msg="waiting until compactor is ACTIVE in the ring"
+loki  | level=info ts=2025-07-24T23:35:08.255455514Z caller=ringmanager.go:203 msg="scheduler is ACTIVE in the ring"
+loki  | level=info ts=2025-07-24T23:35:08.255496267Z caller=module_service.go:82 msg=starting module=query-scheduler
+loki  | level=info ts=2025-07-24T23:35:08.255545463Z caller=module_service.go:82 msg=starting module=query-frontend
+loki  | level=info ts=2025-07-24T23:35:08.255588941Z caller=module_service.go:82 msg=starting module=querier
+loki  | level=info ts=2025-07-24T23:35:08.360340836Z caller=compactor.go:461 msg="compactor is ACTIVE in the ring"
+loki  | level=error ts=2025-07-24T23:35:09.22131002Z caller=ratestore.go:109 msg="error getting ingester clients" err="empty ring"
+loki  | level=error ts=2025-07-24T23:35:10.367224356Z caller=ratestore.go:109 msg="error getting ingester clients" err="empty ring"
+loki  | level=info ts=2025-07-24T23:35:11.255738201Z caller=scheduler.go:653 msg="this scheduler is in the ReplicationSet, will now accept requests."
+loki  | level=info ts=2025-07-24T23:35:11.255755745Z caller=worker.go:232 component=querier msg="adding connection" addr=127.0.0.1:9096
+loki  | level=error ts=2025-07-24T23:35:11.513292021Z caller=ratestore.go:109 msg="error getting ingester clients" err="empty ring"
+loki  | level=info ts=2025-07-24T23:35:11.732863702Z caller=ingester.go:602 component=ingester msg="WAL segment recovery finished" elapsed=3.657592297s errors=false
+loki  | level=info ts=2025-07-24T23:35:11.732885587Z caller=ingester.go:550 component=ingester msg="closing recoverer"
+loki  | level=info ts=2025-07-24T23:35:11.732900947Z caller=ingester.go:558 component=ingester msg="WAL recovery finished" time=3.657630134s
+loki  | level=info ts=2025-07-24T23:35:11.732916274Z caller=wal.go:157 msg=started component=wal
+loki  | level=info ts=2025-07-24T23:35:11.732949233Z caller=lifecycler.go:677 component=ingester msg="not loading tokens from file, tokens file path is empty"
+loki  | level=info ts=2025-07-24T23:35:11.732945791Z caller=ingester.go:771 component=ingester msg="sleeping for initial delay before starting periodic flushing" delay=22.750323506s
+loki  | level=info ts=2025-07-24T23:35:11.732984543Z caller=lifecycler.go:704 component=ingester msg="instance not found in ring, adding with no tokens" ring=ingester
+loki  | level=info ts=2025-07-24T23:35:11.733015402Z caller=lifecycler.go:546 component=ingester msg="auto-joining cluster after timeout" ring=ingester
+loki  | level=info ts=2025-07-24T23:35:11.73304414Z caller=loki.go:581 msg="Loki started" startup_time=3.728329363s
+loki  | level=info ts=2025-07-24T23:35:13.360562099Z caller=compactor.go:522 msg="this instance has been chosen to run the compactor, starting compactor"
+loki  | level=info ts=2025-07-24T23:35:13.360603638Z caller=compactor.go:551 msg="waiting 10m0s for ring to stay stable and previous compactions to finish before starting compactor"
+loki  | level=info ts=2025-07-24T23:35:18.25661461Z caller=frontend_scheduler_worker.go:107 msg="adding connection to scheduler" addr=127.0.0.1:9096
+loki  | level=info ts=2025-07-24T23:35:41.733968853Z caller=recalculate_owned_streams.go:49 msg="starting recalculate owned streams job"
+loki  | level=info ts=2025-07-24T23:35:41.734003331Z caller=recalculate_owned_streams.go:63 msg="detected ring changes, re-evaluating streams ownership"
+loki  | level=info ts=2025-07-24T23:35:41.734009963Z caller=recalculate_owned_streams.go:82 msg="fixed limit has been updated" tenant=fake old=2147483647 new=5000
+loki  | level=info ts=2025-07-24T23:35:41.734029234Z caller=recalculate_owned_streams.go:52 msg="completed recalculate owned streams job"
+loki  | level=info ts=2025-07-24T23:36:00.334184564Z caller=flush.go:304 component=ingester msg="flushing stream" user=fake fp=b272bf30fd28eda7 immediate=false num_chunks=1 total_comp="68 B" avg_comp="68 B" total_uncomp="1.8 kB" avg_uncomp="1.8 kB" max_age=1 labels="{compose_project=\"monitoring\", compose_service=\"cadvisor\", container_id=\"f012b3a2ad0877c091bfddb7d431387ef71ddefd4f881f6b35d72751dd2f2309\", container_name=\"cadvisor\", job=\"docker_logs\", service_name=\"cadvisor\"}"
+loki  | level=info ts=2025-07-24T23:36:00.334193347Z caller=flush.go:304 component=ingester msg="flushing stream" user=fake fp=99897075889eff38 immediate=false num_chunks=16 total_comp="13 MB" avg_comp="787 kB" total_uncomp="256 MB" avg_uncomp="16 MB" full=16 labels="{__stream_shard__=\"1\", compose_project=\"monitoring\", compose_service=\"alloy\", container_id=\"72730e731c7fa5ea311e9edca6050e0791445697180a5e0a965fbdab09243f17\", container_name=\"alloy\", job=\"docker_logs\", service_name=\"alloy\"}"
+loki  | level=info ts=2025-07-24T23:36:00.334203007Z caller=flush.go:304 component=ingester msg="flushing stream" user=fake fp=e5d376cffe19cfad immediate=false num_chunks=1 total_comp="68 B" avg_comp="68 B" total_uncomp="13 kB" avg_uncomp="13 kB" idle=1 labels="{compose_project=\"zot\", compose_service=\"registry\", container_id=\"171b4fbfe8569331cdd92ecff7ba0c3622196169e96857048b4719b4eebb06be\", container_name=\"registry\", job=\"docker_logs\", service_name=\"registry\"}"
+loki  | level=info ts=2025-07-24T23:36:00.334235425Z caller=flush.go:304 component=ingester msg="flushing stream" user=fake fp=7cbaf17deb3b13b5 immediate=false num_chunks=22 total_comp="18 MB" avg_comp="802 kB" total_uncomp="352 MB" avg_uncomp="16 MB" full=22 labels="{__stream_shard__=\"3\", compose_project=\"monitoring\", compose_service=\"alloy\", container_id=\"72730e731c7fa5ea311e9edca6050e0791445697180a5e0a965fbdab09243f17\", container_name=\"alloy\", job=\"docker_logs\", service_name=\"alloy\"}"
+loki  | level=info ts=2025-07-24T23:36:00.334262379Z caller=flush.go:304 component=ingester msg="flushing stream" user=fake fp=e72644675a566714 immediate=false num_chunks=25 total_comp="20 MB" avg_comp="779 kB" total_uncomp="400 MB" avg_uncomp="16 MB" full=25 labels="{__stream_shard__=\"2\", compose_project=\"monitoring\", compose_service=\"alloy\", container_id=\"72730e731c7fa5ea311e9edca6050e0791445697180a5e0a965fbdab09243f17\", container_name=\"alloy\", job=\"docker_logs\", service_name=\"alloy\"}"
+loki  | level=error ts=2025-07-24T23:36:00.40565521Z caller=flush.go:261 component=ingester loop=21 org_id=fake msg="failed to flush" retries=0 err="failed to flush chunks: store put chunk: MissingEndpoint: 'Endpoint' configuration is required for this service, num_chunks: 22, labels: {__stream_shard__=\"3\", compose_project=\"monitoring\", compose_service=\"alloy\", container_id=\"72730e731c7fa5ea311e9edca6050e0791445697180a5e0a965fbdab09243f17\", container_name=\"alloy\", job=\"docker_logs\", service_name=\"alloy\"}"
+loki  | level=error ts=2025-07-24T23:36:00.405655933Z caller=flush.go:261 component=ingester loop=7 org_id=fake msg="failed to flush" retries=0 err="failed to flush chunks: store put chunk: MissingEndpoint: 'Endpoint' configuration is required for this service, num_chunks: 1, labels: {compose_project=\"monitoring\", compose_service=\"cadvisor\", container_id=\"f012b3a2ad0877c091bfddb7d431387ef71ddefd4f881f6b35d72751dd2f2309\", container_name=\"cadvisor\", job=\"docker_logs\", service_name=\"cadvisor\"}"
+loki  | level=error ts=2025-07-24T23:36:00.405662674Z caller=flush.go:261 component=ingester loop=13 org_id=fake msg="failed to flush" retries=0 err="failed to flush chunks: store put chunk: MissingEndpoint: 'Endpoint' configuration is required for this service, num_chunks: 1, labels: {compose_project=\"zot\", compose_service=\"registry\", container_id=\"171b4fbfe8569331cdd92ecff7ba0c3622196169e96857048b4719b4eebb06be\", container_name=\"registry\", job=\"docker_logs\", service_name=\"registry\"}"
+loki  | level=error ts=2025-07-24T23:36:00.405673811Z caller=flush.go:261 component=ingester loop=20 org_id=fake msg="failed to flush" retries=0 err="failed to flush chunks: store put chunk: MissingEndpoint: 'Endpoint' configuration is required for this service, num_chunks: 25, labels: {__stream_shard__=\"2\", compose_project=\"monitoring\", compose_service=\"alloy\", container_id=\"72730e731c7fa5ea311e9edca6050e0791445697180a5e0a965fbdab09243f17\", container_name=\"alloy\", job=\"docker_logs\", service_name=\"alloy\"}"
+loki  | level=error ts=2025-07-24T23:36:00.406112108Z caller=flush.go:261 component=ingester loop=24 org_id=fake msg="failed to flush" retries=0 err="failed to flush chunks: store put chunk: MissingEndpoint: 'Endpoint' configuration is required for this service, num_chunks: 16, labels: {__stream_shard__=\"1\", compose_project=\"monitoring\", compose_service=\"alloy\", container_id=\"72730e731c7fa5ea311e9edca6050e0791445697180a5e0a965fbdab09243f17\", container_name=\"alloy\", job=\"docker_logs\", service_name=\"alloy\"}"
+loki  | level=info ts=2025-07-24T23:36:08.06427109Z caller=table_manager.go:136 index-store=tsdb-2020-10-24 msg="uploading tables"
+loki  | level=info ts=2025-07-24T23:36:10.469630437Z caller=flush.go:304 component=ingester msg="flushing stream" user=fake fp=e5d376cffe19cfad immediate=false num_chunks=1 total_comp="2.1 kB" avg_comp="2.1 kB" total_uncomp="13 kB" avg_uncomp="13 kB" full=1 labels="{compose_project=\"zot\", compose_service=\"registry\", container_id=\"171b4fbfe8569331cdd92ecff7ba0c3622196169e96857048b4719b4eebb06be\", container_name=\"registry\", job=\"docker_logs\", service_name=\"registry\"}"
+loki  | level=error ts=2025-07-24T23:36:10.469773684Z caller=flush.go:261 component=ingester loop=13 org_id=fake msg="failed to flush" retries=1 err="failed to flush chunks: store put chunk: MissingEndpoint: 'Endpoint' configuration is required for this service, num_chunks: 1, labels: {compose_project=\"zot\", compose_service=\"registry\", container_id=\"171b4fbfe8569331cdd92ecff7ba0c3622196169e96857048b4719b4eebb06be\", container_name=\"registry\", job=\"docker_logs\", service_name=\"registry\"}"
+loki  | level=info ts=2025-07-24T23:36:11.734150927Z caller=recalculate_owned_streams.go:49 msg="starting recalculate owned streams job"
+loki  | level=info ts=2025-07-24T23:36:11.734188056Z caller=recalculate_owned_streams.go:52 msg="completed recalculate owned streams job"
+loki  | level=info ts=2025-07-24T23:36:12.635697592Z caller=flush.go:304 component=ingester msg="flushing stream" user=fake fp=b272bf30fd28eda7 immediate=false num_chunks=1 total_comp="498 B" avg_comp="498 B" total_uncomp="1.8 kB" avg_uncomp="1.8 kB" full=1 labels="{compose_project=\"monitoring\", compose_service=\"cadvisor\", container_id=\"f012b3a2ad0877c091bfddb7d431387ef71ddefd4f881f6b35d72751dd2f2309\", container_name=\"cadvisor\", job=\"docker_logs\", service_name=\"cadvisor\"}"
+loki  | level=error ts=2025-07-24T23:36:12.63584287Z caller=flush.go:261 component=ingester loop=7 org_id=fake msg="failed to flush" retries=1 err="failed to flush chunks: store put chunk: MissingEndpoint: 'Endpoint' configuration is required for this service, num_chunks: 1, labels: {compose_project=\"monitoring\", compose_service=\"cadvisor\", container_id=\"f012b3a2ad0877c091bfddb7d431387ef71ddefd4f881f6b35d72751dd2f2309\", container_name=\"cadvisor\", job=\"docker_logs\", service_name=\"cadvisor\"}"
+loki  | level=info ts=2025-07-24T23:36:13.53750475Z caller=flush.go:304 component=ingester msg="flushing stream" user=fake fp=99897075889eff38 immediate=false num_chunks=16 total_comp="13 MB" avg_comp="806 kB" total_uncomp="256 MB" avg_uncomp="16 MB" full=16 labels="{__stream_shard__=\"1\", compose_project=\"monitoring\", compose_service=\"alloy\", container_id=\"72730e731c7fa5ea311e9edca6050e0791445697180a5e0a965fbdab09243f17\", container_name=\"alloy\", job=\"docker_logs\", service_name=\"alloy\"}"
+loki  | level=error ts=2025-07-24T23:36:13.538073224Z caller=flush.go:261 component=ingester loop=24 org_id=fake msg="failed to flush" retries=1 err="failed to flush chunks: store put chunk: MissingEndpoint: 'Endpoint' configuration is required for this service, num_chunks: 16, labels: {__stream_shard__=\"1\", compose_project=\"monitoring\", compose_service=\"alloy\", container_id=\"72730e731c7fa5ea311e9edca6050e0791445697180a5e0a965fbdab09243f17\", container_name=\"alloy\", job=\"docker_logs\", service_name=\"alloy\"}"
+loki  | level=info ts=2025-07-24T23:36:14.667539069Z caller=flush.go:304 component=ingester msg="flushing stream" user=fake fp=7cbaf17deb3b13b5 immediate=false num_chunks=22 total_comp="18 MB" avg_comp="805 kB" total_uncomp="352 MB" avg_uncomp="16 MB" full=22 labels="{__stream_shard__=\"3\", compose_project=\"monitoring\", compose_service=\"alloy\", container_id=\"72730e731c7fa5ea311e9edca6050e0791445697180a5e0a965fbdab09243f17\", container_name=\"alloy\", job=\"docker_logs\", service_name=\"alloy\"}"
+loki  | level=error ts=2025-07-24T23:36:14.668092372Z caller=flush.go:261 component=ingester loop=21 org_id=fake msg="failed to flush" retries=1 err="failed to flush chunks: store put chunk: MissingEndpoint: 'Endpoint' configuration is required for this service, num_chunks: 22, labels: {__stream_shard__=\"3\", compose_project=\"monitoring\", compose_service=\"alloy\", container_id=\"72730e731c7fa5ea311e9edca6050e0791445697180a5e0a965fbdab09243f17\", container_name=\"alloy\", job=\"docker_logs\", service_name=\"alloy\"}"
