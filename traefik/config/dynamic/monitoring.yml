@@ -9,6 +9,7 @@ http:
         certResolver: letsencrypt
       middlewares:
         - security-headers
+        - authentik
 
     grafana:
       rule: "Host(`grafana.smigula.io`)"
