@@ -32,6 +32,7 @@ services:
       start_period: 30s
     networks:
       - traefik
+      - monitoring
     deploy:
       resources:
         limits:
@@ -59,6 +60,27 @@ services:
       /usr/bin/mc mb myminio/data || true;
       /usr/bin/mc mb myminio/backups || true;
       /usr/bin/mc mb myminio/registry || true;
+      /usr/bin/mc mb myminio/loki || true;
+      # Create lokiuser with specific credentials
+      /usr/bin/mc admin user add myminio lokiuser SuperSecret1 || true;
+      # Create and attach policy for lokiuser to access loki bucket
+      echo '{
+        \"Version\": \"2012-10-17\",
+        \"Statement\": [
+          {
+            \"Effect\": \"Allow\",
+            \"Action\": [
+              \"s3:*\"
+            ],
+            \"Resource\": [
+              \"arn:aws:s3:::loki\",
+              \"arn:aws:s3:::loki/*\"
+            ]
+          }
+        ]
+      }' > /tmp/loki-policy.json;
+      /usr/bin/mc admin policy create myminio loki-policy /tmp/loki-policy.json || true;
+      /usr/bin/mc admin policy attach myminio loki-policy --user lokiuser || true;
       # Set bucket policies if needed
       /usr/bin/mc anonymous set download myminio/data || true;
       tail -f /dev/null
@@ -71,4 +93,6 @@ services:
 
 networks:
   traefik:
+    external: true
+  monitoring:
     external: true
