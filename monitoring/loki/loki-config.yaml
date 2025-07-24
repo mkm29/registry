@@ -21,7 +21,7 @@ query_range:
         max_size_mb: 100
 schema_config:
   configs:
-    - from: 2020-10-24
+    - from: 2024-04-01
       store: tsdb
       object_store: s3
       schema: v13
