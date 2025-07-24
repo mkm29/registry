@@ -6,17 +6,9 @@ common:
   instance_addr: 127.0.0.1
   path_prefix: /loki
   storage:
-    bucketNames:
-      chunks: loki-chunks
-      ruler: loki-ruler
-    type: s3
-    s3:
-      endpoint: minio:9000
-      region: ""
-      access_key_id: lokiuser
-      secret_access_key: SuperSecret1
-      insecure: true
-      s3forcepathstyle: true
+    filesystem:
+      chunks_directory: /loki/chunks
+      rules_directory: /loki/rules
   replication_factor: 1
   ring:
     kvstore:
@@ -59,13 +51,16 @@ storage_config:
     cache_location: /loki/tsdb-shipper-cache
     cache_ttl: 24h
     shared_store: s3
-  # aws:
-  #   endpoint: minio:9000
-  #   bucketnames: loki
-  #   access_key_id: lokiuser
-  #   secret_access_key: SuperSecret1
-  #   insecure: true
-  #   s3forcepathstyle: true
+  filesystem:
+    directory: /loki/chunks
+  aws:
+    endpoint: minio:9000
+    bucketnames: loki
+    access_key_id: lokiuser
+    secret_access_key: SuperSecret1
+    insecure: true
+    s3forcepathstyle: true
+    region: us-east-1
 compactor:
   working_directory: /loki/compactor
   compaction_interval: 10m
