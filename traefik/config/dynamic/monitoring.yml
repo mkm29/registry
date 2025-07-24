@@ -9,7 +9,6 @@ http:
         certResolver: letsencrypt
       middlewares:
         - security-headers
-        - basic-auth
 
     grafana:
       rule: "Host(`grafana.smigula.io`)"
