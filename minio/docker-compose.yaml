@@ -1,6 +1,6 @@
 services:
   minio:
-    image: minio/minio:latest
+    image: registry.smigula.io/docker/minio/minio:latest
     container_name: minio
     restart: unless-stopped
     command: server /data --console-address ":9001"
@@ -43,7 +43,7 @@ services:
 
   # Optional: MinIO Client for administration
   mc:
-    image: minio/mc:latest
+    image: registry.smigula.io/docker/minio/mc:latest
     container_name: minio-mc
     depends_on:
       minio:
