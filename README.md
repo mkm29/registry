@@ -1,8 +1,14 @@
-# Local Docker Registry Mirror with TLS and Monitoring Stack (Rootless Docker)
+# Zot Registry with Pull-Through Cache and Monitoring Stack (Rootless Docker)
 
-This repository provides a complete setup for a local Docker registry that acts as a Docker Hub mirror (pull-through cache). The registry is secured with TLS using self-signed certificates and includes a full monitoring stack with Prometheus, Jaeger, and Grafana. This setup is optimized for **rootless Docker** with native Alloy installation for better security and performance.
+This repository provides a complete setup for a local Zot registry that acts as a pull-through cache for multiple container registries including Docker Hub, ghcr.io, gcr.io, quay.io, and registry.k8s.io. The project is organized into three main components:
 
-- [Local Docker Registry Mirror with TLS and Monitoring Stack (Rootless Docker)](#local-docker-registry-mirror-with-tls-and-monitoring-stack-rootless-docker)
+- **Zot Registry** (`zot/`): The OCI-compliant registry with pull-through caching and authentication
+- **Monitoring Stack** (`monitoring/`): Full observability stack with Prometheus, Jaeger, Grafana, Loki, and Alloy
+- **Caddy Reverse Proxy** (`caddy/`): HTTPS reverse proxy with automatic TLS certificate management
+
+This setup is optimized for **rootless Docker** with native Alloy installation for better security and performance. The registry is accessible via HTTPS at `registry.smigula.io` with basic authentication.
+
+- [Zot Registry with Pull-Through Cache and Monitoring Stack (Rootless Docker)](#zot-registry-with-pull-through-cache-and-monitoring-stack-rootless-docker)
   - [Overview](#overview)
   - [Prerequisites](#prerequisites)
     - [Required Software](#required-software)
@@ -20,6 +26,7 @@ This repository provides a complete setup for a local Docker registry that acts 
     - [2. Create Alloy Configuration](#2-create-alloy-configuration)
     - [3. Create Systemd User Service](#3-create-systemd-user-service)
   - [Architecture](#architecture)
+  - [Registry Authentication](#registry-authentication)
   - [Available Commands](#available-commands)
   - [Quick Start](#quick-start)
   - [CFSSL Configuration](#cfssl-configuration)
@@ -30,14 +37,14 @@ This repository provides a complete setup for a local Docker registry that acts 
     - [Common Customizations](#common-customizations)
     - [Example for Local Development](#example-for-local-development)
   - [Certificate Generation with CFSSL](#certificate-generation-with-cfssl)
-  - [Registry Configuration](#registry-configuration)
+  - [Zot Registry Configuration](#zot-registry-configuration)
     - [Key Configuration Settings](#key-configuration-settings)
       - [Storage Configuration](#storage-configuration)
-      - [HTTP/TLS Configuration](#httptls-configuration)
-      - [Proxy Cache Configuration](#proxy-cache-configuration)
-      - [Health Checks](#health-checks)
+      - [HTTP Configuration](#http-configuration)
+      - [Multi-Registry Sync Configuration](#multi-registry-sync-configuration)
+      - [Extensions](#extensions)
   - [Services Architecture](#services-architecture)
-    - [Docker Registry (port 5000)](#docker-registry-port-5000)
+    - [Zot Registry (port 5000)](#zot-registry-port-5000)
     - [Jaeger (port 16686)](#jaeger-port-16686)
     - [Prometheus (port 9090)](#prometheus-port-9090)
     - [Loki (port 3100)](#loki-port-3100)
@@ -70,6 +77,7 @@ This repository provides a complete setup for a local Docker registry that acts 
     - [Alloy Issues](#alloy-issues)
     - [Volume Permission Issues](#volume-permission-issues)
     - [Certificate Issues](#certificate-issues)
+    - [Authentication Issues](#authentication-issues)
     - [Registry Connection Issues](#registry-connection-issues)
     - [Metrics Not Appearing](#metrics-not-appearing)
   - [File Structure](#file-structure)
@@ -78,19 +86,27 @@ This repository provides a complete setup for a local Docker registry that acts 
 
 ## Overview
 
-This setup creates a production-ready local Docker registry with:
+This setup creates a production-ready local Zot registry with:
 
 - **Rootless Docker**: Enhanced security with user-namespace isolation
-- **Docker Hub Mirror**: Acts as a pull-through cache that automatically intercepts and caches Docker Hub images
-- **TLS Security**: Self-signed certificates using CFSSL with proper certificate chain
-- **Bandwidth Optimization**: Caches images locally to reduce repeated downloads from Docker Hub
+- **Multi-Registry Pull-Through Cache**: Acts as a caching proxy for multiple registries:
+  - Docker Hub (`/docker` prefix)
+  - GitHub Container Registry (`/ghcr` prefix)
+  - Google Container Registry (`/gcr` prefix)
+  - Quay.io (`/quay` prefix)
+  - Kubernetes Registry (`/k8s` prefix)
+- **Zot Registry**: High-performance OCI-compliant registry with advanced features
+- **HTTPS Access**: Secure external access via Caddy reverse proxy with automatic TLS certificates
+- **Authentication**: HTTP basic authentication for registry access
+- **Bandwidth Optimization**: Caches images locally to reduce repeated downloads from upstream registries
 - **Native Alloy**: Grafana Alloy runs as a native systemd service for better Docker socket access
 - **Distributed Tracing**: OpenTelemetry integration with Jaeger
 - **Metrics Collection**: Prometheus scraping with pre-configured dashboards
 - **Log Aggregation**: Loki for centralized log collection and querying
 - **Visualization**: Grafana dashboards for monitoring registry performance and logs
+- **Advanced Features**: Built-in UI, search capabilities, and sync management
 
-When properly configured, all `docker pull` commands for Docker Hub images will automatically use your local registry mirror, significantly improving pull speeds and reducing bandwidth usage.
+When properly configured, Zot will automatically cache images from multiple registries, significantly improving pull speeds and reducing bandwidth usage.
 
 ## Prerequisites
 
@@ -130,12 +146,13 @@ When properly configured, all `docker pull` commands for Docker Hub images will 
   - 3100: Loki
   - 12345: Alloy UI
 
-### Docker Hub Account
+### Registry Accounts (Optional)
 
-You'll need a Docker Hub account for the pull-through cache functionality:
+For authenticated registries, you'll need credentials:
 
-1. Create a free account at [hub.docker.com](https://hub.docker.com)
-1. Note your username and password for the `.env` configuration
+1. **Docker Hub**: Create a free account at [hub.docker.com](https://hub.docker.com)
+1. **GitHub Container Registry**: Use your GitHub username and a [personal access token](https://github.com/settings/tokens)
+1. **Other registries**: Most public images don't require authentication
 
 ## Rootless Docker Setup
 
@@ -331,7 +348,7 @@ Wants=network.target
 [Service]
 Type=simple
 WorkingDirectory=%h
-ExecStart=%h/.local/bin/alloy run %h/registry/alloy/config.alloy --server.http.listen-addr=0.0.0.0:12345 --storage.path=%h/.local/share/alloy
+ExecStart=%h/.local/bin/alloy run %h/registry/monitoring/alloy/config.alloy --server.http.listen-addr=0.0.0.0:12345 --storage.path=%h/.local/share/alloy
 Restart=always
 RestartSec=5
 
@@ -351,23 +368,40 @@ sudo loginctl enable-linger $USER
 
 ```mermaid
 graph TB
-    subgraph "External"
-        DH[Docker Hub<br/>registry-1.docker.io]
+    subgraph "External Access"
+        Internet[Internet<br/>HTTPS]
         Client[Docker Client]
     end
 
+    subgraph "External Registries"
+        DH[Docker Hub<br/>registry-1.docker.io]
+        GHCR[GitHub Container Registry<br/>ghcr.io]
+        GCR[Google Container Registry<br/>gcr.io]
+        QUAY[Quay.io]
+        K8S[Kubernetes Registry<br/>registry.k8s.io]
+    end
+
     subgraph "Rootless Docker Environment"
-        subgraph "Docker Compose Network"
-            subgraph "Registry Service"
-                Reg[Docker Registry<br/>:5000]
-                TLS[TLS Certificates<br/>Self-signed]
-                Cache[Pull-through Cache]
+        subgraph "Reverse Proxy (caddy/docker-compose.yaml)"
+            Caddy[Caddy<br/>:443/:80<br/>TLS Termination]
+            CaddyAuth[Basic Auth<br/>Removed]
+        end
 
-                Reg --> TLS
-                Reg --> Cache
+        subgraph "Zot Registry (zot/docker-compose.yaml)"
+            subgraph "Zot Registry Service"
+                Zot[Zot Registry<br/>:5000]
+                ZotAuth[HTPasswd Auth]
+                UI[Web UI<br/>Search API]
+                Sync[Sync Engine<br/>On-demand Pull]
+
+                Zot --> ZotAuth
+                Zot --> UI
+                Zot --> Sync
             end
+        end
 
-            subgraph "Monitoring Stack"
+        subgraph "Monitoring Stack (monitoring/docker-compose.yaml)"
+            subgraph "Monitoring Services"
                 Jaeger[Jaeger<br/>:4318 OTLP]
                 Prom[Prometheus<br/>:9090]
                 Loki[Loki<br/>:3100]
@@ -397,65 +431,157 @@ graph TB
         end
     end
 
-    Client -->|HTTPS :5000| Reg
-    Cache -->|Proxy| DH
-    Reg -->|Traces| Jaeger
-    Prom -->|Scrape :5001/metrics| Reg
+    Internet -->|registry.smigula.io| Caddy
+    Client -->|localhost:5000| Zot
+    Caddy -->|HTTP| Zot
+    Sync -->|Cache| DH
+    Sync -->|Cache| GHCR
+    Sync -->|Cache| GCR
+    Sync -->|Cache| QUAY
+    Sync -->|Cache| K8S
+    Zot -->|Traces| Jaeger
+    Prom -->|Scrape /metrics| Zot
     Prom -->|Scrape :14269| Jaeger
 
     style DH fill:#000000,color:#ffffff
+    style GHCR fill:#000000,color:#ffffff
+    style GCR fill:#000000,color:#ffffff
+    style QUAY fill:#000000,color:#ffffff
+    style K8S fill:#000000,color:#ffffff
     style Client fill:#000000,color:#ffffff
-    style Reg fill:#2496ed
+    style Internet fill:#0066cc,color:#ffffff
+    style Caddy fill:#22b638
+    style CaddyAuth fill:#cccccc,color:#000000
+    style Zot fill:#2496ed
+    style ZotAuth fill:#ff9900
     style Jaeger fill:#60d0e4,color:#000000
     style Prom fill:#e6522c
     style Loki fill:#ff0000,color:#ffffff
     style Alloy fill:#800080,color:#ffffff
     style Grafana fill:#f46800
-    style TLS fill:#404040,color:#ffffff
-    style Cache fill:#404040,color:#ffffff
+    style UI fill:#404040,color:#ffffff
+    style Sync fill:#404040,color:#ffffff
     style Docker fill:#00ff00,color:#000000
     style Logs fill:#404040,color:#ffffff
     style Socket fill:#404040,color:#ffffff
 ```
 
-## Available Commands
+## Registry Authentication
 
-Run `make help` to see all available commands:
+The Zot registry is configured with HTTP basic authentication for secure access.
+
+### Authentication Configuration
+
+1. **HTPasswd File**: Located at `zot/auth/htpasswd`
+1. **Default User**: `smigula`
+1. **Password**: Set during setup (default: `Registry363502`)
+
+### Creating/Updating Users
 
 ```bash
-make help         # Show all available commands
-make quickstart   # One-command setup: generates certs and starts services
-make certs        # Generate all TLS certificates
-make up           # Start all services
-make down         # Stop all services
-make status       # Check service status and URLs
-make logs         # View logs from all services
-make clean        # Stop services and remove volumes
+# Create a new user or update existing password
+htpasswd -bBn <username> <password> >> zot/auth/htpasswd
 
-# TLS configuration
-make configure-docker-tls                # Configure Docker to trust registry
-make trust-cert                          # Trust CA in system keychain (macOS)
+# Example: Create user 'smigula' with password 'Registry363502'
+htpasswd -bBn smigula Registry363502 > zot/auth/htpasswd
+```
+
+**Important Notes**:
+
+- The `-B` flag uses bcrypt hashing (required by Zot)
+- Passwords are hashed and stored securely
+- After updating the htpasswd file, restart the Zot container
+
+### Accessing the Registry
+
+#### Via HTTPS (External Access)
+
+```bash
+# Login to the registry
+docker login registry.smigula.io -u smigula -p Registry363502
+
+# Pull images through the registry
+docker pull registry.smigula.io/docker/nginx:latest
+
+# Push images to the registry
+docker tag myapp:latest registry.smigula.io/myapp:latest
+docker push registry.smigula.io/myapp:latest
+```
+
+#### Via HTTP (Local Access)
+
+```bash
+# For local development, you can also use localhost:5000
+docker pull localhost:5000/docker/nginx:latest
+```
+
+### Authentication Flow
+
+1. **External Access**: Caddy provides TLS termination and forwards requests to Zot
+1. **Zot Authentication**: Zot validates credentials against the htpasswd file
+1. **Failed Authentication**: Returns 401 Unauthorized with a 5-second delay (configurable)
+
+## Available Commands
+
+### Zot Registry Commands
+
+```bash
+# From the zot/ directory
+docker-compose up -d        # Start Zot registry
+docker-compose down         # Stop Zot registry
+docker-compose logs -f      # View Zot logs
+docker-compose ps           # Check Zot status
 
 # Registry API commands
-make list-repos                          # List all repositories
-make list-tags REPO=library/alpine       # List tags for a repository
-make get-manifest REPO=library/alpine TAG=latest  # Get image manifest
+curl http://localhost:5000/v2/_catalog                    # List all repositories
+curl http://localhost:5000/v2/docker/nginx/tags/list      # List tags for a repository
+```
 
-# Alloy management
-make alloy-start                         # Start Alloy service
-make alloy-stop                          # Stop Alloy service
-make alloy-status                        # Check Alloy status
-make alloy-logs                          # View Alloy logs
+### Monitoring Stack Commands
+
+```bash
+# From the monitoring/ directory
+docker-compose up -d        # Start monitoring stack
+docker-compose down         # Stop monitoring stack
+docker-compose logs -f      # View all monitoring logs
+docker-compose ps           # Check monitoring services status
+
+# View specific service logs
+docker-compose logs -f prometheus
+docker-compose logs -f grafana
+docker-compose logs -f loki
+docker-compose logs -f jaeger
+```
+
+### Alloy Management
+
+```bash
+systemctl --user start alloy      # Start Alloy service
+systemctl --user stop alloy       # Stop Alloy service
+systemctl --user status alloy     # Check Alloy status
+journalctl --user -u alloy -f    # View Alloy logs
 ```
 
 ## Quick Start
 
-1. **Set up environment variables**:
+1. **Set up credentials**:
 
    ```bash
-   cat <<EOF > .env
-   REGISTRY_PROXY_USERNAME=<your_docker_hub_username>
-   REGISTRY_PROXY_PASSWORD=<your_docker_hub_password>
+   # Create htpasswd file for registry authentication
+   htpasswd -bBn smigula Registry363502 > zot/auth/htpasswd
+
+   # Create credentials file for upstream registries (optional)
+   cat <<EOF > zot/config/credentials.yaml
+   registry-1.docker.io:
+     username: <your_docker_hub_username>
+     password: <your_docker_hub_password>
+   ghcr.io:
+     username: <your_github_username>
+     password: <your_github_token>
+   EOF
+
+   # Set up Grafana credentials in monitoring directory
+   cat <<EOF > monitoring/.env
    GF_SECURITY_ADMIN_USER=admin
    GF_SECURITY_ADMIN_PASSWORD=admin
    EOF
@@ -469,10 +595,20 @@ make alloy-logs                          # View Alloy logs
 
    Follow the [Install and Configure Alloy](#install-and-configure-alloy) section above.
 
-1. **Quick start (generates certs and starts services)**:
+1. **Start all services**:
 
    ```bash
-   make quickstart
+   # Start Zot registry
+   cd zot
+   docker-compose up -d
+
+   # Start Caddy reverse proxy
+   cd ../caddy
+   docker-compose up -d
+
+   # Start monitoring stack
+   cd ../monitoring
+   docker-compose up -d
    ```
 
 1. **Start Alloy service**:
@@ -481,25 +617,28 @@ make alloy-logs                          # View Alloy logs
    systemctl --user start alloy
    ```
 
-1. **Configure Docker to trust the registry**:
+1. **Configure Docker to use the registry**:
 
    ```bash
-   # Required: Configure Docker daemon to trust the registry
-   make configure-docker-tls
+   # For external HTTPS access
+   docker login registry.smigula.io -u smigula -p Registry363502
 
-   # Optional: Add to system keychain (macOS)
-   make trust-cert
+   # For local HTTP access, add to insecure registries
+   # See "Configure Docker for Insecure Registry" section below
    ```
 
 1. **Access services**:
 
    ```bash
-   make status  # Shows all service URLs and status
+   # Check all running services
+   docker ps
    ```
 
    Service URLs:
 
-   - Registry API: <https://localhost:5000/v2/> (Docker Registry HTTP API V2)
+   - Zot Registry API (local): <http://localhost:5000/v2/> (requires auth)
+   - Zot Registry API (external): <https://registry.smigula.io/v2/> (requires auth)
+   - Zot Web UI: <http://localhost:5000/home> or <https://registry.smigula.io/home>
    - Grafana: <http://localhost:3000> (admin/admin)
    - Prometheus: <http://localhost:9090>
    - Jaeger: <http://localhost:16686>
@@ -682,80 +821,111 @@ The Makefile automates the following steps:
 1. Generates registry certificates (peer, server, client profiles)
 1. Creates certificate chain for the registry
 
-## Registry Configuration
+## Zot Registry Configuration
 
-The Docker Registry is configured via `config.yaml`. For detailed configuration options, see the [official registry documentation](https://distribution.github.io/distribution/about/configuration/).
+Zot is configured via `zot/config/zot-config.yaml`. For detailed configuration options, see the [Zot documentation](https://zotregistry.dev).
 
 ### Key Configuration Settings
 
-Our configuration (`config.yaml`) includes:
+Our configuration (`zot/config/zot-config.yaml`) includes:
 
 #### Storage Configuration
 
 ```yaml
 storage:
-  delete:
-    enabled: true                         # Allows deletion of image blobs
-  cache:
-    blobdescriptor: inmemory              # In-memory cache for blob metadata
-  filesystem:
-    rootdirectory: /var/lib/registry
+  rootDirectory: /var/lib/zot
+  gc: true                               # Enable garbage collection
 ```
 
-#### HTTP/TLS Configuration
+#### HTTP Configuration
 
 ```yaml
 http:
-  addr: :5000                               # Main API port
-  debug:
-    addr: :5001                             # Debug/metrics endpoint
+  address: 0.0.0.0
+  port: '5000'                           # Main API port
+  externalUrl: https://registry.smigula.io  # External URL for reverse proxy
+  auth:
+    htpasswd:
+      path: /etc/zot/htpasswd            # HTPasswd authentication file
+      failDelay: 5s                      # Delay after failed authentication
+log:
+  level: info
+```
+
+#### Multi-Registry Sync Configuration
+
+```yaml
+extensions:
+  sync:
+    enable: true
+    credentialsFile: /etc/zot/credentials.yaml
+    registries:
+      - urls: ['https://registry-1.docker.io']
+        onDemand: true                   # Pull images only when requested
+        content:
+          - prefix: '**'
+            destination: /docker         # Access via localhost:5000/docker/<image>
+      - urls: ['https://ghcr.io']
+        onDemand: true
+        content:
+          - prefix: '**'
+            destination: /ghcr           # Access via localhost:5000/ghcr/<image>
+      - urls: ['https://gcr.io']
+        onDemand: true
+        content:
+          - prefix: '**'
+            destination: /gcr            # Access via localhost:5000/gcr/<image>
+      # Additional registries: quay.io, registry.k8s.io
+```
+
+#### Extensions
+
+```yaml
+extensions:
+  search:
+    enable: true                         # Enable search functionality
+  ui:
+    enable: true                         # Enable web UI
+  metrics:
+    enable: true                         # Prometheus metrics
     prometheus:
-      enabled: true                         # Expose Prometheus metrics
       path: /metrics
-  tls:
-    certificate: /etc/ssl/certs/domain.crt  # Full cert chain
-    key: /etc/ssl/private/domain.key        # Private key
-    minimumtls: tls1.2                      # Enforce TLS 1.2 minimum
-```
-
-#### Proxy Cache Configuration
-
-```yaml
-proxy:
-  remoteurl: https://registry-1.docker.io  # Docker Hub
-  username: ${DOCKER_HUB_USERNAME}         # From environment
-  password: ${DOCKER_HUB_PASSWORD}         # From environment
-```
-
-#### Health Checks
-
-```yaml
-health:
-  storagedriver:
-    enabled: true
-    interval: 10s
-    threshold: 3
+  scrub:
+    enable: true                         # Enable image vulnerability scanning
+    interval: "24h"
 ```
 
 ## Services Architecture
 
-### Docker Registry (port 5000)
+### Zot Registry (port 5000)
 
-- **Purpose**: Local Docker image storage and Docker Hub proxy cache
+- **Purpose**: Multi-registry pull-through cache and local image storage
 - **Features**:
-  - TLS encryption with self-signed certificates
-  - Pull-through cache for Docker Hub
-  - OpenTelemetry tracing to Jaeger
+  - OCI-compliant registry with distribution spec v1.1.0
+  - Pull-through cache for multiple registries with prefix routing
+  - Built-in web UI and search functionality
+  - HTTP basic authentication with htpasswd
+  - External URL support for reverse proxy deployments
   - Prometheus metrics exposure
-- **API Endpoints** (accessible at `https://localhost:5000`):
-  - `/v2/` - API version check
+  - Image vulnerability scanning with scrub extension
+- **Registry Prefixes**:
+  - `/docker/` - Docker Hub images
+  - `/ghcr/` - GitHub Container Registry images
+  - `/gcr/` - Google Container Registry images
+  - `/quay/` - Quay.io images
+  - `/k8s/` - Kubernetes registry images
+- **API Endpoints**:
+  - Local: `http://localhost:5000`
+  - External: `https://registry.smigula.io` (via Caddy)
+  - `/v2/` - API version check (requires authentication)
   - `/v2/_catalog` - List all repositories
   - `/v2/{name}/tags/list` - List tags for a repository
   - `/v2/{name}/manifests/{reference}` - Get/Put/Delete manifests
   - `/v2/{name}/blobs/{digest}` - Get/Put/Delete blobs
-- **Internal endpoints**:
-  - `:5000` - Main API (mapped to host port 5000)
-  - `:5001` - Debug/metrics (internal only)
+  - `/home` - Web UI interface
+  - `/v2/_zot/ext/search` - Search API
+- **Metrics endpoint**:
+  - `/metrics` - Prometheus metrics
 
 ### Jaeger (port 16686)
 
@@ -830,107 +1000,84 @@ health:
 
 ## Docker Compose Configuration
 
-The docker-compose.yml has been optimized for rootless Docker:
+The project uses two separate docker-compose files:
+
+### Zot Registry (`zot/docker-compose.yaml`)
 
 ```yaml
 services:
-  # Prometheus init container for permissions
-  prometheus-init:
-    image: alpine:latest
-    container_name: prometheus-init
+  registry:
+    image: ghcr.io/project-zot/zot-linux-amd64:v2.1.5
+    container_name: registry
+    ports:
+      - "5000:5000"
     volumes:
-      - prometheus-data:/prometheus
-    command: >
-      sh -c "
-        chown -R 65534:65534 /prometheus &&
-        chmod -R 755 /prometheus
-      "
-    restart: "no"
-
-  # Loki init container for permissions
-  loki-init:
-    image: alpine:latest
-    container_name: loki-init
-    volumes:
-      - loki-data:/loki
-    command: >
-      sh -c "
-        chown -R 10001:10001 /loki &&
-        chmod -R 755 /loki
-      "
-    restart: "no"
-
-  # Note: Alloy service is removed from docker-compose
-  # It runs as a native systemd user service instead
+      - ./config/config.yaml:/etc/zot/config.yaml:ro
+      - ./config/credentials.yaml:/etc/zot/credentials.yaml:ro
+      - ./auth/htpasswd:/etc/zot/htpasswd:ro
+      - zot-data:/var/lib/zot
+    networks:
+      - zot_registry
 ```
 
-**Key changes for rootless Docker**:
+### Monitoring Stack (`monitoring/docker-compose.yaml`)
 
-- Added init containers to fix volume permissions
-- Removed Alloy from docker-compose (runs natively)
-- Updated health checks and dependencies
-- Optimized for user namespace isolation
+The monitoring stack has been optimized for rootless Docker with init containers:
+
+```yaml
+services:
+  # Init containers for permissions
+  prometheus-init:
+    image: localhost:5000/docker/alpine:latest
+    volumes:
+      - prometheus-data:/prometheus
+    command: chown -R 65534:65534 /prometheus
+
+  loki-init:
+    image: localhost:5000/docker/alpine:latest
+    volumes:
+      - loki-data:/loki
+    command: chown -R 10001:10001 /loki
+```
+
+**Key features**:
+
+- All monitoring images pulled through Zot registry
+- Init containers fix volume permissions for rootless Docker
+- Alloy runs as native systemd service (not in Docker)
 
 ## Testing the Registry
 
-### Configure Docker to Trust the Registry
+### Using Zot Registry
 
-Before Docker can communicate with the registry, you need to configure both TLS trust and registry mirroring:
+Zot uses prefix-based routing for different registries. Unlike a traditional Docker registry mirror, you need to specify the registry prefix when pulling images:
 
-#### Step 1: Configure TLS Trust
-
-##### Option A: Configure Docker daemon certificates (Recommended)
-
-**Rootless Docker:**
+#### Pull Images from Different Registries
 
 ```bash
-# Create Docker certificate directory for the registry
-mkdir -p ~/.docker/certs.d/localhost:5000
+# Docker Hub images
+docker pull localhost:5000/docker/nginx:latest
+docker pull localhost:5000/docker/alpine:latest
+docker pull localhost:5000/docker/redis:7
 
-# Copy the CA certificate (required)
-cp certs/ca.pem ~/.docker/certs.d/localhost:5000/ca.crt
+# GitHub Container Registry
+docker pull localhost:5000/ghcr/project-zot/zot-linux-amd64:v2.1.5
 
-# Optional: For mutual TLS authentication
-cp certs/registry-peer.pem ~/.docker/certs.d/localhost:5000/client.cert
-cp certs/registry-peer-key.pem ~/.docker/certs.d/localhost:5000/client.key
-chmod 644 ~/.docker/certs.d/localhost:5000/client.cert
-chmod 600 ~/.docker/certs.d/localhost:5000/client.key
+# Google Container Registry
+docker pull localhost:5000/gcr/cadvisor/cadvisor:v0.52.0
+docker pull localhost:5000/gcr/kaniko-project/executor:latest
+
+# Quay.io
+docker pull localhost:5000/quay/coreos/etcd:latest
+
+# Kubernetes Registry
+docker pull localhost:5000/k8s/pause:3.9
+docker pull localhost:5000/k8s/coredns/coredns:v1.11.1
 ```
 
-**Linux (Regular Docker):**
+#### Configure Docker for Insecure Registry
 
-```bash
-# Create Docker certificate directory for the registry
-sudo mkdir -p /etc/docker/certs.d/localhost:5000
-
-# Copy the CA certificate (required)
-sudo cp certs/ca.pem /etc/docker/certs.d/localhost:5000/ca.crt
-
-# Set proper permissions
-sudo chmod 644 /etc/docker/certs.d/localhost:5000/ca.crt
-
-# Optional: For mutual TLS authentication
-sudo cp certs/registry-peer.pem /etc/docker/certs.d/localhost:5000/client.cert
-sudo cp certs/registry-peer-key.pem /etc/docker/certs.d/localhost:5000/client.key
-sudo chmod 644 /etc/docker/certs.d/localhost:5000/client.cert
-sudo chmod 600 /etc/docker/certs.d/localhost:5000/client.key
-```
-
-##### Option B: System-wide trust (macOS)
-
-```bash
-# This command adds all certificates to system keychain
-make trust-cert
-
-# Or manually add each certificate:
-sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain certs/ca.pem
-sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain certs/intermediate_ca.pem
-sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain certs/registry-server.pem
-```
-
-#### Step 2: Configure Docker Hub Mirror
-
-To use this registry as a pull-through cache for Docker Hub, update your Docker daemon configuration:
+Since Zot runs on HTTP (not HTTPS) by default, configure Docker to allow insecure access:
 
 ##### Rootless Docker
 
@@ -938,19 +1085,8 @@ To use this registry as a pull-through cache for Docker Hub, update your Docker 
 # Edit daemon configuration
 nano ~/.config/docker/daemon.json
 
-# Add or update the configuration:
+# Add localhost:5000 to insecure registries:
 {
-  "registry-mirrors": ["https://localhost:5000"],
-  "log-driver": "json-file",
-  "log-opts": {
-    "max-size": "10m",
-    "max-file": "3",
-    "compress": "true"
-  },
-  "storage-driver": "overlay2",
-  "features": {
-    "buildkit": true
-  },
   "insecure-registries": ["localhost:5000"]
 }
 
@@ -958,109 +1094,77 @@ nano ~/.config/docker/daemon.json
 systemctl --user restart docker
 ```
 
-##### macOS (Docker Desktop)
-
-1. Open Docker Desktop preferences
-1. Go to Docker Engine settings
-1. Update the JSON configuration:
-
-```json
-{
-  "registry-mirrors": ["https://localhost:5000"]
-}
-```
-
-4. Click "Apply & Restart"
-
-##### Linux (Regular Docker)
-
-1. Edit or create `/etc/docker/daemon.json`:
+##### Regular Docker
 
 ```bash
+# Edit daemon configuration
 sudo nano /etc/docker/daemon.json
-```
 
-2. Add or update the configuration:
-
-```json
+# Add configuration:
 {
-  "registry-mirrors": ["https://localhost:5000"]
+  "insecure-registries": ["localhost:5000"]
 }
-```
 
-3. Restart Docker:
-
-```bash
+# Restart Docker
 sudo systemctl restart docker
-```
-
-##### Verify Mirror Configuration
-
-```bash
-# Check Docker daemon configuration
-docker info | grep -A1 "Registry Mirrors"
-
-# Should show:
-# Registry Mirrors:
-#  https://localhost:5000/
 ```
 
 ### Test Registry Access
 
-1. **Test the registry mirror (pull-through cache)**:
+1. **Access the Zot Web UI**:
+
+   Navigate to <http://localhost:5000/home> to access the Zot web interface where you can:
+
+   - Search for images
+   - View repository details
+   - Check image tags and manifests
+   - Monitor sync status
+
+1. **Test pulling images**:
 
    ```bash
-   # With registry-mirrors configured, this automatically uses your local registry
-   docker pull alpine:latest
+   # Pull nginx from Docker Hub through Zot
+   docker pull localhost:5000/docker/nginx:latest
 
-   # Check that the image was cached in your registry
-   curl -sk https://localhost:5000/v2/_catalog
-   # Should show: {"repositories":["library/alpine"]}
+   # Pull from other registries
+   docker pull localhost:5000/ghcr/project-zot/zot-linux-amd64:v2.1.5
+   docker pull localhost:5000/gcr/cadvisor/cadvisor:v0.52.0
+
+   # Check cached repositories
+   curl http://localhost:5000/v2/_catalog
+   # Should show: {"repositories":["docker/nginx","ghcr/project-zot/zot-linux-amd64","gcr/cadvisor/cadvisor"]}
    ```
 
-1. **Test direct registry access**:
+1. **Push your own images**:
 
    ```bash
-   # Pull directly from the registry (bypasses mirror config)
-   make test-pull
-   # Or: docker pull localhost:5000/library/alpine:latest
+   # Tag and push to Zot
+   docker tag myapp:latest localhost:5000/myapp:latest
+   docker push localhost:5000/myapp:latest
    ```
 
-1. **Test pushing to the registry**:
+1. **Access the Registry API**:
 
-   ```bash
-   # Push a local image to the registry
-   make test-push
-   # Or: docker tag alpine:latest localhost:5000/myimage:latest
-   #     docker push localhost:5000/myimage:latest
-   ```
-
-   Note: When configured as a mirror, the registry only caches images from Docker Hub.
-   To push your own images, you must use the full registry URL (localhost:5000).
-
-1. **Access the Registry API directly**:
-
-   The registry implements the [Docker Registry HTTP API V2](https://docs.docker.com/registry/spec/api/). Common endpoints:
+   Zot implements the [OCI Distribution Specification](https://github.com/opencontainers/distribution-spec). Common endpoints:
 
    ```bash
    # Check registry availability
-   curl -k https://localhost:5000/v2/
+   curl http://localhost:5000/v2/
 
    # List all repositories
-   curl -k https://localhost:5000/v2/_catalog
+   curl http://localhost:5000/v2/_catalog
 
-   # List tags for a specific repository
-   curl -k https://localhost:5000/v2/library/alpine/tags/list
+   # List tags for a repository
+   curl http://localhost:5000/v2/docker/nginx/tags/list
 
-   # Get manifest for a specific tag
-   curl -k https://localhost:5000/v2/library/alpine/manifests/latest
+   # Search for images (Zot-specific)
+   curl -X POST http://localhost:5000/v2/_zot/ext/search \
+        -H "Content-Type: application/json" \
+        -d '{"query": "nginx"}'
 
-   # Get image configuration
-   curl -k -H "Accept: application/vnd.docker.distribution.manifest.v2+json" \
-        https://localhost:5000/v2/library/alpine/manifests/latest
+   # Get image manifest
+   curl http://localhost:5000/v2/docker/nginx/manifests/latest
    ```
-
-   Note: The registry does not have a web UI. All interactions are through the Docker client or the HTTP API.
 
 ## Monitoring and Observability
 
@@ -1119,17 +1223,20 @@ Access Loki through Grafana's Explore interface or use these example LogQL queri
 # Filter registry logs by level
 {container="registry"} |= "level=error"
 
-# Search for specific operations in registry
-{container="registry"} |= "pull" |= "manifest"
+# Search for sync operations in Zot
+{container="registry"} |= "sync" |= "syncing image"
 
 # View logs from all monitoring stack containers
-{compose_project="registry"} |> {container=~"registry|prometheus|grafana|loki"}
+{compose_project="registry"} |~ "registry|prometheus|grafana|loki"
 
-# Parse and filter registry logs by HTTP status
-{container="registry"} | json | line_format "{{.log}}" | regexp `(?P<method>\S+)\s+(?P<path>\S+)\s+(?P<status>\d{3})` | status >= 400
+# Filter Zot logs by specific registry
+{container="registry"} |= "remote" |~ "docker|ghcr|gcr"
 
 # Show logs for specific image pulls
-{container="registry"} |= "library/alpine"
+{container="registry"} |= "docker/nginx"
+
+# Monitor authentication errors
+{container="registry"} |= "error" |= "auth"
 
 # Rate of errors over time
 rate({container="registry"} |= "error" [5m])
@@ -1137,50 +1244,44 @@ rate({container="registry"} |= "error" [5m])
 
 ## Management Commands
 
-### Docker Compose Operations
+### Zot Registry Operations
 
 ```bash
-# Start all services
-make up
-
-# Stop all services
-make down
-
-# Restart all services
-make restart
-
-# View logs
-make logs              # All services
-make logs-registry     # Registry only
-make logs-prometheus   # Prometheus only
-make logs-grafana      # Grafana only
-make logs-jaeger       # Jaeger only
-make logs-loki         # Loki only
-
-# Clean up (including volumes)
-make clean
-
-# Check service status
-make status
-```
-
-### Registry Maintenance
-
-```bash
-# Garbage collection (remove unused blobs)
-make gc
+# From the zot/ directory
+docker-compose up -d            # Start Zot
+docker-compose down             # Stop Zot
+docker-compose restart          # Restart Zot
+docker-compose logs -f          # View Zot logs
 
 # Check registry health
-make health
+curl http://localhost:5000/v2/
 
-# List repositories in registry
-curl -k https://localhost:5000/v2/_catalog
+# List repositories
+curl http://localhost:5000/v2/_catalog
 
 # Get repository tags
-curl -k https://localhost:5000/v2/<repository>/tags/list
+curl http://localhost:5000/v2/docker/nginx/tags/list
 
-# View registry metrics
-make metrics
+# Access Web UI
+open http://localhost:5000/home
+```
+
+### Monitoring Stack Operations
+
+```bash
+# From the monitoring/ directory
+docker-compose up -d            # Start monitoring
+docker-compose down             # Stop monitoring
+docker-compose restart          # Restart services
+
+# View logs for specific services
+docker-compose logs -f prometheus
+docker-compose logs -f grafana
+docker-compose logs -f loki
+docker-compose logs -f jaeger
+
+# Clean up (including volumes)
+docker-compose down -v
 ```
 
 ### Alloy Management
@@ -1335,22 +1436,80 @@ ls -la ~/.docker/certs.d/localhost:5000/  # Rootless
 ls -la /etc/docker/certs.d/localhost:5000/ # Regular Docker
 ```
 
+### Authentication Issues
+
+1. **401 Unauthorized errors**:
+
+   ```bash
+   # Test authentication with curl
+   curl -u smigula:Registry363502 https://registry.smigula.io/v2/
+
+   # Check htpasswd file exists and is mounted
+   docker exec registry ls -la /etc/zot/htpasswd
+
+   # Verify Zot configuration includes auth section
+   docker exec registry cat /etc/zot/config.yaml | grep -A5 auth
+   ```
+
+1. **Update password**:
+
+   ```bash
+   # Generate new password hash
+   htpasswd -bBn smigula NewPassword123 > zot/auth/htpasswd
+
+   # Restart Zot to apply changes
+   cd zot && docker-compose restart registry
+   ```
+
+1. **Docker login issues**:
+
+   ```bash
+   # For external access
+   docker login registry.smigula.io
+
+   # For local access (add to insecure registries first)
+   docker login localhost:5000
+   ```
+
 ### Registry Connection Issues
 
 ```bash
-# Check if registry is responding
-make health
+# Check if Zot is responding
+curl http://localhost:5000/v2/
 
-# Test specific API endpoints
-curl -k https://localhost:5000/v2/
-curl -k https://localhost:5000/v2/_catalog
+# Test Zot Web UI
+curl http://localhost:5000/home
 
 # View detailed logs
-make logs-registry
+docker logs registry
 
-# Check Docker daemon configuration
-docker info | grep -A1 "Registry Mirrors"
+# Check specific registry sync
+docker logs registry 2>&1 | grep -i "docker\|ghcr\|gcr"
+
+# Test image pull with specific prefix
+docker pull localhost:5000/docker/alpine:latest
 ```
+
+### Zot-Specific Issues
+
+1. **Images not found**: Remember to use registry prefixes
+
+   - Wrong: `docker pull localhost:5000/nginx`
+   - Right: `docker pull localhost:5000/docker/nginx`
+
+1. **Authentication errors**: Check credentials.yaml format
+
+   ```yaml
+   registry-1.docker.io:
+     username: <user>
+     password: <pass>
+   ```
+
+1. **Sync not working**: Check logs for sync errors
+
+   ```bash
+   docker logs registry 2>&1 | grep -i "sync\|error"
+   ```
 
 ### Metrics Not Appearing
 
@@ -1382,25 +1541,39 @@ docker info | grep -A1 "Registry Mirrors"
 
 ```text
 .
-├── cfssl/                    # Certificate configurations
-│   ├── ca.json               # Root CA config
-│   ├── intermediate-ca.json  # Intermediate CA config
-│   ├── cfssl.json            # Certificate profiles
-│   └── registry.json         # Registry certificate config
-├── certs/                    # Generated certificates (git ignored)
-├── prometheus/               # Prometheus configuration
-│   └── prometheus.yml        # Scrape configurations with TLS client auth
-├── loki/                     # Loki configuration
-│   └── loki-config.yaml      # Loki server configuration
-├── grafana/                  # Grafana provisioning
-│   └── provisioning/
-│       ├── datasources/      # Pre-configured datasources (Prometheus, Jaeger, Loki)
-│       └── dashboards/       # Pre-configured dashboards
-├── config.yaml               # Registry configuration
-├── docker-compose.yaml       # Service definitions (without Alloy)
-├── .env.example              # Environment template
-├── .gitignore                # Git ignore patterns
-└── README.md                 # This file
+├── zot/                          # Zot registry directory
+│   ├── docker-compose.yaml       # Zot service definition
+│   ├── auth/                     # Authentication files
+│   │   └── htpasswd              # Basic auth credentials (git ignored)
+│   └── config/                   # Zot configuration files
+│       ├── config.yaml           # Main Zot configuration
+│       └── credentials.yaml      # Registry credentials (git ignored)
+├── monitoring/                   # Monitoring stack directory
+│   ├── docker-compose.yaml       # Monitoring services definition
+│   ├── .env                      # Grafana credentials (git ignored)
+│   ├── prometheus/               # Prometheus configuration
+│   │   └── prometheus.yml        # Scrape configurations
+│   ├── loki/                     # Loki configuration
+│   │   └── loki-config.yaml      # Loki server configuration
+│   ├── grafana/                  # Grafana provisioning
+│   │   └── provisioning/
+│   │       ├── datasources/      # Pre-configured datasources
+│   │       └── dashboards/       # Pre-configured dashboards
+│   └── alloy/                    # Alloy configuration
+│       └── config.alloy          # Alloy collection config
+├── caddy/                        # Caddy reverse proxy
+│   ├── docker-compose.yaml       # Caddy service definition
+│   ├── Caddyfile                 # Caddy configuration
+│   └── logs/                     # Caddy access logs
+├── cfssl/                        # Certificate configurations (if needed)
+│   ├── ca.json                   # Root CA config
+│   ├── intermediate-ca.json      # Intermediate CA config
+│   ├── cfssl.json                # Certificate profiles
+│   └── registry.json             # Registry certificate config
+├── certs/                        # Generated certificates (git ignored)
+├── .gitignore                    # Git ignore patterns
+├── Makefile                      # Make commands (if using)
+└── README.md                     # This file
 
 # User-specific files (rootless Docker)
 ~/.config/docker/daemon.json  # Docker daemon configuration
@@ -1424,8 +1597,8 @@ docker info | grep -A1 "Registry Mirrors"
 
 ## References
 
-- [Docker Registry Configuration Reference](https://distribution.github.io/distribution/about/configuration/)
-- [Docker Hub Registry Mirror Documentation](https://docs.docker.com/docker-hub/image-library/mirror/)
+- [Zot Registry Documentation](https://zotregistry.dev)
+- [OCI Distribution Specification](https://github.com/opencontainers/distribution-spec)
 - [Rootless Docker Documentation](https://docs.docker.com/engine/security/rootless/)
 - [CFSSL Documentation](https://github.com/cloudflare/cfssl)
 - [Grafana Alloy Documentation](https://grafana.com/docs/alloy/)

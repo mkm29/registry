@@ -1,0 +1,6 @@
+users:
+  admin:
+    email: admin@smigula.io
+    name: smigula
+    password: $2a$11$KAZ.pn7qnANXCdctSXPIT.sEs8z.oRgXKxlbfxqrHzPSKCLm4pNtG
+    filter: ""

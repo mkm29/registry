@@ -1,0 +1,48 @@
+version: 0.1
+log:
+  level: info
+  fields:
+    service: registry
+    environment: development
+storage:
+  delete:
+    enabled: true
+  cache:
+    blobdescriptor: inmemory
+  filesystem:
+    rootdirectory: /var/lib/registry
+  maintenance:
+    uploadpurging:
+      enabled: false
+  tag:
+    concurrencylimit: 8
+http:
+  addr: :5000
+  debug:
+    addr: :5001
+    prometheus:
+      enabled: true
+      path: /metrics
+  headers:
+    X-Content-Type-Options: [nosniff]
+    # tls:
+    #     certificate: /etc/ssl/certs/registry.crt
+    #     key: /etc/ssl/private/registry.key
+    #     minimumtls: tls1.2
+proxy:
+  remoteurl: https://registry-1.docker.io
+  username: myusername
+  password: mypassword
+health:
+  storagedriver:
+    enabled: true
+    interval: 10s
+    threshold: 3
+telemetry:
+  prometheus:
+    enabled: true
+  opentelemetry:
+    traces:
+      endpoint: http://jaeger:4318
+      insecure: true
+      service_name: docker-registry

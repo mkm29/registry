@@ -1,0 +1,338 @@
+logging {
+	format = "json"
+	level  = "debug"
+}
+// Grafana Alloy configuration for Docker monitoring (logs and metrics)
+
+// Discovery component to find Docker containers
+discovery.docker "containers" {
+	host             = "unix:///var/run/docker.sock"
+	refresh_interval = "5s"
+}
+
+// Docker log source - reads logs directly from Docker API
+loki.source.docker "docker_logs" {
+	host       = "unix:///var/run/docker.sock"
+	targets    = discovery.relabel.containers.output
+	forward_to = [loki.process.docker_logs.receiver]
+	labels     = {
+		job = "docker_logs",
+	}
+}
+
+// Relabel to extract container metadata
+discovery.relabel "containers" {
+	targets = discovery.docker.containers.targets
+
+	// Keep container name
+	rule {
+		source_labels = ["__meta_docker_container_name"]
+		regex         = "/(.*)"
+		target_label  = "container_name"
+	}
+
+	// Keep container ID
+	rule {
+		source_labels = ["__meta_docker_container_id"]
+		target_label  = "container_id"
+	}
+
+	// Keep container image
+	rule {
+		source_labels = ["__meta_docker_container_image"]
+		target_label  = "container_image"
+	}
+
+	// Add compose project name
+	rule {
+		source_labels = ["__meta_docker_container_label_com_docker_compose_project"]
+		target_label  = "compose_project"
+	}
+
+	// Add compose service name
+	rule {
+		source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+		target_label  = "compose_service"
+	}
+}
+
+// Process pipeline for Docker logs
+loki.process "docker_logs" {
+	forward_to = [loki.write.loki.receiver]
+
+	// Parse JSON logs
+	stage.json {
+		expressions = {
+			output    = "log",
+			stream    = "stream",
+			timestamp = "time",
+		}
+	}
+
+	// Use timestamp from Docker
+	stage.timestamp {
+		source = "timestamp"
+		format = "RFC3339Nano"
+	}
+
+	// Parse registry logs format if present
+	stage.regex {
+		expression = "^(?P<timestamp>\\S+)\\s+(?P<level>\\S+)\\s+(?P<component>\\S+)\\s+(?P<msg>.*)"
+		source     = "output"
+	}
+
+	// Set output to the actual log message
+	stage.output {
+		source = "output"
+	}
+
+	// Add labels
+	stage.labels {
+		values = {
+			level     = "level",
+			component = "component",
+			stream    = "stream",
+		}
+	}
+
+	// Drop empty lines
+	stage.drop {
+		expression = "^\\s*$"
+	}
+}
+
+// Local file matching for Caddy logs using glob pattern
+local.file_match "caddy_logs" {
+	path_targets = [{
+		__path__ = "/var/log/caddy/*.smigula.io.log",
+		job      = "caddy_logs",
+	}]
+}
+
+// Relabel to extract service name from filename
+discovery.relabel "caddy_logs" {
+	targets = local.file_match.caddy_logs.targets
+
+	// Extract service name from filename (e.g., grafana.smigula.io.log -> grafana.smigula.io)
+	rule {
+		source_labels = ["__path__"]
+		regex         = ".*/([^/]+)\\.log"
+		target_label  = "service"
+	}
+}
+
+// File source for Caddy logs
+loki.source.file "caddy_logs" {
+	targets    = discovery.relabel.caddy_logs.output
+	forward_to = [loki.process.caddy_logs.receiver]
+}
+
+// Process pipeline for Caddy logs
+loki.process "caddy_logs" {
+	forward_to = [loki.write.loki.receiver]
+
+	// Parse JSON format from Caddy
+	stage.json {
+		expressions = {
+			ts           = "ts",
+			level        = "level",
+			msg          = "msg",
+			request      = "request",
+			user_id      = "user_id",
+			duration     = "duration",
+			size         = "size",
+			status       = "status",
+			resp_headers = "resp_headers",
+		}
+	}
+
+	// Parse timestamp
+	stage.timestamp {
+		source = "ts"
+		format = "unix"
+	}
+
+	// Parse request details if present
+	stage.json {
+		source      = "request"
+		expressions = {
+			method      = "method",
+			uri         = "uri",
+			proto       = "proto",
+			remote_ip   = "remote_ip",
+			remote_port = "remote_port",
+			client_ip   = "client_ip",
+			host        = "host",
+			headers     = "headers",
+		}
+	}
+
+	// Add labels
+	stage.labels {
+		values = {
+			level     = "level",
+			method    = "method",
+			status    = "status",
+			host      = "host",
+			client_ip = "client_ip",
+		}
+	}
+
+	// Set output to the message
+	stage.output {
+		source = "msg"
+	}
+
+	// Drop empty lines
+	stage.drop {
+		expression = "^\\s*$"
+	}
+}
+
+// Write logs to Loki
+loki.write "loki" {
+	endpoint {
+		url = "http://loki:3100/loki/api/v1/push"
+	}
+}
+
+// Scrape metrics from standalone cAdvisor container
+prometheus.scrape "cadvisor" {
+	targets = [
+		{
+			__address__ = "cadvisor:8080",
+			job         = "integrations/cadvisor",
+		},
+	]
+	forward_to      = [prometheus.relabel.cadvisor_metrics.receiver]
+	scrape_interval = "30s"
+	scrape_timeout  = "10s"
+}
+
+// Relabel metrics from cAdvisor
+prometheus.relabel "cadvisor_metrics" {
+	forward_to = [prometheus.remote_write.metrics.receiver]
+
+	// Extract container name from the 'name' label
+	rule {
+		source_labels = ["name"]
+		regex         = "^/docker/([a-zA-Z0-9][a-zA-Z0-9_.-]+)$"
+		target_label  = "container_name"
+		replacement   = "${1}"
+	}
+
+	// Extract compose service name
+	rule {
+		source_labels = ["container_label_com_docker_compose_service"]
+		target_label  = "service"
+	}
+
+	// Extract compose project name
+	rule {
+		source_labels = ["container_label_com_docker_compose_project"]
+		target_label  = "project"
+	}
+
+	// Add container image label
+	rule {
+		source_labels = ["image"]
+		target_label  = "container_image"
+	}
+
+	// Keep only container metrics
+	rule {
+		source_labels = ["__name__"]
+		regex         = "container_(cpu_.*|memory_.*|network_.*|fs_.*)"
+		action        = "keep"
+	}
+
+	// Drop metrics for the root cgroup (not actual containers)
+	rule {
+		source_labels = ["id"]
+		regex         = "^/$"
+		action        = "drop"
+	}
+}
+
+// Scrape metrics from Traefik
+prometheus.scrape "traefik" {
+	targets = [
+		{
+			__address__ = "traefik:8082",
+			job         = "traefik",
+		},
+	]
+	forward_to      = [prometheus.relabel.traefik_metrics.receiver]
+	scrape_interval = "15s"
+	scrape_timeout  = "10s"
+	metrics_path    = "/metrics"
+}
+
+// Relabel metrics from Traefik
+prometheus.relabel "traefik_metrics" {
+	forward_to = [prometheus.remote_write.metrics.receiver]
+
+	// Add instance label
+	rule {
+		source_labels = ["__address__"]
+		target_label  = "instance"
+	}
+
+	// Keep Traefik-specific metrics
+	rule {
+		source_labels = ["__name__"]
+		regex         = "traefik_.*"
+		action        = "keep"
+	}
+}
+
+// Send metrics to Prometheus
+prometheus.remote_write "metrics" {
+	endpoint {
+		url = "http://prometheus:9090/api/v1/write"
+	}
+}
+
+// OpenTelemetry receiver for traces
+otelcol.receiver.otlp "default" {
+	grpc {
+		endpoint = "0.0.0.0:4317"
+	}
+
+	http {
+		endpoint = "0.0.0.0:4318"
+	}
+
+	output {
+		traces = [otelcol.processor.batch.default.input]
+	}
+}
+
+// Batch processor for better performance
+otelcol.processor.batch "default" {
+	// Batch timeout - send at least every 200ms
+	timeout = "200ms"
+
+	// Send batches when they reach 8192 spans
+	send_batch_size = 8192
+
+	output {
+		traces = [otelcol.exporter.otlp.tempo.input]
+	}
+}
+
+// Export traces to Tempo
+otelcol.exporter.otlp "tempo" {
+	client {
+		endpoint = "tempo:4317"
+
+		tls {
+			insecure             = true
+			insecure_skip_verify = true
+		}
+	}
+}
+// enable live debugging
+livedebugging {
+	enabled = true
+}

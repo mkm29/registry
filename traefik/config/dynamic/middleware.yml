@@ -1,0 +1,31 @@
+http:
+  middlewares:
+    # Global security headers
+    security-headers:
+      headers:
+        stsSeconds: 31536000
+        stsIncludeSubdomains: true
+        stsPreload: true
+        contentTypeNosniff: true
+        browserXssFilter: true
+        referrerPolicy: "strict-origin-when-cross-origin"
+        customFrameOptionsValue: "SAMEORIGIN"
+        customRequestHeaders:
+          X-Forwarded-Proto: https
+    # Basic auth middleware
+    auth-basic:
+      basicAuth:
+        users:
+          # User: smigula, Password: same as in your Caddy config
+          - "smigula:$2a$14$oIo.CMitlcZBdt9/vFxPHuUT.Zvhnby7bohaTq53N8cX1sehsIldq"
+    # Rate limiting
+    rate-limit:
+      rateLimit:
+        average: 100
+        period: 1m
+        burst: 200
+    # Compress responses
+    compress:
+      compress:
+        excludedContentTypes:
+          - text/event-stream

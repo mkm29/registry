@@ -1,0 +1,88 @@
+http:
+  routers:
+    traefik-dashboard:
+      rule: "Host(`traefik.smigula.io`)"
+      service: api@internal
+      entryPoints:
+        - websecure
+      tls:
+        certResolver: letsencrypt
+      middlewares:
+        - security-headers
+        - authentik
+
+    grafana:
+      rule: "Host(`grafana.smigula.io`)"
+      service: grafana
+      entryPoints:
+        - websecure
+      tls:
+        certResolver: letsencrypt
+      middlewares:
+        - security-headers
+        - grafana-headers
+
+    prometheus:
+      rule: "Host(`prometheus.smigula.io`)"
+      service: prometheus
+      entryPoints:
+        - websecure
+      tls:
+        certResolver: letsencrypt
+      middlewares:
+        - security-headers
+        - authentik
+
+    dozzle:
+      rule: "Host(`dozzle.smigula.io`)"
+      service: dozzle
+      entryPoints:
+        - websecure
+      tls:
+        certResolver: letsencrypt
+      middlewares:
+        - security-headers
+        - authentik
+        - dozzle-headers
+
+    alloy:
+      rule: "Host(`alloy.smigula.io`)"
+      service: alloy
+      entryPoints:
+        - websecure
+      tls:
+        certResolver: letsencrypt
+      middlewares:
+        - security-headers
+        - authentik
+  services:
+    grafana:
+      loadBalancer:
+        servers:
+          - url: "http://grafana:3000"
+    prometheus:
+      loadBalancer:
+        servers:
+          - url: "http://prometheus:9090"
+    dozzle:
+      loadBalancer:
+        servers:
+          - url: "http://dozzle:9080"
+    alloy:
+      loadBalancer:
+        servers:
+          - url: "http://alloy:12345"
+  middlewares:
+    grafana-headers:
+      headers:
+        customRequestHeaders:
+          X-Forwarded-Proto: "https"
+          Origin: "https://grafana.smigula.io"
+        customResponseHeaders:
+          Access-Control-Allow-Origin: "https://grafana.smigula.io"
+          Access-Control-Allow-Methods: "GET, POST, PUT, DELETE, OPTIONS"
+          Access-Control-Allow-Headers: "Origin, Content-Type, Accept, Authorization"
+    dozzle-headers:
+      headers:
+        customRequestHeaders:
+          Remote-User: "smigula"
