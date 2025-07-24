@@ -29,7 +29,7 @@ storage_config:
     cache_location: /loki/index_cache
   aws:
     bucketnames: loki
-    endpoint: minio:9000
+    endpoint: localhost:9000
     access_key_id: lokiuser
     secret_access_key: SuperSecret1
     insecure: true
