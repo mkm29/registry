@@ -111,10 +111,8 @@ services:
       - DOZZLE_ADDR=:9080
       - DOZZLE_HOSTNAME=dozzle.smigula.io
       - DOZZLE_LEVEL=debug
-      # - DOZZLE_AUTH_PROVIDER=forward-proxy
+      - DOZZLE_AUTH_PROVIDER=forward-proxy
     restart: unless-stopped
-    command:
-      - --auth-provider forward-proxy
     networks:
       - monitoring
   # cAdvisor for container metrics in rootless mode
