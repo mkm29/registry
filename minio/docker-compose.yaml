@@ -1,0 +1,76 @@
+version: '3.8'
+
+services:
+  minio:
+    image: minio/minio:latest
+    container_name: minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      # Change these in production - use .env file
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin123}
+      # Set browser redirect URL for console
+      MINIO_BROWSER_REDIRECT_URL: ${MINIO_BROWSER_REDIRECT_URL:-https://minio.smigula.io}
+      # Set the server URL for proper API access
+      MINIO_SERVER_URL: ${MINIO_SERVER_URL:-https://api.minio.smigula.io}
+      # Prometheus metrics
+      MINIO_PROMETHEUS_AUTH_TYPE: public
+      # Region setting
+      MINIO_REGION_NAME: ${MINIO_REGION_NAME:-us-east-1}
+      # Storage class settings
+      MINIO_STORAGE_CLASS_STANDARD: ${MINIO_STORAGE_CLASS_STANDARD:-EC:0}
+    # Remove external port exposure when using Traefik
+    # ports:
+    #   - "9000:9000"   # API port
+    #   - "9001:9001"   # Console port
+    volumes:
+      - /mnt/data/minio:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - proxy
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+  # Optional: MinIO Client for administration
+  mc:
+    image: minio/mc:latest
+    container_name: minio-mc
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      until /usr/bin/mc alias set myminio http://minio:9000 $$MINIO_ROOT_USER $$MINIO_ROOT_PASSWORD; do
+        echo 'Waiting for MinIO to be ready...'
+        sleep 3
+      done;
+      echo 'MinIO is ready';
+      # Create default buckets if needed
+      /usr/bin/mc mb myminio/data || true;
+      /usr/bin/mc mb myminio/backups || true;
+      /usr/bin/mc mb myminio/registry || true;
+      # Set bucket policies if needed
+      /usr/bin/mc anonymous set download myminio/data || true;
+      tail -f /dev/null
+      "
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin123}
+    networks:
+      - proxy
+
+networks:
+  proxy:
+    external: true
