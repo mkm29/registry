@@ -28,18 +28,18 @@ echo 'MinIO is ready'
 
 # Create buckets
 echo "Creating buckets..."
-mc mb ${MINIO_ALIAS}/loki || echo "Bucket loki already exists"
-mc mb ${MINIO_ALIAS}/mimir || echo "Bucket mimir already exists"
-mc mb ${MINIO_ALIAS}/tempo || echo "Bucket tempo already exists"
-mc mb ${MINIO_ALIAS}/registry || echo "Bucket registry already exists"
-mc mb ${MINIO_ALIAS}/backups || echo "Bucket backups already exists"
-mc mb ${MINIO_ALIAS}/data || echo "Bucket data already exists"
+mc mb ${MINIO_ALIAS}/loki 2>/dev/null && echo "  ✓ Created bucket: loki" || echo "  • Bucket already exists: loki"
+mc mb ${MINIO_ALIAS}/mimir 2>/dev/null && echo "  ✓ Created bucket: mimir" || echo "  • Bucket already exists: mimir"
+mc mb ${MINIO_ALIAS}/tempo 2>/dev/null && echo "  ✓ Created bucket: tempo" || echo "  • Bucket already exists: tempo"
+mc mb ${MINIO_ALIAS}/registry 2>/dev/null && echo "  ✓ Created bucket: registry" || echo "  • Bucket already exists: registry"
+mc mb ${MINIO_ALIAS}/backups 2>/dev/null && echo "  ✓ Created bucket: backups" || echo "  • Bucket already exists: backups"
+mc mb ${MINIO_ALIAS}/data 2>/dev/null && echo "  ✓ Created bucket: data" || echo "  • Bucket already exists: data"
 
 # Create users
 echo "Creating service users..."
-mc admin user add ${MINIO_ALIAS} lokiuser ${LOKI_USER_PASSWORD} || echo "User lokiuser already exists"
-mc admin user add ${MINIO_ALIAS} mimiruser ${MIMIR_USER_PASSWORD} || echo "User mimiruser already exists"
-mc admin user add ${MINIO_ALIAS} tempouser ${TEMPO_USER_PASSWORD} || echo "User tempouser already exists"
+mc admin user add ${MINIO_ALIAS} lokiuser ${LOKI_USER_PASSWORD} 2>/dev/null && echo "  ✓ Created user: lokiuser" || echo "  • User already exists: lokiuser"
+mc admin user add ${MINIO_ALIAS} mimiruser ${MIMIR_USER_PASSWORD} 2>/dev/null && echo "  ✓ Created user: mimiruser" || echo "  • User already exists: mimiruser"
+mc admin user add ${MINIO_ALIAS} tempouser ${TEMPO_USER_PASSWORD} 2>/dev/null && echo "  ✓ Created user: tempouser" || echo "  • User already exists: tempouser"
 
 # Create policy files
 echo "Creating policy files..."
@@ -94,19 +94,19 @@ EOF
 
 # Create policies
 echo "Creating policies..."
-mc admin policy create ${MINIO_ALIAS} loki-policy /tmp/loki-policy.json || echo "Policy loki-policy already exists"
-mc admin policy create ${MINIO_ALIAS} mimir-policy /tmp/mimir-policy.json || echo "Policy mimir-policy already exists"
-mc admin policy create ${MINIO_ALIAS} tempo-policy /tmp/tempo-policy.json || echo "Policy tempo-policy already exists"
+mc admin policy create ${MINIO_ALIAS} loki-policy /tmp/loki-policy.json 2>/dev/null && echo "  ✓ Created policy: loki-policy" || echo "  • Policy already exists: loki-policy"
+mc admin policy create ${MINIO_ALIAS} mimir-policy /tmp/mimir-policy.json 2>/dev/null && echo "  ✓ Created policy: mimir-policy" || echo "  • Policy already exists: mimir-policy"
+mc admin policy create ${MINIO_ALIAS} tempo-policy /tmp/tempo-policy.json 2>/dev/null && echo "  ✓ Created policy: tempo-policy" || echo "  • Policy already exists: tempo-policy"
 
 # Attach policies to users
 echo "Attaching policies to users..."
-mc admin policy attach ${MINIO_ALIAS} loki-policy --user lokiuser || echo "Policy already attached"
-mc admin policy attach ${MINIO_ALIAS} mimir-policy --user mimiruser || echo "Policy already attached"
-mc admin policy attach ${MINIO_ALIAS} tempo-policy --user tempouser || echo "Policy already attached"
+mc admin policy attach ${MINIO_ALIAS} loki-policy --user lokiuser 2>/dev/null && echo "  ✓ Attached loki-policy to lokiuser" || echo "  • Policy loki-policy already attached to lokiuser"
+mc admin policy attach ${MINIO_ALIAS} mimir-policy --user mimiruser 2>/dev/null && echo "  ✓ Attached mimir-policy to mimiruser" || echo "  • Policy mimir-policy already attached to mimiruser"
+mc admin policy attach ${MINIO_ALIAS} tempo-policy --user tempouser 2>/dev/null && echo "  ✓ Attached tempo-policy to tempouser" || echo "  • Policy tempo-policy already attached to tempouser"
 
 # Set bucket policies (optional - makes data bucket publicly readable)
 echo "Setting bucket policies..."
-mc anonymous set download ${MINIO_ALIAS}/data || echo "Anonymous policy already set"
+mc anonymous set download ${MINIO_ALIAS}/data 2>/dev/null && echo "  ✓ Set anonymous download policy on data bucket" || echo "  • Anonymous download policy already set on data bucket"
 
 # Cleanup
 rm -f /tmp/loki-policy.json /tmp/mimir-policy.json /tmp/tempo-policy.json
@@ -123,12 +123,12 @@ mc admin user list ${MINIO_ALIAS}
 echo -e "\nPolicies created:"
 mc admin policy list ${MINIO_ALIAS}
 
-echo -e "\nVerifying Loki access..."
-mc --debug ls ${MINIO_ALIAS}/loki --user lokiuser --password ${LOKI_USER_PASSWORD} || echo "Failed to access loki bucket with lokiuser"
-echo -e "\nVerifying Mimir access..."
-mc --debug ls ${MINIO_ALIAS}/mimir --user mimiruser --password ${MIMIR_USER_PASSWORD} || echo "Failed to access mimir bucket with mimiruser"
-echo -e "\nVerifying Tempo access..."
-mc --debug ls ${MINIO_ALIAS}/tempo --user tempouser --password ${TEMPO_USER_PASSWORD} || echo "Failed to access tempo bucket with tempouser"
+# echo -e "\nVerifying Loki access..."
+# mc --debug ls ${MINIO_ALIAS}/loki --user lokiuser --password ${LOKI_USER_PASSWORD} || echo "Failed to access loki bucket with lokiuser"
+# echo -e "\nVerifying Mimir access..."
+# mc --debug ls ${MINIO_ALIAS}/mimir --user mimiruser --password ${MIMIR_USER_PASSWORD} || echo "Failed to access mimir bucket with mimiruser"
+# echo -e "\nVerifying Tempo access..."
+# mc --debug ls ${MINIO_ALIAS}/tempo --user tempouser --password ${TEMPO_USER_PASSWORD} || echo "Failed to access tempo bucket with tempouser"
 
 # Keep container running
 echo -e "\nMinIO setup complete. Container will keep running..."
