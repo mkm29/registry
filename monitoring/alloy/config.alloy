@@ -283,7 +283,7 @@ prometheus.scrape "traefik" {
 prometheus.scrape "zot_registry" {
 	targets = [
 		{
-			__address__ = "registry:5000",
+			__address__ = "localhost:5000",
 			job         = "zot-registry",
 		},
 	]
