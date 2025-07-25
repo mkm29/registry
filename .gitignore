@@ -75,6 +75,10 @@ credentials/
 .claude/
 CLAUDE.md
 
+# Zot OIDC secrets
+zot/config/config-secrets.yaml
+zot/config/*.secret
+
 # Secrets environment files
 *-secrets.env
 .secrets.env
