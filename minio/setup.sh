@@ -121,7 +121,9 @@ mc ls ${MINIO_ALIAS} | cut -d'B' -f2 | cut -c2- | tr -d '/' | tr '\n' ' '
 echo -e "\n\nUsers configured: $(mc admin user list ${MINIO_ALIAS} | wc -l)"
 mc admin user list ${MINIO_ALIAS}
 
-echo -e "\nPolicies created: $((mc admin policy list ${MINIO_ALIAS} | wc -l)-$initial_policy_count)"
+final_policy_count=$(mc admin policy list ${MINIO_ALIAS} | wc -l)
+num_policies_created=$((final_policy_count - initial_policy_count))
+echo -e "\nPolicies created: ${num_policies_created}"
 mc admin policy list ${MINIO_ALIAS}
 
 echo -e "\nMinIO setup complete."

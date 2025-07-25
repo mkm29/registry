@@ -58,6 +58,8 @@ services:
       LOKI_USER_PASSWORD: ${LOKI_USER_PASSWORD:-SuperSecret1}
       MIMIR_USER_PASSWORD: ${MIMIR_USER_PASSWORD:-SuperSecret1}
       TEMPO_USER_PASSWORD: ${TEMPO_USER_PASSWORD:-SuperSecret1}
+    env_file:
+      - .env
     networks:
       - monitoring
 
