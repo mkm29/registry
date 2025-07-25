@@ -6,7 +6,7 @@ This repository provides a complete setup for a local Zot registry that acts as 
 - **Monitoring Stack** (`monitoring/`): Full observability stack with Prometheus, Jaeger, Grafana, Loki, and Alloy
 - **Caddy Reverse Proxy** (`caddy/`): HTTPS reverse proxy with automatic TLS certificate management
 
-This setup is optimized for **rootless Docker** with native Alloy installation for better security and performance. The registry is accessible via HTTPS at `registry.smigula.io` with basic authentication.
+This setup is optimized for **rootless Docker** with native Alloy installation for better security and performance. The registry is accessible via HTTPS at `registry.smigula.io` with authentication handled externally by Authentik through Traefik.
 
 - [Zot Registry with Pull-Through Cache and Monitoring Stack (Rootless Docker)](#zot-registry-with-pull-through-cache-and-monitoring-stack-rootless-docker)
   - [Overview](#overview)
@@ -97,7 +97,7 @@ This setup creates a production-ready local Zot registry with:
   - Kubernetes Registry (`/k8s` prefix)
 - **Zot Registry**: High-performance OCI-compliant registry with advanced features
 - **HTTPS Access**: Secure external access via Caddy reverse proxy with automatic TLS certificates
-- **Authentication**: HTTP basic authentication for registry access
+- **Authentication**: Handled externally by Authentik through Traefik
 - **Bandwidth Optimization**: Caches images locally to reduce repeated downloads from upstream registries
 - **Native Alloy**: Grafana Alloy runs as a native systemd service for better Docker socket access
 - **Distributed Tracing**: OpenTelemetry integration with Jaeger
@@ -384,13 +384,13 @@ graph TB
     subgraph "Rootless Docker Environment"
         subgraph "Reverse Proxy (caddy/docker-compose.yaml)"
             Caddy[Caddy<br/>:443/:80<br/>TLS Termination]
-            CaddyAuth[Basic Auth<br/>Removed]
+            CaddyAuth[Auth handled by<br/>Traefik/Authentik]
         end
 
         subgraph "Zot Registry (zot/docker-compose.yaml)"
             subgraph "Zot Registry Service"
                 Zot[Zot Registry<br/>:5000]
-                ZotAuth[HTPasswd Auth]
+                ZotAuth[External Auth<br/>via Traefik]
                 UI[Web UI<br/>Search API]
                 Sync[Sync Engine<br/>On-demand Pull]
 
@@ -468,39 +468,14 @@ graph TB
 
 ## Registry Authentication
 
-The Zot registry is configured with HTTP basic authentication for secure access.
-
-### Authentication Configuration
-
-1. **HTPasswd File**: Located at `zot/auth/htpasswd`
-1. **Default User**: `smigula`
-1. **Password**: Set during setup (default: `Registry363502`)
-
-### Creating/Updating Users
-
-```bash
-# Create a new user or update existing password
-htpasswd -bBn <username> <password> >> zot/auth/htpasswd
-
-# Example: Create user 'smigula' with password 'Registry363502'
-htpasswd -bBn smigula Registry363502 > zot/auth/htpasswd
-```
-
-**Important Notes**:
-
-- The `-B` flag uses bcrypt hashing (required by Zot)
-- Passwords are hashed and stored securely
-- After updating the htpasswd file, restart the Zot container
+Authentication is handled externally by Authentik through Traefik. The Zot registry itself does not require local authentication.
 
 ### Accessing the Registry
 
 #### Via HTTPS (External Access)
 
 ```bash
-# Login to the registry
-docker login registry.smigula.io -u smigula -p Registry363502
-
-# Pull images through the registry
+# Pull images through the registry (authentication handled by Traefik/Authentik)
 docker pull registry.smigula.io/docker/nginx:latest
 
 # Push images to the registry
@@ -517,9 +492,9 @@ docker pull localhost:5000/docker/nginx:latest
 
 ### Authentication Flow
 
-1. **External Access**: Caddy provides TLS termination and forwards requests to Zot
-1. **Zot Authentication**: Zot validates credentials against the htpasswd file
-1. **Failed Authentication**: Returns 401 Unauthorized with a 5-second delay (configurable)
+1. **External Access**: Traefik handles authentication via Authentik
+1. **Local Access**: Direct access to port 5000 bypasses authentication
+1. **Metrics Access**: Prometheus can access `/metrics` endpoint without authentication
 
 ## Available Commands
 
@@ -564,12 +539,9 @@ journalctl --user -u alloy -f    # View Alloy logs
 
 ## Quick Start
 
-1. **Set up credentials**:
+1. **Set up credentials** (optional):
 
    ```bash
-   # Create htpasswd file for registry authentication
-   htpasswd -bBn smigula Registry363502 > zot/auth/htpasswd
-
    # Create credentials file for upstream registries (optional)
    cat <<EOF > zot/config/credentials.yaml
    registry-1.docker.io:
@@ -620,11 +592,12 @@ journalctl --user -u alloy -f    # View Alloy logs
 1. **Configure Docker to use the registry**:
 
    ```bash
-   # For external HTTPS access
-   docker login registry.smigula.io -u smigula -p Registry363502
+   # For external HTTPS access (authentication handled by Traefik/Authentik)
+   docker login registry.smigula.io
 
-   # For local HTTP access, add to insecure registries
-   # See "Configure Docker for Insecure Registry" section below
+   # For local HTTP access (no authentication required)
+   # First add to insecure registries - see "Configure Docker for Insecure Registry" section below
+   docker pull localhost:5000/docker/nginx:latest
    ```
 
 1. **Access services**:
@@ -636,8 +609,8 @@ journalctl --user -u alloy -f    # View Alloy logs
 
    Service URLs:
 
-   - Zot Registry API (local): <http://localhost:5000/v2/> (requires auth)
-   - Zot Registry API (external): <https://registry.smigula.io/v2/> (requires auth)
+   - Zot Registry API (local): <http://localhost:5000/v2/> (no auth)
+   - Zot Registry API (external): <https://registry.smigula.io/v2/> (auth via Traefik/Authentik)
    - Zot Web UI: <http://localhost:5000/home> or <https://registry.smigula.io/home>
    - Grafana: <http://localhost:3000> (admin/admin)
    - Prometheus: <http://localhost:9090>
@@ -844,10 +817,8 @@ http:
   address: 0.0.0.0
   port: '5000'                           # Main API port
   externalUrl: https://registry.smigula.io  # External URL for reverse proxy
-  auth:
-    htpasswd:
-      path: /etc/zot/htpasswd            # HTPasswd authentication file
-      failDelay: 5s                      # Delay after failed authentication
+  # Authentication is now handled externally by Authentik through Traefik
+  # No local authentication is configured
 log:
   level: info
 ```
@@ -904,7 +875,7 @@ extensions:
   - OCI-compliant registry with distribution spec v1.1.0
   - Pull-through cache for multiple registries with prefix routing
   - Built-in web UI and search functionality
-  - HTTP basic authentication with htpasswd
+  - External authentication through Traefik/Authentik
   - External URL support for reverse proxy deployments
   - Prometheus metrics exposure
   - Image vulnerability scanning with scrub extension
@@ -917,7 +888,7 @@ extensions:
 - **API Endpoints**:
   - Local: `http://localhost:5000`
   - External: `https://registry.smigula.io` (via Caddy)
-  - `/v2/` - API version check (requires authentication)
+  - `/v2/` - API version check (auth required for external access via Traefik/Authentik)
   - `/v2/_catalog` - List all repositories
   - `/v2/{name}/tags/list` - List tags for a repository
   - `/v2/{name}/manifests/{reference}` - Get/Put/Delete manifests
@@ -1014,7 +985,7 @@ services:
     volumes:
       - ./config/config.yaml:/etc/zot/config.yaml:ro
       - ./config/credentials.yaml:/etc/zot/credentials.yaml:ro
-      - ./auth/htpasswd:/etc/zot/htpasswd:ro
+      # Authentication handled externally, no local auth files needed
       - zot-data:/var/lib/zot
     networks:
       - zot_registry
@@ -1441,25 +1412,22 @@ ls -la /etc/docker/certs.d/localhost:5000/ # Regular Docker
 1. **401 Unauthorized errors**:
 
    ```bash
-   # Test authentication with curl
-   curl -u smigula:Registry363502 https://registry.smigula.io/v2/
+   # Test authentication through external URL (handled by Traefik/Authentik)
+   curl https://registry.smigula.io/v2/
 
-   # Check htpasswd file exists and is mounted
-   docker exec registry ls -la /etc/zot/htpasswd
+   # For local access (no authentication required)
+   curl http://localhost:5000/v2/
 
-   # Verify Zot configuration includes auth section
-   docker exec registry cat /etc/zot/config.yaml | grep -A5 auth
+   # Verify Zot configuration
+   docker exec registry cat /etc/zot/config.yaml
    ```
 
-1. **Update password**:
+1. **Update authentication**:
 
-   ```bash
-   # Generate new password hash
-   htpasswd -bBn smigula NewPassword123 > zot/auth/htpasswd
-
-   # Restart Zot to apply changes
-   cd zot && docker-compose restart registry
-   ```
+   Authentication is managed externally through Authentik. To update access:
+   - Configure users and groups in Authentik
+   - Update Traefik middleware configuration as needed
+   - No local registry restart required for auth changes
 
 1. **Docker login issues**:
 
@@ -1543,8 +1511,8 @@ docker pull localhost:5000/docker/alpine:latest
 .
 ├── zot/                          # Zot registry directory
 │   ├── docker-compose.yaml       # Zot service definition
-│   ├── auth/                     # Authentication files
-│   │   └── htpasswd              # Basic auth credentials (git ignored)
+│   ├── auth/                     # Authentication files (if using local auth)
+│   │   └── (empty - auth handled externally)
 │   └── config/                   # Zot configuration files
 │       ├── config.yaml           # Main Zot configuration
 │       └── credentials.yaml      # Registry credentials (git ignored)

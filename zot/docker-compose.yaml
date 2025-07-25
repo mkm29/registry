@@ -17,6 +17,7 @@ services:
       - zot-data:/var/lib/zot
     networks:
       - registry
+      - monitoring
     command:
       - serve
       - /etc/zot/config.yaml
@@ -35,4 +36,6 @@ volumes:
       o: bind
 networks:
   registry:
+    external: true
+  monitoring:
     external: true

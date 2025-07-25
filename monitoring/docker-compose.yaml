@@ -37,6 +37,7 @@ services:
       - "9090:9090" # Prometheus UI - only expose the UI
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/zot-password.txt:/etc/prometheus/zot-password.txt:ro
       - ./certs/registry.crt:/etc/prometheus/certs/registry.pem:ro
       - ./certs/registry.key:/etc/prometheus/certs/registry-key.pem:ro
       - ./certs/ca.pem:/etc/prometheus/certs/ca.pem:ro

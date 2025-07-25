@@ -81,3 +81,10 @@ CLAUDE.md
 # Keep encrypted versions
 !*-secrets.env.enc
 !.secrets.env.enc
+
+# Prometheus authentication files
+monitoring/prometheus/zot-password.txt
+monitoring/prometheus/*-password.txt
+# Keep example files
+!monitoring/prometheus/*-password.txt.example
+
