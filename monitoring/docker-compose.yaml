@@ -74,6 +74,9 @@ services:
     restart: always
     ports:
       - "3100:3100"
+    environment:
+      - "AWS_SECRET_ACCESS_KEY=LokiP@ss5"
+      - "AWS_ACCESS_KEY_ID=lokiuser"
     volumes:
       - ./loki/loki-config.yaml:/etc/loki/loki-config.yaml:ro
       - loki-data:/loki
