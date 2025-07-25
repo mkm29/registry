@@ -101,17 +101,17 @@ loki.process "docker_logs" {
 	}
 }
 
-// Local file matching for Caddy logs using glob pattern
-local.file_match "caddy_logs" {
+// Local file matching for traefik logs using glob pattern
+local.file_match "traefik_logs" {
 	path_targets = [{
-		__path__ = "/var/log/caddy/*.smigula.io.log",
-		job      = "caddy_logs",
+		__path__ = "/var/log/traefik/*.log",
+		job      = "traefik_logs",
 	}]
 }
 
 // Relabel to extract service name from filename
-discovery.relabel "caddy_logs" {
-	targets = local.file_match.caddy_logs.targets
+discovery.relabel "traefik_logs" {
+	targets = local.file_match.traefik_logs.targets
 
 	// Extract service name from filename (e.g., grafana.smigula.io.log -> grafana.smigula.io)
 	rule {
@@ -121,17 +121,17 @@ discovery.relabel "caddy_logs" {
 	}
 }
 
-// File source for Caddy logs
-loki.source.file "caddy_logs" {
-	targets    = discovery.relabel.caddy_logs.output
-	forward_to = [loki.process.caddy_logs.receiver]
+// File source for traefik logs
+loki.source.file "traefik_logs" {
+	targets    = discovery.relabel.traefik_logs.output
+	forward_to = [loki.process.traefik_logs.receiver]
 }
 
-// Process pipeline for Caddy logs
-loki.process "caddy_logs" {
+// Process pipeline for traefik logs
+loki.process "traefik_logs" {
 	forward_to = [loki.write.loki.receiver]
 
-	// Parse JSON format from Caddy
+	// Parse JSON format from traefik
 	stage.json {
 		expressions = {
 			ts           = "ts",
@@ -268,6 +268,26 @@ prometheus.scrape "traefik" {
 	metrics_path    = "/metrics"
 }
 
+// Scrape metrics from Zot Registry
+prometheus.scrape "zot_registry" {
+	targets = [
+		{
+			__address__ = "registry:5000",
+			job         = "zot-registry",
+		},
+	]
+	forward_to      = [prometheus.relabel.zot_metrics.receiver]
+	scrape_interval = "30s"
+	scrape_timeout  = "10s"
+	metrics_path    = "/metrics"
+
+	// Basic auth configuration for Zot
+	basic_auth {
+		username = "smigula"
+		password = env("ZOT_METRICS_PASSWORD")
+	}
+}
+
 // Relabel metrics from Traefik
 prometheus.relabel "traefik_metrics" {
 	forward_to = [prometheus.remote_write.metrics.receiver]
@@ -282,6 +302,24 @@ prometheus.relabel "traefik_metrics" {
 	rule {
 		source_labels = ["__name__"]
 		regex         = "traefik_.*"
+		action        = "keep"
+	}
+}
+
+// Relabel metrics from Zot Registry
+prometheus.relabel "zot_metrics" {
+	forward_to = [prometheus.remote_write.metrics.receiver]
+
+	// Add instance label
+	rule {
+		source_labels = ["__address__"]
+		target_label  = "instance"
+	}
+
+	// Keep Zot-specific metrics
+	rule {
+		source_labels = ["__name__"]
+		regex         = "zot_.*"
 		action        = "keep"
 	}
 }

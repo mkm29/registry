@@ -49,6 +49,7 @@ services:
       - '--web.console.templates=/usr/share/prometheus/consoles'
       - '--web.enable-lifecycle'
       - '--web.enable-remote-write-receiver'
+      - '--enable-feature=native-histograms'
     networks:
       - monitoring
     depends_on:
@@ -170,7 +171,7 @@ services:
     volumes:
       - /run/user/1000/docker.sock:/var/run/docker.sock:ro
       - ./alloy/config.alloy:/etc/alloy/config.alloy:ro
-      - ./caddy/logs:/var/log/caddy:ro
+      - /mnt/data/logs/traefik:/var/log/traefik:ro
       - alloy-data:/var/lib/alloy
     command:
       - run
@@ -179,6 +180,8 @@ services:
       - --server.http.listen-addr=0.0.0.0:12345
     ports:
       - "12345:12345"
+    env_file:
+      - .alloy-secrets.env
     networks:
       - monitoring
   # Tempo runs as user 10001, and docker compose creates the volume as root.
