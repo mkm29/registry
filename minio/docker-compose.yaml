@@ -48,45 +48,16 @@ services:
     depends_on:
       minio:
         condition: service_healthy
-    entrypoint: >
-      /bin/sh -c "
-      until /usr/bin/mc alias set myminio http://minio:9000 $$MINIO_ROOT_USER $$MINIO_ROOT_PASSWORD; do
-        echo 'Waiting for MinIO to be ready...'
-        sleep 3
-      done;
-      echo 'MinIO is ready';
-      # Create default buckets if needed
-      /usr/bin/mc mb myminio/data || true;
-      /usr/bin/mc mb myminio/backups || true;
-      /usr/bin/mc mb myminio/registry || true;
-      /usr/bin/mc mb myminio/loki || true;
-      # Create lokiuser with specific credentials
-      /usr/bin/mc admin user add myminio lokiuser SuperSecret1 || true;
-      # Create and attach policy for lokiuser to access loki bucket
-      echo '{
-        \"Version\": \"2012-10-17\",
-        \"Statement\": [
-          {
-            \"Effect\": \"Allow\",
-            \"Action\": [
-              \"s3:*\"
-            ],
-            \"Resource\": [
-              \"arn:aws:s3:::loki\",
-              \"arn:aws:s3:::loki/*\"
-            ]
-          }
-        ]
-      }' > /tmp/loki-policy.json;
-      /usr/bin/mc admin policy create myminio loki-policy /tmp/loki-policy.json || true;
-      /usr/bin/mc admin policy attach myminio loki-policy --user lokiuser || true;
-      # Set bucket policies if needed
-      /usr/bin/mc anonymous set download myminio/data || true;
-      tail -f /dev/null
-      "
+    entrypoint: ["/bin/sh", "-c", "/setup.sh"]
+    volumes:
+      - ./setup.sh:/setup.sh:ro
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin123}
+      # Service user passwords
+      LOKI_USER_PASSWORD: ${LOKI_USER_PASSWORD:-SuperSecret1}
+      MIMIR_USER_PASSWORD: ${MIMIR_USER_PASSWORD:-SuperSecret1}
+      TEMPO_USER_PASSWORD: ${TEMPO_USER_PASSWORD:-SuperSecret1}
     networks:
       - monitoring
 
