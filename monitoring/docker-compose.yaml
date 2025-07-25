@@ -38,9 +38,9 @@ services:
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - ./prometheus/zot-password.txt:/etc/prometheus/zot-password.txt:ro
-      - ./certs/registry.crt:/etc/prometheus/certs/registry.pem:ro
-      - ./certs/registry.key:/etc/prometheus/certs/registry-key.pem:ro
-      - ./certs/ca.pem:/etc/prometheus/certs/ca.pem:ro
+      # - ./certs/registry.crt:/etc/prometheus/certs/registry.pem:ro
+      # - ./certs/registry.key:/etc/prometheus/certs/registry-key.pem:ro
+      # - ./certs/ca.pem:/etc/prometheus/certs/ca.pem:ro
       - prometheus-data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
@@ -184,6 +184,7 @@ services:
       - .alloy-secrets.env
     networks:
       - monitoring
+      - registry
   # Tempo runs as user 10001, and docker compose creates the volume as root.
   # As such, we need to chown the volume in order for Tempo to start correctly.
   tempo-init:
@@ -260,7 +261,7 @@ volumes:
 networks:
   monitoring:
     external: true
-  mediaserver_default:
+  registry:
     external: true
     # traefik:
     #   external: true
