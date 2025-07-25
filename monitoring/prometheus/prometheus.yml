@@ -1,13 +1,11 @@
 global:
   scrape_interval: 15s
   evaluation_interval: 15s
-
 scrape_configs:
   # Prometheus self-monitoring
   - job_name: 'prometheus'
     static_configs:
       - targets: ['localhost:9090']
-
   # Docker Registry metrics
   - job_name: 'zot-registry'
     # scheme: https
@@ -24,7 +22,6 @@ scrape_configs:
       - source_labels: [__address__]
         target_label: instance
         replacement: 'zot-registry'
-
   # Jaeger metrics
   - job_name: 'jaeger'
     static_configs:

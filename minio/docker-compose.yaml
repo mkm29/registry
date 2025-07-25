@@ -1,0 +1,68 @@
+services:
+  minio:
+    image: registry.smigula.io/docker/minio/minio:latest
+    container_name: minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      # Change these in production - use .env file
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin123}
+      # Set browser redirect URL for console
+      MINIO_BROWSER_REDIRECT_URL: ${MINIO_BROWSER_REDIRECT_URL:-https://minio.smigula.io}
+      # Set the server URL for proper API access
+      MINIO_SERVER_URL: ${MINIO_SERVER_URL:-https://api.minio.smigula.io}
+      # Prometheus metrics
+      MINIO_PROMETHEUS_AUTH_TYPE: public
+      # Region setting
+      MINIO_REGION_NAME: ${MINIO_REGION_NAME:-us-east-1}
+      # Storage class settings
+      MINIO_STORAGE_CLASS_STANDARD: ${MINIO_STORAGE_CLASS_STANDARD:-EC:0}
+    # Remove external port exposure when using Traefik
+    # ports:
+    #   - "9000:9000"   # API port
+    #   - "9001:9001"   # Console port
+    volumes:
+      - /mnt/data/minio:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - monitoring
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+  # Optional: MinIO Client for administration
+  mc:
+    image: registry.smigula.io/docker/minio/mc:latest
+    container_name: minio-mc
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-c", "/setup.sh"]
+    volumes:
+      - ./setup.sh:/setup.sh:ro
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin123}
+      # Service user passwords
+      LOKI_USER_PASSWORD: ${LOKI_USER_PASSWORD:-SuperSecret1}
+      MIMIR_USER_PASSWORD: ${MIMIR_USER_PASSWORD:-SuperSecret1}
+      TEMPO_USER_PASSWORD: ${TEMPO_USER_PASSWORD:-SuperSecret1}
+    env_file:
+      - .env
+    networks:
+      - monitoring
+
+networks:
+  monitoring:
+    external: true

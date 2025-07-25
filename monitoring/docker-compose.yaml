@@ -1,5 +1,18 @@
-services:
+x-minio-common: &minio-common
+  image: minio/minio:latest
+  command: server --console-address ":9001" /data
+  ports:
+    - "9000:9000"
+    - "9001:9001"
+  healthcheck:
+    test: ["CMD", "curk", "-f", "--tries=1", "http://localhost:9000/minio/health/live"]
+    interval: 30s
+    timeout: 20s
+    retries: 3
+  networks:
+    - monitoring
 
+services:
   prometheus-init:
     image: registry.smigula.io/docker/alpine:latest
     container_name: prometheus-init
@@ -7,20 +20,21 @@ services:
       - prometheus-data:/prometheus
     command: >
       sh -c "
+
         chown -R 65534:65534 /prometheus &&
         chmod -R 755 /prometheus
       "
+
     networks:
       - monitoring
     restart: "no"
-
   # Prometheus for metrics collection
   prometheus:
     image: registry.smigula.io/docker/prom/prometheus:latest
     container_name: prometheus
     restart: always
     ports:
-      - "9090:9090"  # Prometheus UI - only expose the UI
+      - "9090:9090" # Prometheus UI - only expose the UI
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - ./certs/registry.crt:/etc/prometheus/certs/registry.pem:ro
@@ -38,7 +52,6 @@ services:
       - monitoring
     depends_on:
       - prometheus-init
-
   loki-init:
     image: registry.smigula.io/docker/alpine:latest
     container_name: loki-init
@@ -46,13 +59,14 @@ services:
       - loki-data:/loki
     command: >
       sh -c "
+
         chown -R 10001:10001 /loki &&
         chmod -R 755 /loki
       "
+
     networks:
       - monitoring
     restart: "no"
-
   # Loki for log aggregation
   loki:
     image: registry.smigula.io/docker/grafana/loki:latest
@@ -60,6 +74,9 @@ services:
     restart: always
     ports:
       - "3100:3100"
+    environment:
+      - "AWS_SECRET_ACCESS_KEY=LokiP@ss5"
+      - "AWS_ACCESS_KEY_ID=lokiuser"
     volumes:
       - ./loki/loki-config.yaml:/etc/loki/loki-config.yaml:ro
       - loki-data:/loki
@@ -84,33 +101,23 @@ services:
     volumes:
       - grafana-data:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
-    environment:
-      - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=admin
-      - GF_USERS_ALLOW_SIGN_UP=false
-      - GF_USERS_ALLOW_ORG_CREATE=false
-      - GF_AUTH_ANONYMOUS_ENABLED=true
-      - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
-      - GF_SERVER_DOMAIN=grafana.smigula.io
-      - GF_SERVER_ROOT_URL=https://grafana.smigula.io
-      - GF_SERVER_SERVE_FROM_SUB_PATH=true
-      - GF_SECURITY_CSRF_TRUSTED_ORIGINS=https://grafana.smigula.io
-      - GF_SERVER_PROTOCOL=http
-      - GF_SERVER_ENABLE_GZIP=true
-      - GF_SERVER_USE_X_FORWARDED=true
+      - ./grafana/grafana.ini:/etc/grafana/grafana.ini:ro
+    # environment:
+    #   - "GF_PLUGINS_PREINSTALL=grafana-clock-panel, grafana-simple-json-datasource"
+    env_file:
+      - .grafana-secrets.env
     networks:
       - monitoring
     depends_on:
       - prometheus
       - tempo
       - loki
-
   dozzle:
     container_name: dozzle
     image: registry.smigula.io/docker/amir20/dozzle:latest
-    secrets:
-      - source: users
-        target: /data/users.yml
+    # secrets:
+    #   - source: users
+    #     target: /data/users.yml
     volumes:
       - /run/user/1000/docker.sock:/var/run/docker.sock
       - dozzle-data:/data
@@ -121,11 +128,10 @@ services:
       - DOZZLE_ADDR=:9080
       - DOZZLE_HOSTNAME=dozzle.smigula.io
       - DOZZLE_LEVEL=debug
-      - DOZZLE_AUTH_PROVIDER=simple
+      - DOZZLE_AUTH_PROVIDER=forward-proxy
     restart: unless-stopped
     networks:
       - monitoring
-
   # cAdvisor for container metrics in rootless mode
   cadvisor:
     image: registry.smigula.io/gcr/cadvisor/cadvisor:v0.52.0
@@ -155,7 +161,6 @@ services:
       - --max_procs=4
     networks:
       - monitoring
-
   # Grafana Alloy for observability data collection
   alloy:
     image: registry.smigula.io/docker/grafana/alloy:latest
@@ -175,13 +180,10 @@ services:
       - "12345:12345"
     networks:
       - monitoring
-      - traefik_default
-      - media_mediaserver
-
   # Tempo runs as user 10001, and docker compose creates the volume as root.
   # As such, we need to chown the volume in order for Tempo to start correctly.
   tempo-init:
-    image: alpine:latest
+    image: registry.smigula.io/docker/alpine:latest
     container_name: tempo-init
     user: root
     command: >
@@ -189,52 +191,59 @@ services:
         chown -R 10001:10001 /var/tempo &&
         chmod -R 755 /var/tempo
       "
+
     volumes:
       - tempo-data:/var/tempo
     networks:
       - monitoring
     restart: "no"
   tempo:
-    image: grafana/tempo:latest
+    image: registry.smigula.io/docker/grafana/tempo:latest
     container_name: tempo
-    command: [ "-config.file=/etc/tempo.yaml" ]
+    command: ["-config.file=/etc/tempo.yaml"]
     volumes:
       - ../shared/tempo.yaml:/etc/tempo.yaml:ro
       - tempo-data:/var/tempo
     ports:
-      - "3200:3200"  # Tempo query endpoint
-      - "4317:4317"  # OTLP gRPC receiver
-      - "4318:4318"  # OTLP HTTP receiver
+      - "3200:3200" # Tempo query endpoint
+      - "4317:4317" # OTLP gRPC receiver
+      - "4318:4318" # OTLP HTTP receiver
     depends_on:
       - tempo-init
     networks:
       - monitoring
-      - traefik_default
-      - media_mediaserver
     restart: unless-stopped
-
-secrets:
-  users:
-    file: users.yml
-
+# secrets:
+#   users:
+#     file: users.yml
 volumes:
   prometheus-data:
     driver: local
   grafana-data:
     driver: local
+    driver_opts:
+      type: none
+      device: /mnt/data/grafana
+      o: bind
   loki-data:
     driver: local
   dozzle-data:
     driver: local
   alloy-data:
     driver: local
+  minio-data:
+    driver: local
+    driver_opts:
+      type: none
+      device: /mnt/data/minio
+      o: bind
   tempo-data:
     driver: local
 
 networks:
   monitoring:
-    driver: bridge
-  media_mediaserver:
     external: true
-  traefik_default:
+  mediaserver_default:
     external: true
+    # traefik:
+    #   external: true

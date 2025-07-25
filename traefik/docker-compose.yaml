@@ -6,8 +6,8 @@ services:
     ports:
       - "80:80"
       - "443:443"
-      - "8080:8080"  # Traefik dashboard
-      - "8082:8082"  # Metrics endpoint
+      - "8080:8080" # Traefik dashboard
+      - "8082:8082" # Metrics endpoint
     volumes:
       - ./config/traefik.yml:/etc/traefik/traefik.yml:ro
       - ./config/dynamic:/etc/traefik/dynamic:ro
@@ -17,11 +17,11 @@ services:
     environment:
       - TRAEFIK_LOG_LEVEL=INFO
     networks:
-      - default
-      - monitoring_monitoring
-      - media_mediaserver
-      - zot_registry
-
+      - traefik
+      - monitoring
+      - mediaserver
+      - registry
+      - auth
   landing:
     image: nginx:alpine
     container_name: landing-page
@@ -29,23 +29,22 @@ services:
     volumes:
       - ../shared/html:/usr/share/nginx/html:ro
     networks:
-      - default
-      - zot_registry
+      - traefik
+      - registry
     expose:
       - "80"
     labels:
       - "traefik.enable=true"
-      - "traefik.docker.network=traefik_default"
+      - "traefik.docker.network=traefik"
       - "traefik.http.routers.landing.rule=Host(`smigula.io`)"
       - "traefik.http.routers.landing.entrypoints=websecure"
       - "traefik.http.routers.landing.tls.certresolver=letsencrypt"
       - "traefik.http.services.landing.loadbalancer.server.port=80"
       # Redirects
       - "traefik.http.routers.landing.middlewares=landing-redirects"
-      - "traefik.http.middlewares.landing-redirects.redirectregex.regex=^https://smigula.io/(grafana|jaeger|registry)$$"
+      - "traefik.http.middlewares.landing-redirects.redirectregex.regex=^https://smigula.io/(grafana|plex|registry)$$"
       - "traefik.http.middlewares.landing-redirects.redirectregex.replacement=https://$$1.smigula.io"
       - "traefik.http.middlewares.landing-redirects.redirectregex.permanent=true"
-
 volumes:
   traefik_certs:
     external: false
@@ -55,13 +54,14 @@ volumes:
       type: none
       device: /mnt/data/logs/traefik
       o: bind
-
 networks:
-  default:
-    driver: bridge
-  zot_registry:
+  traefik:
     external: true
-  monitoring_monitoring:
+  registry:
     external: true
-  media_mediaserver:
+  monitoring:
+    external: true
+  mediaserver:
+    external: true
+  auth:
     external: true

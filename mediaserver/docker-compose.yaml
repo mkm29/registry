@@ -1,5 +1,4 @@
 services:
-
   radarr-init:
     image: alpine:latest
     container_name: radarr-init
@@ -9,15 +8,17 @@ services:
       - ${DATA_ROOT}/media/movies:/movies
     command: >
       sh -c "
+
         echo 'Fixing permissions for Plex media directories...' &&
         chown -R 1000:1000 /config /data /movies &&
         chmod -R 755 /config /data /movies &&
         echo 'Permissions fixed successfully'
       "
+
     restart: "no"
     networks:
-      - media_mediaserver
-      - zot_registry
+      - mediaserver
+      - registry
   # Movies
   radarr:
     image: lscr.io/linuxserver/radarr:latest
@@ -34,11 +35,10 @@ services:
       - ${RADARR_PORT}:7878
     restart: unless-stopped
     networks:
-      - media_mediaserver
-      - zot_registry
+      - mediaserver
+      - registry
     depends_on:
       - radarr-init
-
   sonarr-init:
     image: alpine:latest
     container_name: sonarr-init
@@ -48,15 +48,17 @@ services:
       - ${DATA_ROOT}/media/tv:/tv
     command: >
       sh -c "
+
         echo 'Fixing permissions for Plex media directories...' &&
         chown -R 1000:1000 /config /data /tv &&
         chmod -R 755 /config /data /tv &&
         echo 'Permissions fixed successfully'
       "
+
     restart: "no"
     networks:
-      - media_mediaserver
-      - zot_registry
+      - mediaserver
+      - registry
   # TV
   sonarr:
     image: lscr.io/linuxserver/sonarr:latest
@@ -73,11 +75,10 @@ services:
       - ${SONARR_PORT}:8989
     restart: unless-stopped
     networks:
-      - media_mediaserver
-      - zot_registry
+      - mediaserver
+      - registry
     depends_on:
       - sonarr-init
-
   # Subtitles
   bazarr:
     image: lscr.io/linuxserver/bazarr:latest
@@ -94,9 +95,8 @@ services:
       - ${BAZARR_PORT}:6767
     restart: unless-stopped
     networks:
-      - media_mediaserver
-      - zot_registry
-
+      - mediaserver
+      - registry
   prowlarr-init:
     image: alpine:latest
     container_name: prowlarr-init
@@ -104,16 +104,17 @@ services:
       - ${CONFIG_ROOT}/prowlarr:/config
     command: >
       sh -c "
+
         echo 'Fixing permissions for Plex media directories...' &&
         chown -R 1000:1000 /config &&
         chmod -R 755 /config &&
         echo 'Permissions fixed successfully'
       "
+
     restart: "no"
     networks:
-      - media_mediaserver
-      - zot_registry
-
+      - mediaserver
+      - registry
   # Indexer
   prowlarr:
     image: lscr.io/linuxserver/prowlarr:latest
@@ -128,11 +129,10 @@ services:
       - ${PROWLARR_PORT}:9696
     restart: unless-stopped
     networks:
-      - media_mediaserver
-      - zot_registry
+      - mediaserver
+      - registry
     depends_on:
       - prowlarr-init
-
   qbittorrent-init:
     image: alpine:latest
     container_name: qbittorrent-init
@@ -142,16 +142,17 @@ services:
       - ${DATA_ROOT}/torrents/incomplete:/data/incomplete
     command: >
       sh -c "
+
         echo 'Fixing permissions for Plex media directories...' &&
         chown -R 1000:1000 /config /data &&
         chmod -R 755 /config /data &&
         echo 'Permissions fixed successfully'
       "
+
     restart: "no"
     networks:
-      - media_mediaserver
-      - zot_registry
-
+      - mediaserver
+      - registry
   # Torrent Client
   qbittorrent:
     image: lscr.io/linuxserver/qbittorrent:latest
@@ -172,11 +173,10 @@ services:
       - ${QBITTORRENT_TORRENTING_PORT}:6881/udp
     restart: unless-stopped
     networks:
-      - media_mediaserver
-      - zot_registry
+      - mediaserver
+      - registry
     depends_on:
       - qbittorrent-init
-
   overseerr-init:
     image: alpine:latest
     container_name: overseerr-init
@@ -184,16 +184,17 @@ services:
       - ${CONFIG_ROOT}/overseerr:/config
     command: >
       sh -c "
+
         echo 'Fixing permissions for Plex media directories...' &&
         chown -R 0:0 /config &&
         chmod -R 755 /config &&
         echo 'Permissions fixed successfully'
       "
+
     restart: "no"
     networks:
-      - media_mediaserver
-      - zot_registry
-
+      - mediaserver
+      - registry
   # Requesting Web App
   overseerr:
     image: lscr.io/linuxserver/overseerr:latest
@@ -208,11 +209,10 @@ services:
       - ${OVERSEERR_PORT}:5055
     restart: unless-stopped
     networks:
-      - media_mediaserver
-      - zot_registry
+      - mediaserver
+      - registry
     depends_on:
       - overseerr-init
-
   # Plex init service to fix permissions
   plex-init:
     image: alpine:latest
@@ -222,16 +222,17 @@ services:
       - ${DATA_ROOT}/media/movies:/movies
     command: >
       sh -c "
+
         echo 'Fixing permissions for Plex media directories...' &&
         chown -R 1000:1000 /tv /movies &&
         chmod -R 755 /tv /movies &&
         echo 'Permissions fixed successfully'
       "
+
     restart: "no"
     networks:
-      - media_mediaserver
-      - zot_registry
-
+      - mediaserver
+      - registry
   # Media Server
   plex:
     image: lscr.io/linuxserver/plex:latest
@@ -247,24 +248,23 @@ services:
       - ${DATA_ROOT}/media/tv:/tv
       - ${DATA_ROOT}/media/movies:/movies
     ports:
-      - "32400:32400"   # Main Plex port
+      - "32400:32400" # Main Plex port
       - "1900:1900/udp" # DLNA
-      - "3005:3005"     # Plex Companion
+      - "3005:3005" # Plex Companion
       - "5353:5353/udp" # Bonjour/Avahi
-      - "8324:8324"     # Plex for Roku
+      - "8324:8324" # Plex for Roku
       - "32410:32410/udp" # GDM Network discovery
       - "32412:32412/udp" # GDM Network discovery
       - "32413:32413/udp" # GDM Network discovery
       - "32414:32414/udp" # GDM Network discovery
-      - "32469:32469"   # DLNA
+      - "32469:32469" # DLNA
     restart: unless-stopped
     networks:
-      - media_mediaserver
-      - zot_registry
+      - mediaserver
+      - registry
     depends_on:
       - plex-init
     # Note: Plex uses host networking for better performance and compatibility but in rootless mode you cannot use host networking.
-
   # VPN
   # nordlynx:
   #   image: localhost:5000/ghcr/bubuntux/nordlynx
@@ -274,11 +274,10 @@ services:
   #     - PRIVATE_KEY=${NORDLYNX_PRIVATE_KEY}
   #   restart: unless-stopped
   #   networks: host
-  #     - media_mediaserver
-  #     - zot_registry
-
+  #     - default
+  #     - registry
 networks:
-  media_mediaserver:
+  mediaserver:
     external: true
-  zot_registry:
+  registry:
     external: true

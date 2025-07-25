@@ -1,0 +1,71 @@
+http:
+  routers:
+    # MinIO API Router
+    minio-api:
+      rule: "Host(`api.minio.smigula.io`)"
+      service: minio-api
+      entryPoints:
+        - websecure
+      tls:
+        certResolver: letsencrypt
+      middlewares:
+        - security-headers
+        - minio-cors
+    
+    # MinIO Console Router
+    minio-console:
+      rule: "Host(`minio.smigula.io`)"
+      service: minio-console
+      entryPoints:
+        - websecure
+      tls:
+        certResolver: letsencrypt
+      middlewares:
+        - security-headers
+        - minio-console-headers
+
+  services:
+    # MinIO API Service
+    minio-api:
+      loadBalancer:
+        servers:
+          - url: "http://minio:9000"
+        passHostHeader: true
+    
+    # MinIO Console Service
+    minio-console:
+      loadBalancer:
+        servers:
+          - url: "http://minio:9001"
+        passHostHeader: true
+
+  middlewares:
+    # CORS headers for MinIO API (S3 compatibility)
+    minio-cors:
+      headers:
+        accessControlAllowOriginList:
+          - "*"
+        accessControlAllowHeaders:
+          - "*"
+        accessControlAllowMethods:
+          - "GET"
+          - "HEAD"
+          - "POST"
+          - "PUT"
+          - "DELETE"
+          - "OPTIONS"
+        accessControlExposeHeaders:
+          - "ETag"
+          - "x-amz-request-id"
+          - "x-amz-id-2"
+          - "x-amz-bucket-region"
+          - "x-amz-server-side-encryption"
+        accessControlMaxAge: 1000
+        addVaryHeader: true
+    
+    # Console specific headers
+    minio-console-headers:
+      headers:
+        customRequestHeaders:
+          X-Forwarded-Proto: https
+          X-Forwarded-Host: "minio.smigula.io"

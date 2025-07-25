@@ -74,3 +74,10 @@ secrets/
 credentials/
 .claude/
 CLAUDE.md
+
+# Secrets environment files
+*-secrets.env
+.secrets.env
+# Keep encrypted versions
+!*-secrets.env.enc
+!.secrets.env.enc

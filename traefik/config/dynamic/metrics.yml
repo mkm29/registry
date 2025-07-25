@@ -8,8 +8,7 @@ http:
       tls:
         certResolver: letsencrypt
       middlewares:
-        - auth-basic
-
+        - authentik
 # Add internal metrics endpoint
 metrics:
   entryPoints:
