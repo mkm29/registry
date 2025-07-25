@@ -1,6 +1,6 @@
 logging {
 	format = "json"
-	level  = "debug"
+	level  = "info"
 }
 // Grafana Alloy configuration for Docker monitoring (logs and metrics)
 
@@ -60,7 +60,7 @@ discovery.relabel "containers" {
 loki.process "docker_logs" {
 	forward_to = [loki.write.loki.receiver]
 
-	// Parse JSON logs
+	// Parse JSON logs from Docker
 	stage.json {
 		expressions = {
 			output    = "log",
@@ -69,16 +69,17 @@ loki.process "docker_logs" {
 		}
 	}
 
+	// Drop empty lines early
+	stage.drop {
+		expression          = "^\\s*$"
+		source              = "output"
+		drop_counter_reason = "empty_line"
+	}
+
 	// Use timestamp from Docker
 	stage.timestamp {
 		source = "timestamp"
 		format = "RFC3339Nano"
-	}
-
-	// Parse registry logs format if present
-	stage.regex {
-		expression = "^(?P<timestamp>\\S+)\\s+(?P<level>\\S+)\\s+(?P<component>\\S+)\\s+(?P<msg>.*)"
-		source     = "output"
 	}
 
 	// Set output to the actual log message
@@ -86,18 +87,28 @@ loki.process "docker_logs" {
 		source = "output"
 	}
 
-	// Add labels
+	// Add stream label
 	stage.labels {
 		values = {
-			level     = "level",
-			component = "component",
-			stream    = "stream",
+			stream = "stream",
 		}
 	}
 
-	// Drop empty lines
-	stage.drop {
-		expression = "^\\s*$"
+	// Optional: Try to parse structured logs and add more labels
+	// This won't fail if the regex doesn't match
+	stage.match {
+		selector = "{job=\"docker_logs\"}"
+		// Try to parse registry-style logs
+		stage.regex {
+			expression = "^(?P<log_timestamp>\\S+)\\s+(?P<level>\\S+)\\s+(?P<component>\\S+)\\s+(?P<msg>.*)"
+		}
+		// Add extracted labels if they exist
+		stage.labels {
+			values = {
+				level     = "level",
+				component = "component",
+			}
+		}
 	}
 }
 
