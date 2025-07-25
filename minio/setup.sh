@@ -114,8 +114,8 @@ rm -f /tmp/loki-policy.json /tmp/mimir-policy.json /tmp/tempo-policy.json
 # Display status
 echo -e "\nMinIO Setup Complete!"
 echo "========================"
-echo "Buckets created:"
-mc ls ${MINIO_ALIAS}/
+echo "Buckets created: $(mc ls ${MINIO_ALIAS} | wc -l)"
+mc ls ${MINIO_ALIAS} | cut -d'B' -f2 | cut -c2- | tr -d '/' | tr '\n' ' '
 
 echo -e "\nUsers configured:"
 mc admin user list ${MINIO_ALIAS}
@@ -123,13 +123,6 @@ mc admin user list ${MINIO_ALIAS}
 echo -e "\nPolicies created:"
 mc admin policy list ${MINIO_ALIAS}
 
-# echo -e "\nVerifying Loki access..."
-# mc --debug ls ${MINIO_ALIAS}/loki --user lokiuser --password ${LOKI_USER_PASSWORD} || echo "Failed to access loki bucket with lokiuser"
-# echo -e "\nVerifying Mimir access..."
-# mc --debug ls ${MINIO_ALIAS}/mimir --user mimiruser --password ${MIMIR_USER_PASSWORD} || echo "Failed to access mimir bucket with mimiruser"
-# echo -e "\nVerifying Tempo access..."
-# mc --debug ls ${MINIO_ALIAS}/tempo --user tempouser --password ${TEMPO_USER_PASSWORD} || echo "Failed to access tempo bucket with tempouser"
-
-# Keep container running
-echo -e "\nMinIO setup complete. Container will keep running..."
-tail -f /dev/null
+echo -e "\nMinIO setup complete."
+# stop the script from exiting
+exit 0
