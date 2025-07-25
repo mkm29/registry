@@ -115,16 +115,20 @@ rm -f /tmp/loki-policy.json /tmp/mimir-policy.json /tmp/tempo-policy.json
 echo -e "\nMinIO Setup Complete!"
 echo "========================"
 echo "Buckets created:"
-mc ls ${MINIO_ALIAS}/ | grep -E "(loki|mimir|tempo|registry|backups|data)"
+mc ls ${MINIO_ALIAS}/
 
 echo -e "\nUsers configured:"
-mc admin user list ${MINIO_ALIAS} | grep -E "(lokiuser|mimiruser|tempouser)"
+mc admin user list ${MINIO_ALIAS}
 
 echo -e "\nPolicies created:"
-mc admin policy list ${MINIO_ALIAS} | grep -E "(loki-policy|mimir-policy|tempo-policy)"
+mc admin policy list ${MINIO_ALIAS}
 
 echo -e "\nVerifying Loki access..."
-mc --debug ls ${MINIO_ALIAS}/loki --user lokiuser --password ${LOKI_USER_PASSWORD} 2>&1 | grep -E "(200 OK|ListBucketResult)" && echo "✓ Loki user can access bucket" || echo "✗ Loki user cannot access bucket"
+mc --debug ls ${MINIO_ALIAS}/loki --user lokiuser --password ${LOKI_USER_PASSWORD} || echo "Failed to access loki bucket with lokiuser"
+echo -e "\nVerifying Mimir access..."
+mc --debug ls ${MINIO_ALIAS}/mimir --user mimiruser --password ${MIMIR_USER_PASSWORD} || echo "Failed to access mimir bucket with mimiruser"
+echo -e "\nVerifying Tempo access..."
+mc --debug ls ${MINIO_ALIAS}/tempo --user tempouser --password ${TEMPO_USER_PASSWORD} || echo "Failed to access tempo bucket with tempouser"
 
 # Keep container running
 echo -e "\nMinIO setup complete. Container will keep running..."
