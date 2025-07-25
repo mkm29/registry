@@ -93,6 +93,7 @@ cat > /tmp/tempo-policy.json << 'EOF'
 EOF
 
 # Create policies
+initial_policy_count=$(mc admin policy list ${MINIO_ALIAS} | wc -l)
 echo "Creating policies..."
 mc admin policy create ${MINIO_ALIAS} loki-policy /tmp/loki-policy.json 2>/dev/null && echo "  ✓ Created policy: loki-policy" || echo "  • Policy already exists: loki-policy"
 mc admin policy create ${MINIO_ALIAS} mimir-policy /tmp/mimir-policy.json 2>/dev/null && echo "  ✓ Created policy: mimir-policy" || echo "  • Policy already exists: mimir-policy"
@@ -114,13 +115,13 @@ rm -f /tmp/loki-policy.json /tmp/mimir-policy.json /tmp/tempo-policy.json
 # Display status
 echo -e "\nMinIO Setup Complete!"
 echo "========================"
-echo "Buckets created: $(mc ls ${MINIO_ALIAS} | wc -l)"
+echo -e "\nBuckets created: $(mc ls ${MINIO_ALIAS} | wc -l)"
 mc ls ${MINIO_ALIAS} | cut -d'B' -f2 | cut -c2- | tr -d '/' | tr '\n' ' '
 
-echo -e "\nUsers configured:"
+echo -e "\n\nUsers configured: $(mc admin user list ${MINIO_ALIAS} | wc -l)"
 mc admin user list ${MINIO_ALIAS}
 
-echo -e "\nPolicies created:"
+echo -e "\nPolicies created: $((mc admin policy list ${MINIO_ALIAS} | wc -l)-$initial_policy_count)"
 mc admin policy list ${MINIO_ALIAS}
 
 echo -e "\nMinIO setup complete."
