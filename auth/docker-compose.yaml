@@ -47,6 +47,7 @@ services:
       - media-data:/media
       - templates-data:/templates
       - /run/user/1000/docker.sock:/var/run/docker.sock
+      - ./dist/custom.css:/web/dist/custom.css
     ports:
       - "${COMPOSE_PORT_HTTP:-9008}:9000"
       - "${COMPOSE_PORT_HTTPS:-9443}:9443"
@@ -68,6 +69,7 @@ services:
       - media-data:/media
       - certs-data:/certs
       - templates-data:/templates
+      - ./dist/custom.css:/web/dist/custom.css
     networks:
       - auth
     depends_on:
