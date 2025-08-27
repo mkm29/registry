@@ -13,47 +13,22 @@ x-minio-common: &minio-common
     - monitoring
 
 services:
-  prometheus-init:
-    image: registry.smigula.io/docker/alpine:latest
-    container_name: prometheus-init
-    volumes:
-      - prometheus-data:/prometheus
-    command: >
-      sh -c "
-
-        chown -R 65534:65534 /prometheus &&
-        chmod -R 755 /prometheus
-      "
-
-    networks:
-      - monitoring
-    restart: "no"
-  # Prometheus for metrics collection
-  prometheus:
-    image: registry.smigula.io/docker/prom/prometheus:latest
-    container_name: prometheus
-    restart: always
+  mimir:
+    image: registry.smigula.io/docker/grafana/mimir:latest
+    container_name: mimir
+    restart: unless-stopped
     ports:
-      - "9090:9090" # Prometheus UI - only expose the UI
+      - "9009:9009"
     volumes:
-      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - ./prometheus/zot-password.txt:/etc/prometheus/zot-password.txt:ro
-      # - ./certs/registry.crt:/etc/prometheus/certs/registry.pem:ro
-      # - ./certs/registry.key:/etc/prometheus/certs/registry-key.pem:ro
-      # - ./certs/ca.pem:/etc/prometheus/certs/ca.pem:ro
-      - prometheus-data:/prometheus
+      - ./mimir/config.yaml:/etc/mimir/config.yaml:ro
+      - mimir-data:/data
     command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
-      - '--web.console.templates=/usr/share/prometheus/consoles'
-      - '--web.enable-lifecycle'
-      - '--web.enable-remote-write-receiver'
-      - '--enable-feature=native-histograms'
+      - --config.file=/etc/mimir/config.yaml
     networks:
       - monitoring
     depends_on:
-      - prometheus-init
+      - minio
+
   loki-init:
     image: registry.smigula.io/docker/alpine:latest
     container_name: loki-init
@@ -111,7 +86,7 @@ services:
     networks:
       - monitoring
     depends_on:
-      - prometheus
+      - mimir
       - tempo
       - loki
   dozzle:
@@ -235,7 +210,7 @@ services:
 #   users:
 #     file: users.yml
 volumes:
-  prometheus-data:
+  mimir-data:
     driver: local
   grafana-data:
     driver: local

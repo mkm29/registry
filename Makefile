@@ -55,8 +55,8 @@ logs: ## View logs from all services
 logs-registry: ## View registry logs
 	docker-compose logs -f registry
 
-logs-prometheus: ## View Prometheus logs
-	docker-compose logs -f prometheus
+logs-mimir: ## View Mimir logs
+	docker-compose logs -f mimir
 
 logs-grafana: ## View Grafana logs
 	docker-compose logs -f grafana
@@ -71,7 +71,7 @@ status: ## Check status of all services
 	@echo ""
 	@echo "Service URLs:"
 	@echo "  Registry:   https://localhost:6000"
-	@echo "  Prometheus: http://localhost:9090"
+	@echo "  Mimir:      http://localhost:9009"
 	@echo "  Grafana:    http://localhost:3000"
 	@echo "  Jaeger:     http://localhost:16686"
 
@@ -139,14 +139,10 @@ test-tls: ## Test TLS connection to registry
 	@echo "Testing TLS connection to registry..."
 	openssl s_client -connect localhost:6000 -CAfile certs/ca.pem -showcerts </dev/null
 
-# Prometheus
-prometheus-targets: ## Open Prometheus targets page
-	@echo "Opening Prometheus targets page..."
-	@open http://localhost:9090/targets 2>/dev/null || xdg-open http://localhost:9090/targets 2>/dev/null || echo "Please open http://localhost:9090/targets in your browser"
-
-verify-prometheus-certs: ## Check certificates in Prometheus container
-	@echo "Checking certificates in Prometheus container..."
-	docker exec prometheus ls -la /etc/prometheus/certs/
+# Mimir
+mimir-status: ## Open Mimir status page
+	@echo "Opening Mimir status page..."
+	@open http://localhost:9009/ready 2>/dev/null || xdg-open http://localhost:9009/ready 2>/dev/null || echo "Please open http://localhost:9009/ready in your browser"
 
 # Metrics
 metrics: ## View registry metrics

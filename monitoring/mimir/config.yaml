@@ -1,0 +1,103 @@
+# Grafana Mimir configuration for dev environment
+# This replaces Prometheus with horizontally scalable metrics storage
+
+# Disable multitenancy for simplicity in dev environment
+multitenancy_enabled: false
+
+# Run all components in monolithic mode
+target: all
+
+# Server configuration
+server:
+  http_listen_port: 9009
+  grpc_listen_port: 9095
+  log_level: info
+
+# Common storage configuration for all components
+common:
+  storage:
+    backend: s3
+    s3:
+      endpoint: minio:9000
+      access_key_id: mimiruser
+      secret_access_key: SuperSecret1
+      bucket_name: mimir
+      region: us-east-1
+      insecure: true
+      # Force path style for MinIO compatibility
+      s3_force_path_style: true
+
+# Memberlist configuration for service discovery
+memberlist:
+  join_members: ['mimir:7946']
+  bind_port: 7946
+
+# Blocks storage configuration
+blocks_storage:
+  backend: s3
+  s3:
+    endpoint: minio:9000
+    access_key_id: mimiruser
+    secret_access_key: SuperSecret1
+    bucket_name: mimir
+    region: us-east-1
+    insecure: true
+    s3_force_path_style: true
+
+  # TSDB configuration
+  tsdb:
+    # Keep data for 2 weeks in dev environment
+    retention_period: 336h
+    # Block range for chunks
+    block_ranges_period: ["2h0m0s", "12h0m0s", "24h0m0s"]
+    # Ship blocks every 2 minutes in dev for faster feedback
+    ship_interval: 2m
+
+# Compactor configuration
+compactor:
+  data_dir: /data/compactor
+  sharding_ring:
+    # Single instance for dev
+    replication_factor: 1
+
+# Ingester configuration
+ingester:
+  ring:
+    # Single instance for dev
+    replication_factor: 1
+    # Use filesystem for simplicity in dev
+    kvstore:
+      store: memberlist
+
+# Store-gateway configuration
+store_gateway:
+  sharding_ring:
+    replication_factor: 1
+
+# Query-scheduler configuration (optional in monolithic mode)
+query_scheduler:
+  # Enable for better query performance
+  max_outstanding_requests_per_tenant: 800
+
+# Limits configuration
+limits:
+  # Increase limits for dev environment
+  ingestion_rate: 100000
+  ingestion_burst_size: 1000000
+  max_global_series_per_user: 1500000
+  max_global_series_per_metric: 50000
+  # Increase query limits
+  max_query_parallelism: 32
+  max_query_length: 32d
+
+# Runtime configuration (optional)
+runtime_config:
+  file: ""
+
+# Activity tracker configuration (disabled for dev)
+activity_tracker:
+  filepath: ""
+
+# Usage stats (disable in dev)
+usage_stats:
+  enabled: false
