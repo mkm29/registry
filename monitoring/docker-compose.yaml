@@ -12,8 +12,8 @@ services:
       - --config.file=/etc/mimir/config.yaml
     networks:
       - monitoring
-    depends_on:
-      - minio
+    # depends_on:
+    #   - minio # minio is part of different docker compose file...
     deploy:
       resources:
         limits:
@@ -273,12 +273,6 @@ volumes:
     driver: local
   alloy-data:
     driver: local
-  minio-data:
-    driver: local
-    driver_opts:
-      type: none
-      device: /mnt/data/minio
-      o: bind
   tempo-data:
     driver: local
 
