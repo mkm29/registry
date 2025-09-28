@@ -8,7 +8,7 @@ common:
   storage:
     backend: s3
     s3:
-      endpoint: localhost:9000
+      endpoint: minio:9000
       access_key_id: mimiruser
       secret_access_key: SuperSecret1
       insecure: true
