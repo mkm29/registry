@@ -39,9 +39,9 @@ services:
       # Storage class settings
       MINIO_STORAGE_CLASS_STANDARD: ${MINIO_STORAGE_CLASS_STANDARD:-EC:0}
     # Remove external port exposure when using Traefik
-    # ports:
-    #   - "9000:9000"   # API port
-    #   - "9001:9001"   # Console port
+    ports:
+      - "9000:9000" # API port
+      - "9001:9001" # Console port
     volumes:
       - /mnt/data/minio:/data
     healthcheck:
