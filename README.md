@@ -40,6 +40,8 @@ The infrastructure uses external Docker networks for service isolation, Traefik 
     - [Monitoring Stack Commands](#monitoring-stack-commands)
   - [Quick Start](#quick-start)
   - [Configuration](#configuration)
+    - [Authentication](#authentication)
+    - [Reverse Proxy](#reverse-proxy)
     - [TLS Certificates](#tls-certificates)
     - [Registry Configuration](#registry-configuration)
   - [Services Architecture](#services-architecture)
@@ -127,6 +129,16 @@ graph LR
 - **S3 Storage**: MinIO provides scalable object storage
 - **Media Automation**: Complete Plex-based media management pipeline
 - **Production-Ready**: Resource limits, health checks, and persistent storage
+
+> [!NOTE]
+> ⚠️ **Development Deployment Mode**: The monitoring components (Grafana Loki, Mimir, and Alloy) in this stack are deployed in **monolithic mode** intended only for development and testing environments.
+>
+> For production deployments, these components should be deployed on Kubernetes with appropriate scaling and high availability configurations:
+>
+> - **Grafana Mimir**: See [deployment modes documentation](https://grafana.com/docs/mimir/latest/references/architecture/deployment-modes/) for microservices and distributed architectures
+> - **Grafana Loki**: See [deployment modes documentation](https://grafana.com/docs/loki/latest/get-started/deployment-modes/) for scalable production configurations
+
+The current Docker Compose setup provides a complete development environment but lacks the redundancy, scaling, and operational features required for production workloads.
 
 ## Prerequisites
 
