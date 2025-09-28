@@ -7,7 +7,7 @@ services:
     ports:
       - "9009:9009"
     volumes:
-      - ./mimir/config.yaml:/etc/mimir/config.yaml:ro
+      - ./config/mimir/config.yaml:/etc/mimir/config.yaml:ro
       - ./config/alertmanager-fallback-config.yaml:/etc/alertmanager-fallback-config.yaml
       - mimir-1-data:/data
     command:
@@ -33,7 +33,7 @@ services:
     ports:
       - "9009:9009"
     volumes:
-      - ./mimir/config.yaml:/etc/mimir/config.yaml:ro
+      - ./config/mimir/config.yaml:/etc/mimir/config.yaml:ro
       - ./config/alertmanager-fallback-config.yaml:/etc/alertmanager-fallback-config.yaml
       - mimir-2-data:/data
     command:
@@ -59,7 +59,7 @@ services:
     ports:
       - "9009:9009"
     volumes:
-      - ./mimir/config.yaml:/etc/mimir/config.yaml:ro
+      - ./config/mimir/config.yaml:/etc/mimir/config.yaml:ro
       - ./config/alertmanager-fallback-config.yaml:/etc/alertmanager-fallback-config.yaml
       - mimir-3-data:/data
     command:
