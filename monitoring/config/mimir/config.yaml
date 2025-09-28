@@ -39,3 +39,7 @@ alertmanager:
 
 server:
   log_level: warn
+
+limits:
+  max_label_names_per_series: 40  # Increased from default 30 to handle cAdvisor labels
+  max_label_value_length: 2048    # Also increase this if you have long label values
