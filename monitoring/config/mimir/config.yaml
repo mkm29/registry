@@ -38,4 +38,6 @@ memberlist:
 #   external_url: http://localhost:9009/alertmanager
 
 server:
+  http_listen_port: 9009
+  grpc_listen_port: 9095
   log_level: warn
