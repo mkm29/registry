@@ -31,7 +31,7 @@ services:
           cpus: "0.5"
           memory: 100M
   landing:
-    image: nginx:alpine
+    image: nginx:1.29-otel
     container_name: landing-page
     restart: unless-stopped
     volumes:

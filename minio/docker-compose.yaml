@@ -1,6 +1,26 @@
+x-minio-common: &minio-common
+  image: minio/minio:latest
+  command: server --console-address ":9001" /data
+  ports:
+    - "9000:9000"
+    - "9001:9001"
+  healthcheck:
+    test:
+      [
+        "CMD",
+        "curk",
+        "-f",
+        "--tries=1",
+        "http://localhost:9000/minio/health/live",
+      ]
+    interval: 30s
+    timeout: 20s
+    retries: 3
+  networks:
+    - monitoring
 services:
   minio:
-    image: registry.smigula.io/docker/minio/minio:latest
+    image: registry.smigula.io/docker/minio/minio:RELEASE.2025-09-07T16-13-09Z-cpuv1
     container_name: minio
     restart: unless-stopped
     command: server /data --console-address ":9001"
@@ -43,7 +63,7 @@ services:
 
   # Optional: MinIO Client for administration
   mc:
-    image: registry.smigula.io/docker/minio/mc:latest
+    image: registry.smigula.io/docker/minio/mc:RELEASE.2025-08-13T08-35-41Z-cpuv1
     container_name: minio-mc
     depends_on:
       minio:

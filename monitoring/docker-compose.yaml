@@ -1,27 +1,6 @@
-x-minio-common: &minio-common
-  image: minio/minio:latest
-  command: server --console-address ":9001" /data
-  ports:
-    - "9000:9000"
-    - "9001:9001"
-  healthcheck:
-    test:
-      [
-        "CMD",
-        "curk",
-        "-f",
-        "--tries=1",
-        "http://localhost:9000/minio/health/live",
-      ]
-    interval: 30s
-    timeout: 20s
-    retries: 3
-  networks:
-    - monitoring
-
 services:
   mimir:
-    image: registry.smigula.io/docker/grafana/mimir:latest
+    image: registry.smigula.io/docker/grafana/mimir:2.17.1
     container_name: mimir
     restart: unless-stopped
     ports:
@@ -45,7 +24,7 @@ services:
           memory: 1024M
 
   loki-init:
-    image: registry.smigula.io/docker/alpine:latest
+    image: &alpine_image registry.smigula.io/docker/alpine:3.22.1
     container_name: loki-init
     volumes:
       - loki-data:/loki
@@ -61,7 +40,7 @@ services:
     restart: "no"
   # Loki for log aggregation
   loki:
-    image: registry.smigula.io/docker/grafana/loki:latest
+    image: registry.smigula.io/docker/grafana/loki:3.5.5
     container_name: loki
     restart: always
     ports:
@@ -101,7 +80,7 @@ services:
           memory: 512M
   # Grafana for visualization
   grafana:
-    image: registry.smigula.io/docker/grafana/grafana:latest
+    image: registry.smigula.io/docker/grafana/grafana:12.2
     container_name: grafana
     restart: always
     ports:
@@ -130,7 +109,7 @@ services:
           memory: 256M
   dozzle:
     container_name: dozzle
-    image: registry.smigula.io/docker/amir20/dozzle:latest
+    image: registry.smigula.io/docker/amir20/dozzle:v8
     # secrets:
     #   - source: users
     #     target: /data/users.yml
@@ -195,7 +174,7 @@ services:
           memory: 512M
   # Grafana Alloy for observability data collection
   alloy:
-    image: registry.smigula.io/docker/grafana/alloy:latest
+    image: registry.smigula.io/docker/grafana/alloy:v1.10.2
     container_name: alloy
     restart: unless-stopped
     volumes:
@@ -226,7 +205,7 @@ services:
   # Tempo runs as user 10001, and docker compose creates the volume as root.
   # As such, we need to chown the volume in order for Tempo to start correctly.
   tempo-init:
-    image: registry.smigula.io/docker/alpine:latest
+    image: *alpine_image
     container_name: tempo-init
     user: root
     command: >
@@ -241,7 +220,7 @@ services:
       - monitoring
     restart: "no"
   tempo:
-    image: registry.smigula.io/docker/grafana/tempo:latest
+    image: registry.smigula.io/docker/grafana/tempo:2.8.2
     container_name: tempo
     command: ["-config.file=/etc/tempo.yaml"]
     volumes:
@@ -267,7 +246,7 @@ services:
 
   # troubleshooting pod
   troubleshooting:
-    image: registry.smigula.io/docker/nicolaka/netshoot:latest
+    image: registry.smigula.io/docker/nicolaka/netshoot:v0.14
     container_name: troubleshooting
     command: sh
     stdin_open: true
