@@ -166,10 +166,6 @@ services:
       - .grafana-secrets.env
     networks:
       - monitoring
-    depends_on:
-      - mimir
-      - tempo
-      - loki
     deploy:
       resources:
         limits:
