@@ -204,6 +204,10 @@ loki.process "traefik_logs" {
 loki.write "loki" {
 	endpoint {
 		url = "http://loki:3100/loki/api/v1/push"
+
+		headers = {
+			"X-Scope-OrgID" = "1",
+		}
 	}
 }
 
@@ -338,9 +342,9 @@ prometheus.relabel "zot_metrics" {
 // Send metrics to Mimir
 prometheus.remote_write "metrics" {
 	endpoint {
-		url = "http://mimir-lb:9009/api/v1/push"
+		url     = "http://mimir-lb:9009/api/v1/push"
 		headers = {
-			"X-Scope-OrgID" = "1"
+			"X-Scope-OrgID" = "1",
 		}
 	}
 }
