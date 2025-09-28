@@ -11,7 +11,7 @@ services:
       - 9009:9009
   mimir-1:
     image: &mimir_image registry.smigula.io/docker/grafana/mimir:2.17.1
-    container_name: mimir
+    container_name: mimir-1
     restart: unless-stopped
     hostname: mimir-1
     volumes:
@@ -35,7 +35,7 @@ services:
 
   mimir-2:
     image: *mimir_image
-    container_name: mimir
+    container_name: mimir-2
     restart: unless-stopped
     hostname: mimir-2
     volumes:
@@ -59,7 +59,7 @@ services:
 
   mimir-3:
     image: *mimir_image
-    container_name: mimir
+    container_name: mimir-3
     restart: unless-stopped
     hostname: mimir-3
     volumes:
