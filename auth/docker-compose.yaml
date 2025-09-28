@@ -20,6 +20,14 @@ services:
       - .env
     networks:
       - auth
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 256M
+        reservations:
+          cpus: "0.25"
+          memory: 128M
   redis:
     image: registry.smigula.io/docker/redis:alpine
     container_name: authentik-redis
@@ -35,6 +43,14 @@ services:
       - redis-data:/data
     networks:
       - auth
+    deploy:
+      resources:
+        limits:
+          cpus: "0.1"
+          memory: 128M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
   server:
     image: registry.smigula.io/ghcr/goauthentik/server:2025.6.3
     container_name: authentik-server
@@ -56,6 +72,14 @@ services:
     depends_on:
       - postgresql
       - redis
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1024M
+        reservations:
+          cpus: "0.5"
+          memory: 512M
   worker:
     image: registry.smigula.io/ghcr/goauthentik/server:2025.6.3
     container_name: authentik-worker
@@ -75,6 +99,14 @@ services:
     depends_on:
       - postgresql
       - redis
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.25"
+          memory: 256M
 volumes:
   postgres-data:
     driver: local
