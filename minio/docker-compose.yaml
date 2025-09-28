@@ -52,6 +52,7 @@ services:
       start_period: 30s
     networks:
       - monitoring
+      - traefik
     deploy:
       resources:
         limits:
@@ -94,4 +95,6 @@ services:
 
 networks:
   monitoring:
+    external: true
+  traefik:
     external: true
