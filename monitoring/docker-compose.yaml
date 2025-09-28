@@ -7,8 +7,11 @@ services:
       - "mimir-1"
       - "mimir-2"
       - "mimir-3"
+    networks:
+      - monitoring
     ports:
       - 9009:9009
+
   mimir-1:
     image: &mimir_image registry.smigula.io/docker/grafana/mimir:2.17.1
     container_name: mimir-1
