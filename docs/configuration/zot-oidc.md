@@ -108,3 +108,9 @@ docker logs registry | grep -i "oidc\|openid\|auth"
 1. **Remove htpasswd**: Once OIDC is proven stable, consider removing htpasswd authentication
 1. **Group-based Access**: Implement authorization based on Authentik groups
 1. **Token Refresh**: Implement automatic token refresh for long-running operations
+
+## Related Documentation
+
+- **[Registry Stack Architecture](../stacks/registry.md)** - Complete registry setup guide
+- **[Authentik Setup Guide](../guides/authentik-setup.md)** - Identity provider configuration
+- **[Zot Registry Configuration](zot-registry.md)** - Complete registry configuration reference

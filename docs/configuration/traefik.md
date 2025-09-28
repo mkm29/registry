@@ -1,6 +1,6 @@
-# Traefik Configuration
+# Traefik Configuration Guide
 
-This directory contains the Traefik configuration that replaces the Caddy reverse proxy setup.
+This guide covers the Traefik reverse proxy configuration that provides automatic HTTPS, service discovery, and observability features.
 
 ## Key Features
 
@@ -136,3 +136,9 @@ http:
 ```
 
 The configuration will be automatically reloaded.
+
+## Related Documentation
+
+- **[Traefik Stack Architecture](../stacks/traefik.md)** - Complete stack overview and architecture
+- **[CFSSL Configuration](cfssl.md)** - TLS certificate generation
+- **[Monitoring Guide](../guides/monitoring.md)** - Observability setup and queries
