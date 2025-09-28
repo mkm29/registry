@@ -15,7 +15,7 @@ certs/
 
 # Docker volumes
 registry-data/
-prometheus-data/
+mimir-data/
 grafana-data/
 
 # OS files
@@ -86,9 +86,5 @@ zot/config/*.secret
 !*-secrets.env.enc
 !.secrets.env.enc
 
-# Prometheus authentication files
-monitoring/prometheus/zot-password.txt
-monitoring/prometheus/*-password.txt
-# Keep example files
-!monitoring/prometheus/*-password.txt.example
+# Legacy Prometheus files (removed after migration to Mimir)
 

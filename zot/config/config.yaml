@@ -10,18 +10,18 @@ http:
     htpasswd:
       path: /etc/zot/htpasswd
     failDelay: 5
-    openid:
-      providers:
-        oidc:
-          name: "authentik"
-          issuer: https://auth.smigula.io/application/o/registry/
-          clientid: CCQHiOCoO3922YxXn4zCKADuJPYafy5u8EAw34gg
-          clientsecret: GOUBys0ZD9bEzQVRjgO27pm0SAYf2tHG3A14toZhILhN8Wa2T71pkybLOUjLrAm7g6Cbt4GaDC5NkdHpRHmHsJx06pssJ1xLIKNjS7HUs8gPb4GhxkSSUFcJQLOHEGyC
-          scopes:
-            - openid
-            - profile
-            - email
-            - groups
+    # openid:
+    #   providers:
+    #     oidc:
+    #       name: "authentik"
+    #       issuer: https://auth.smigula.io/application/o/registry/
+    #       clientid: CCQHiOCoO3922YxXn4zCKADuJPYafy5u8EAw34gg
+    #       clientsecret: GOUBys0ZD9bEzQVRjgO27pm0SAYf2tHG3A14toZhILhN8Wa2T71pkybLOUjLrAm7g6Cbt4GaDC5NkdHpRHmHsJx06pssJ1xLIKNjS7HUs8gPb4GhxkSSUFcJQLOHEGyC
+    #       scopes:
+    #         - openid
+    #         - profile
+    #         - email
+    #         - groups
 log:
   level: info
 extensions:

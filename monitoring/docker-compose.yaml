@@ -1,61 +1,91 @@
-x-minio-common: &minio-common
-  image: minio/minio:latest
-  command: server --console-address ":9001" /data
-  ports:
-    - "9000:9000"
-    - "9001:9001"
-  healthcheck:
-    test: ["CMD", "curk", "-f", "--tries=1", "http://localhost:9000/minio/health/live"]
-    interval: 30s
-    timeout: 20s
-    retries: 3
-  networks:
-    - monitoring
-
 services:
-  prometheus-init:
-    image: registry.smigula.io/docker/alpine:latest
-    container_name: prometheus-init
+  mimir-lb:
+    image: nginx:1.29-alpine
     volumes:
-      - prometheus-data:/prometheus
-    command: >
-      sh -c "
-
-        chown -R 65534:65534 /prometheus &&
-        chmod -R 755 /prometheus
-      "
-
-    networks:
-      - monitoring
-    restart: "no"
-  # Prometheus for metrics collection
-  prometheus:
-    image: registry.smigula.io/docker/prom/prometheus:latest
-    container_name: prometheus
-    restart: always
-    ports:
-      - "9090:9090" # Prometheus UI - only expose the UI
-    volumes:
-      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - ./prometheus/zot-password.txt:/etc/prometheus/zot-password.txt:ro
-      # - ./certs/registry.crt:/etc/prometheus/certs/registry.pem:ro
-      # - ./certs/registry.key:/etc/prometheus/certs/registry-key.pem:ro
-      # - ./certs/ca.pem:/etc/prometheus/certs/ca.pem:ro
-      - prometheus-data:/prometheus
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
-      - '--web.console.templates=/usr/share/prometheus/consoles'
-      - '--web.enable-lifecycle'
-      - '--web.enable-remote-write-receiver'
-      - '--enable-feature=native-histograms'
-    networks:
-      - monitoring
+      - ./config/nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
-      - prometheus-init
+      - "mimir-1"
+      - "mimir-2"
+      - "mimir-3"
+    networks:
+      - monitoring
+    ports:
+      - 9009:9009
+
+  mimir-1:
+    image: &mimir_image registry.smigula.io/docker/grafana/mimir:2.17.1
+    container_name: mimir-1
+    restart: unless-stopped
+    hostname: mimir-1
+    volumes:
+      - ./config/mimir/config.yaml:/etc/mimir/config.yaml:ro
+      - ./config/alertmanager-fallback-config.yaml:/etc/alertmanager-fallback-config.yaml
+      - mimir-1-data:/data
+    command:
+      - --config.file=/etc/mimir/config.yaml
+    networks:
+      - monitoring
+    # depends_on:
+    #   - minio # minio is part of different docker compose file...
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 2048M
+        reservations:
+          cpus: "1"
+          memory: 1024M
+
+  mimir-2:
+    image: *mimir_image
+    container_name: mimir-2
+    restart: unless-stopped
+    hostname: mimir-2
+    volumes:
+      - ./config/mimir/config.yaml:/etc/mimir/config.yaml:ro
+      - ./config/alertmanager-fallback-config.yaml:/etc/alertmanager-fallback-config.yaml
+      - mimir-2-data:/data
+    command:
+      - --config.file=/etc/mimir/config.yaml
+    networks:
+      - monitoring
+    # depends_on:
+    #   - minio # minio is part of different docker compose file...
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 2048M
+        reservations:
+          cpus: "1"
+          memory: 1024M
+
+  mimir-3:
+    image: *mimir_image
+    container_name: mimir-3
+    restart: unless-stopped
+    hostname: mimir-3
+    volumes:
+      - ./config/mimir/config.yaml:/etc/mimir/config.yaml:ro
+      - ./config/alertmanager-fallback-config.yaml:/etc/alertmanager-fallback-config.yaml
+      - mimir-3-data:/data
+    command:
+      - --config.file=/etc/mimir/config.yaml
+    networks:
+      - monitoring
+    # depends_on:
+    #   - minio # minio is part of different docker compose file...
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 2048M
+        reservations:
+          cpus: "1"
+          memory: 1024M
+
   loki-init:
-    image: registry.smigula.io/docker/alpine:latest
+    image: &alpine_image registry.smigula.io/docker/alpine:3.22.1
     container_name: loki-init
     volumes:
       - loki-data:/loki
@@ -71,7 +101,7 @@ services:
     restart: "no"
   # Loki for log aggregation
   loki:
-    image: registry.smigula.io/docker/grafana/loki:latest
+    image: registry.smigula.io/docker/grafana/loki:3.5.5
     container_name: loki
     restart: always
     ports:
@@ -80,43 +110,76 @@ services:
       - "AWS_SECRET_ACCESS_KEY=LokiP@ss5"
       - "AWS_ACCESS_KEY_ID=lokiuser"
     volumes:
-      - ./loki/loki-config.yaml:/etc/loki/loki-config.yaml:ro
+      - ./config/loki/loki-config.yaml:/etc/loki/loki-config.yaml:ro
       - loki-data:/loki
     command: -config.file=/etc/loki/loki-config.yaml
     networks:
       - monitoring
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3100/ready"]
+      test:
+        [
+          "CMD",
+          "wget",
+          "--quiet",
+          "--tries=1",
+          "--spider",
+          "http://localhost:3100/ready",
+        ]
       interval: 15s
       timeout: 10s
       retries: 5
       start_period: 30s
     depends_on:
       - loki-init
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 2048M
+        reservations:
+          cpus: "1"
+          memory: 512M
   # Grafana for visualization
   grafana:
-    image: registry.smigula.io/docker/grafana/grafana:latest
+    image: registry.smigula.io/docker/grafana/grafana:12.2
     container_name: grafana
     restart: always
     ports:
       - "3000:3000"
     volumes:
       - grafana-data:/var/lib/grafana
-      - ./grafana/provisioning:/etc/grafana/provisioning:ro
-      - ./grafana/grafana.ini:/etc/grafana/grafana.ini:ro
+      - ./config/grafana/provisioning-datasources.yaml:/etc/grafana/provisioning/provisioning-datasources.yaml:ro
+      - ./config/grafana/provisioning-dashboards.yaml:/etc/grafana/provisioning/provisioning-dashboards.yaml:ro
+      - ./config/grafana/grafana.ini:/etc/grafana/grafana.ini:ro
+      # Explicitly list the dashboards we want to show in the demo. We intentionally exclude dashboards that require
+      # Kubernetes metrics (eg. resources or networking) and other services not available in the demo (eg. Grafana Loki).
+      - ./config/grafana/dashboards/mimir-alertmanager.json:/var/lib/grafana/dashboards/mimir-alertmanager.json:ro
+      - ./config/grafana/dashboards/mimir-compactor.json:/var/lib/grafana/dashboards/mimir-compactor.json:ro
+      - ./config/grafana/dashboards/mimir-object-store.json:/var/lib/grafana/dashboards/mimir-object-store.json:ro
+      - ./config/grafana/dashboards/mimir-overrides.json:/var/lib/grafana/dashboards/mimir-overrides.json:ro
+      - ./config/grafana/dashboards/mimir-queries.json:/var/lib/grafana/dashboards/mimir-queries.json:ro
+      - ./config/grafana/dashboards/mimir-reads.json:/var/lib/grafana/dashboards/mimir-reads.json:ro
+      - ./config/grafana/dashboards/mimir-ruler.json:/var/lib/grafana/dashboards/mimir-ruler.json:ro
+      - ./config/grafana/dashboards/mimir-tenants.json:/var/lib/grafana/dashboards/mimir-tenants.json:ro
+      - ./config/grafana/dashboards/mimir-top-tenants.json:/var/lib/grafana/dashboards/mimir-top-tenants.json:ro
+      - ./config/grafana/dashboards/mimir-writes.json:/var/lib/grafana/dashboards/mimir-writes.json:ro
     # environment:
     #   - "GF_PLUGINS_PREINSTALL=grafana-clock-panel, grafana-simple-json-datasource"
     env_file:
       - .grafana-secrets.env
     networks:
       - monitoring
-    depends_on:
-      - prometheus
-      - tempo
-      - loki
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.25"
+          memory: 256M
   dozzle:
     container_name: dozzle
-    image: registry.smigula.io/docker/amir20/dozzle:latest
+    image: registry.smigula.io/docker/amir20/dozzle:v8
     # secrets:
     #   - source: users
     #     target: /data/users.yml
@@ -134,6 +197,14 @@ services:
     restart: unless-stopped
     networks:
       - monitoring
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 256M
+        reservations:
+          cpus: "0.25"
+          memory: 256M
   # cAdvisor for container metrics in rootless mode
   cadvisor:
     image: registry.smigula.io/gcr/cadvisor/cadvisor:v0.52.0
@@ -163,14 +234,22 @@ services:
       - --max_procs=4
     networks:
       - monitoring
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 4098M
+        reservations:
+          cpus: "0.25"
+          memory: 512M
   # Grafana Alloy for observability data collection
   alloy:
-    image: registry.smigula.io/docker/grafana/alloy:latest
+    image: registry.smigula.io/docker/grafana/alloy:v1.10.2
     container_name: alloy
     restart: unless-stopped
     volumes:
       - /run/user/1000/docker.sock:/var/run/docker.sock:ro
-      - ./alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - ./config/alloy/config.alloy:/etc/alloy/config.alloy:ro
       - /mnt/data/logs/traefik:/var/log/traefik:ro
       - alloy-data:/var/lib/alloy
     command:
@@ -185,10 +264,18 @@ services:
     networks:
       - monitoring
       - registry
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 8192M
+        reservations:
+          cpus: "1"
+          memory: 1024M
   # Tempo runs as user 10001, and docker compose creates the volume as root.
   # As such, we need to chown the volume in order for Tempo to start correctly.
   tempo-init:
-    image: registry.smigula.io/docker/alpine:latest
+    image: *alpine_image
     container_name: tempo-init
     user: root
     command: >
@@ -203,7 +290,7 @@ services:
       - monitoring
     restart: "no"
   tempo:
-    image: registry.smigula.io/docker/grafana/tempo:latest
+    image: registry.smigula.io/docker/grafana/tempo:2.8.2
     container_name: tempo
     command: ["-config.file=/etc/tempo.yaml"]
     volumes:
@@ -218,10 +305,18 @@ services:
     networks:
       - monitoring
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1024M
+        reservations:
+          cpus: "0.25"
+          memory: 256M
 
-# troubleshooting pod
+  # troubleshooting pod
   troubleshooting:
-    image: registry.smigula.io/docker/nicolaka/netshoot:latest
+    image: registry.smigula.io/docker/nicolaka/netshoot:v0.14
     container_name: troubleshooting
     command: sh
     stdin_open: true
@@ -230,13 +325,28 @@ services:
       - monitoring
       - registry
 
-
 # secrets:
 #   users:
 #     file: users.yml
 volumes:
-  prometheus-data:
+  mimir-1-data:
     driver: local
+    driver_opts:
+      type: none
+      device: /mnt/data/mimir-1
+      o: bind
+  mimir-2-data:
+    driver: local
+    driver_opts:
+      type: none
+      device: /mnt/data/mimir-2
+      o: bind
+  mimir-3-data:
+    driver: local
+    driver_opts:
+      type: none
+      device: /mnt/data/mimir-3
+      o: bind
   grafana-data:
     driver: local
     driver_opts:
@@ -249,12 +359,6 @@ volumes:
     driver: local
   alloy-data:
     driver: local
-  minio-data:
-    driver: local
-    driver_opts:
-      type: none
-      device: /mnt/data/minio
-      o: bind
   tempo-data:
     driver: local
 

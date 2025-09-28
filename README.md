@@ -3,7 +3,7 @@
 This repository provides a complete setup for a local Zot registry that acts as a pull-through cache for multiple container registries including Docker Hub, ghcr.io, gcr.io, quay.io, and registry.k8s.io. The project is organized into three main components:
 
 - **Zot Registry** (`zot/`): The OCI-compliant registry with pull-through caching and authentication
-- **Monitoring Stack** (`monitoring/`): Full observability stack with Prometheus, Jaeger, Grafana, Loki, and Alloy
+- **Monitoring Stack** (`monitoring/`): Full observability stack with Grafana Mimir, Tempo, Grafana, Loki, and Alloy
 - **Caddy Reverse Proxy** (`caddy/`): HTTPS reverse proxy with automatic TLS certificate management
 
 This setup is optimized for **rootless Docker** with native Alloy installation for better security and performance. The registry is accessible via HTTPS at `registry.smigula.io` with authentication handled externally by Authentik through Traefik.
@@ -81,6 +81,7 @@ This setup is optimized for **rootless Docker** with native Alloy installation f
     - [Registry Connection Issues](#registry-connection-issues)
     - [Metrics Not Appearing](#metrics-not-appearing)
   - [File Structure](#file-structure)
+  - [Migration from Prometheus to Grafana Mimir](#migration-from-prometheus-to-grafana-mimir)
   - [Performance Tuning](#performance-tuning)
   - [References](#references)
 
@@ -100,8 +101,8 @@ This setup creates a production-ready local Zot registry with:
 - **Authentication**: Handled externally by Authentik through Traefik
 - **Bandwidth Optimization**: Caches images locally to reduce repeated downloads from upstream registries
 - **Native Alloy**: Grafana Alloy runs as a native systemd service for better Docker socket access
-- **Distributed Tracing**: OpenTelemetry integration with Jaeger
-- **Metrics Collection**: Prometheus scraping with pre-configured dashboards
+- **Distributed Tracing**: OpenTelemetry integration with Grafana Tempo
+- **Metrics Collection**: Grafana Mimir for scalable metrics storage with pre-configured dashboards
 - **Log Aggregation**: Loki for centralized log collection and querying
 - **Visualization**: Grafana dashboards for monitoring registry performance and logs
 - **Advanced Features**: Built-in UI, search capabilities, and sync management
@@ -141,8 +142,9 @@ When properly configured, Zot will automatically cache images from multiple regi
 - **Ports**: Ensure the following ports are available:
   - 5000: Registry API
   - 3000: Grafana
-  - 9090: Prometheus
-  - 16686: Jaeger UI
+  - 9009: Grafana Mimir
+  - 3200: Grafana Tempo
+  - 4317/4318: OpenTelemetry receivers
   - 3100: Loki
   - 12345: Alloy UI
 
@@ -402,14 +404,16 @@ graph TB
 
         subgraph "Monitoring Stack (monitoring/docker-compose.yaml)"
             subgraph "Monitoring Services"
-                Jaeger[Jaeger<br/>:4318 OTLP]
-                Prom[Prometheus<br/>:9090]
+                Tempo[Grafana Tempo<br/>:4317/:4318 OTLP]
+                Mimir[Grafana Mimir<br/>:9009]
                 Loki[Loki<br/>:3100]
                 Grafana[Grafana<br/>:3000]
+                MinIO[MinIO<br/>:9000/:9001<br/>S3 Storage]
 
-                Prom --> Grafana
-                Jaeger --> Grafana
+                Mimir --> Grafana
+                Tempo --> Grafana
                 Loki --> Grafana
+                Mimir --> MinIO
             end
 
             subgraph "Rootless Docker Infrastructure"
@@ -439,9 +443,9 @@ graph TB
     Sync -->|Cache| GCR
     Sync -->|Cache| QUAY
     Sync -->|Cache| K8S
-    Zot -->|Traces| Jaeger
-    Prom -->|Scrape /metrics| Zot
-    Prom -->|Scrape :14269| Jaeger
+    Zot -->|Traces| Tempo
+    Alloy -->|Push metrics| Mimir
+    Alloy -->|Scrape /metrics| Zot
 
     style DH fill:#000000,color:#ffffff
     style GHCR fill:#000000,color:#ffffff
@@ -454,8 +458,9 @@ graph TB
     style CaddyAuth fill:#cccccc,color:#000000
     style Zot fill:#2496ed
     style ZotAuth fill:#ff9900
-    style Jaeger fill:#60d0e4,color:#000000
-    style Prom fill:#e6522c
+    style Tempo fill:#60d0e4,color:#000000
+    style Mimir fill:#e6522c
+    style MinIO fill:#c7202a,color:#ffffff
     style Loki fill:#ff0000,color:#ffffff
     style Alloy fill:#800080,color:#ffffff
     style Grafana fill:#f46800
@@ -522,10 +527,10 @@ docker-compose logs -f      # View all monitoring logs
 docker-compose ps           # Check monitoring services status
 
 # View specific service logs
-docker-compose logs -f prometheus
+docker-compose logs -f mimir
 docker-compose logs -f grafana
 docker-compose logs -f loki
-docker-compose logs -f jaeger
+docker-compose logs -f tempo
 ```
 
 ### Alloy Management
@@ -613,9 +618,10 @@ journalctl --user -u alloy -f    # View Alloy logs
    - Zot Registry API (external): <https://registry.smigula.io/v2/> (auth via Traefik/Authentik)
    - Zot Web UI: <http://localhost:5000/home> or <https://registry.smigula.io/home>
    - Grafana: <http://localhost:3000> (admin/admin)
-   - Prometheus: <http://localhost:9090>
-   - Jaeger: <http://localhost:16686>
-   - Loki: <http://localhost:3100>
+   - Mimir: <http://localhost:9009> (metrics storage)
+   - Tempo: <http://localhost:3200> (tracing)
+   - MinIO Console: <http://localhost:9001> (object storage)
+   - Loki: <http://localhost:3100> (logs)
    - Alloy: <http://localhost:12345> (Grafana Alloy UI)
 
 1. **View logs in Grafana**:
@@ -898,27 +904,49 @@ extensions:
 - **Metrics endpoint**:
   - `/metrics` - Prometheus metrics
 
-### Jaeger (port 16686)
+### Grafana Mimir (port 9009)
 
-- **Purpose**: Distributed tracing for registry operations
+- **Purpose**: Horizontally scalable metrics storage system
 - **Features**:
-  - Collects traces via OTLP protocol
-  - Provides trace visualization and analysis
+  - Long-term metrics storage with S3/MinIO backend
+  - Prometheus-compatible query API
+  - High availability and horizontal scaling
+  - Multi-tenant architecture (disabled for dev simplicity)
+- **Configuration**: `mimir/config.yaml`
+- **Storage**: Uses MinIO S3-compatible storage for blocks and metadata
+- **Deployment Mode**: Monolithic for dev environment
+- **API Endpoints**:
+  - `/prometheus/api/v1/query` - PromQL queries
+  - `/prometheus/api/v1/push` - Metrics ingestion
+  - `/ready` - Health check
+- **Multi-tenancy**: Requires `X-Scope-OrgID: "1"` header for dev tenant
+
+### Grafana Tempo (ports 4317, 4318, 3200)
+
+- **Purpose**: Distributed tracing system
+- **Features**:
+  - Collects traces via OTLP protocol (gRPC and HTTP)
+  - Trace visualization and analysis
+  - Integration with Grafana for trace-to-logs correlation
 - **Internal endpoints**:
-  - `:4317` - OTLP gRPC
-  - `:4318` - OTLP HTTP
-  - `:14269` - Metrics for Prometheus
+  - `:4317` - OTLP gRPC receiver
+  - `:4318` - OTLP HTTP receiver  
+  - `:3200` - Tempo query API
+- **Storage**: Uses filesystem storage for dev environment
 
-### Prometheus (port 9090)
+### MinIO (ports 9000, 9001)
 
-- **Purpose**: Metrics collection and storage
-- **Scrape targets**:
-  - Docker Registry metrics (HTTP with mutual TLS authentication)
-  - Jaeger metrics
-  - Self-monitoring
-- **Configuration**: `prometheus/prometheus.yml`
-- **TLS Setup**: Uses registry certificates for client authentication when scraping metrics
-- **Rootless considerations**: Uses init container to set proper permissions
+- **Purpose**: S3-compatible object storage for Mimir
+- **Features**:
+  - S3-compatible API for Mimir blocks and metadata
+  - Built-in web console for storage management
+  - High performance for local development
+- **Configuration**: 
+  - API endpoint: `:9000`
+  - Web console: `:9001` 
+  - Bucket: `mimir` (created automatically)
+  - Credentials: `mimiruser` / `SuperSecret1`
+- **Access**: Web console available at <http://localhost:9001>
 
 ### Loki (port 3100)
 
@@ -961,13 +989,19 @@ extensions:
 
 ### Grafana (port 3000)
 
-- **Purpose**: Metrics visualization and dashboards
+- **Purpose**: Observability visualization and dashboards
 - **Features**:
-  - Pre-configured datasources (Prometheus, Jaeger, Loki)
+  - Pre-configured datasources (Mimir, Tempo, Loki)
   - Docker Registry dashboard included
   - Log exploration with Loki integration
+  - Distributed tracing with Tempo integration
+  - Trace-to-logs and trace-to-metrics correlation
   - Anonymous viewer access enabled
-- **Default credentials**: Configured in `.env`
+- **Data Sources**:
+  - **Mimir**: `http://mimir:9009/prometheus` (default)
+  - **Tempo**: `http://tempo:3200`
+  - **Loki**: `http://loki:3100`
+- **Default credentials**: Configured in `.grafana-secrets.env`
 
 ## Docker Compose Configuration
 
@@ -1153,29 +1187,36 @@ sudo systemctl restart docker
    - Navigate to **Explore → Loki**
    - Query registry logs using LogQL
 
-### Prometheus Queries
+### Mimir Queries
 
-Access at <http://localhost:9090> and try these queries:
+Access Mimir through Grafana at <http://localhost:3000> (Explore → Mimir datasource) and try these PromQL queries:
 
 ```promql
 # Request rate by method
-rate(registry_http_requests_total[5m])
+rate(zot_http_requests_total[5m])
 
 # 99th percentile latency
-histogram_quantile(0.99, rate(registry_http_request_duration_seconds_bucket[5m]))
+histogram_quantile(0.99, rate(zot_http_request_duration_seconds_bucket[5m]))
 
 # Cache hit ratio
-rate(registry_storage_cache_hits_total[5m]) / rate(registry_storage_cache_requests_total[5m])
+rate(zot_storage_cache_hits_total[5m]) / rate(zot_storage_cache_requests_total[5m])
+
+# Container CPU usage
+rate(container_cpu_usage_seconds_total{container_name="registry"}[5m])
+
+# Container memory usage
+container_memory_usage_bytes{container_name="registry"}
 ```
 
-### Jaeger Traces
+### Tempo Traces
 
-1. Access at <http://localhost:16686>
-1. Select service: `docker-registry`
+1. Access through Grafana at <http://localhost:3000>
+1. Navigate to Explore → Select Tempo datasource
 1. View traces for:
-   - Image pulls/pushes
-   - Manifest operations
-   - Blob uploads/downloads
+   - Registry operations (image pulls/pushes)
+   - OTLP trace collection
+   - Service dependencies and latencies
+1. Use trace-to-logs correlation to see related log entries
 
 ### Loki Log Queries
 
@@ -1246,10 +1287,11 @@ docker-compose down             # Stop monitoring
 docker-compose restart          # Restart services
 
 # View logs for specific services
-docker-compose logs -f prometheus
+docker-compose logs -f mimir
 docker-compose logs -f grafana
 docker-compose logs -f loki
-docker-compose logs -f jaeger
+docker-compose logs -f tempo
+docker-compose logs -f alloy
 
 # Clean up (including volumes)
 docker-compose down -v
@@ -1481,28 +1523,47 @@ docker pull localhost:5000/docker/alpine:latest
 
 ### Metrics Not Appearing
 
-1. Check Prometheus targets:
+1. Check Mimir ingestion:
 
    ```bash
-   make prometheus-targets
+   # Check Mimir health
+   curl http://localhost:9009/ready
+   
+   # Check Alloy is pushing metrics to Mimir
+   docker-compose logs -f alloy | grep -i "remote_write\|mimir"
    ```
 
 1. Verify registry metrics endpoint:
 
    ```bash
-   make metrics
+   # Registry metrics should be accessible
+   curl http://localhost:5000/metrics
    ```
 
-1. Check Prometheus logs:
+1. Check Mimir logs:
 
    ```bash
-   make logs-prometheus
+   docker-compose logs -f mimir
    ```
 
-1. Verify TLS certificates are properly mounted in Prometheus container:
+1. Verify Alloy configuration and connectivity:
 
    ```bash
-   make verify-prometheus-certs
+   # Check Alloy configuration
+   docker exec alloy cat /etc/alloy/config.alloy
+   
+   # Check Alloy targets
+   curl http://localhost:12345/api/v1/targets
+   ```
+
+1. Check MinIO connectivity (Mimir storage backend):
+
+   ```bash
+   # Verify MinIO is accessible
+   curl http://localhost:9000/minio/health/live
+   
+   # Check MinIO console
+   open http://localhost:9001
    ```
 
 ## File Structure
@@ -1518,9 +1579,10 @@ docker pull localhost:5000/docker/alpine:latest
 │       └── credentials.yaml      # Registry credentials (git ignored)
 ├── monitoring/                   # Monitoring stack directory
 │   ├── docker-compose.yaml       # Monitoring services definition
-│   ├── .env                      # Grafana credentials (git ignored)
-│   ├── prometheus/               # Prometheus configuration
-│   │   └── prometheus.yml        # Scrape configurations
+│   ├── .grafana-secrets.env      # Grafana credentials (git ignored)
+│   ├── .alloy-secrets.env        # Alloy secrets (git ignored)  
+│   ├── mimir/                    # Mimir configuration
+│   │   └── config.yaml           # Mimir server configuration
 │   ├── loki/                     # Loki configuration
 │   │   └── loki-config.yaml      # Loki server configuration
 │   ├── grafana/                  # Grafana provisioning
@@ -1551,6 +1613,177 @@ docker pull localhost:5000/docker/alpine:latest
 ~/.local/share/docker/        # Docker data directory
 ~/.local/share/alloy/         # Alloy data directory
 ```
+
+## Migration from Prometheus to Grafana Mimir
+
+This section documents the completed migration from Prometheus to Grafana Mimir for metrics storage and collection.
+
+### Migration Overview
+
+The monitoring stack has been migrated from a traditional Prometheus setup to a modern, scalable architecture using Grafana Mimir. This migration provides:
+
+- **Scalable Metrics Storage**: Mimir handles large-scale metrics with S3 backend storage
+- **Long-term Retention**: Metrics are stored in MinIO with configurable retention policies
+- **Better Performance**: Optimized for high-cardinality metrics and query performance
+- **Future-proof Architecture**: Horizontally scalable design ready for production
+
+### Key Changes Made
+
+#### 1. Replaced Prometheus with Grafana Mimir
+
+**Before:**
+```yaml
+# Prometheus service in docker-compose.yaml
+prometheus:
+  image: prom/prometheus:latest
+  ports:
+    - "9090:9090"
+  volumes:
+    - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+```
+
+**After:**
+```yaml
+# Mimir service with S3 storage
+mimir:
+  image: grafana/mimir:latest
+  ports:
+    - "9009:9009"
+  volumes:
+    - ./mimir/config.yaml:/etc/mimir/config.yaml:ro
+  command:
+    - --config.file=/etc/mimir/config.yaml
+```
+
+#### 2. Added MinIO for S3-Compatible Storage
+
+```yaml
+# MinIO provides S3 backend for Mimir
+minio:
+  image: minio/minio:latest
+  ports:
+    - "9000:9000"  # API
+    - "9001:9001"  # Console
+  command: server --console-address ":9001" /data
+```
+
+#### 3. Updated Grafana Alloy Configuration
+
+**Key Changes in Alloy:**
+- Changed remote_write endpoint from Prometheus to Mimir
+- Added required `X-Scope-OrgID: "1"` header for Mimir multi-tenancy
+- Updated scraping targets and relabeling rules
+
+```alloy
+// Before (Prometheus)
+prometheus.remote_write "metrics" {
+  endpoint {
+    url = "http://prometheus:9090/api/v1/write"
+  }
+}
+
+// After (Mimir) 
+prometheus.remote_write "metrics" {
+  endpoint {
+    url = "http://mimir:9009/api/v1/push"
+    headers = {
+      "X-Scope-OrgID" = "1"
+    }
+  }
+}
+```
+
+#### 4. Updated Grafana Data Sources
+
+**Before:**
+```yaml
+datasources:
+  - name: Prometheus
+    url: http://prometheus:9090
+```
+
+**After:**
+```yaml
+datasources:
+  - name: Mimir
+    type: prometheus
+    url: http://mimir:9009/prometheus
+```
+
+#### 5. Replaced Jaeger with Grafana Tempo
+
+**Migration Benefits:**
+- Better integration with Grafana ecosystem
+- More efficient trace storage and querying
+- Built-in trace-to-logs and trace-to-metrics correlation
+- OTLP native support
+
+### Configuration Details
+
+#### Mimir Configuration (`monitoring/mimir/config.yaml`)
+
+- **Deployment Mode**: Monolithic for dev simplicity
+- **Storage Backend**: S3 (MinIO) with automatic bucket creation
+- **Multi-tenancy**: Disabled for dev environment
+- **Retention**: 14 days (336h) for development
+- **Credentials**: `mimiruser` / `SuperSecret1` for MinIO access
+
+#### MinIO Configuration
+
+- **Bucket**: `mimir` (auto-created)
+- **Access**: Web console at <http://localhost:9001>
+- **API**: Available at <http://localhost:9000>
+- **Security**: Dev credentials (change for production)
+
+#### Grafana Data Source Updates
+
+- **Primary**: Mimir at `http://mimir:9009/prometheus`
+- **Tracing**: Tempo at `http://tempo:3200`
+- **Logs**: Loki at `http://loki:3100` (unchanged)
+- **Correlations**: Trace-to-logs and trace-to-metrics enabled
+
+### Migration Benefits
+
+1. **Scalability**: Mimir scales horizontally vs Prometheus vertical scaling
+2. **Storage**: S3 backend enables unlimited storage capacity
+3. **Performance**: Better handling of high-cardinality metrics
+4. **Reliability**: Component separation increases fault tolerance
+5. **Features**: Advanced query capabilities and multi-tenancy support
+
+### Troubleshooting the New Setup
+
+#### Common Issues and Solutions
+
+1. **Mimir not starting**: Check MinIO connectivity and credentials
+2. **Metrics not appearing**: Verify Alloy `X-Scope-OrgID` header
+3. **Storage errors**: Check MinIO bucket permissions and accessibility
+4. **Query performance**: Monitor Mimir query-frontend and query-scheduler logs
+
+#### Health Checks
+
+```bash
+# Mimir health
+curl http://localhost:9009/ready
+
+# MinIO health  
+curl http://localhost:9000/minio/health/live
+
+# Tempo health
+curl http://localhost:3200/ready
+
+# Grafana data source health
+curl http://localhost:3000/api/datasources/proxy/uid/prometheus/api/v1/query?query=up
+```
+
+### Future Enhancements
+
+The current setup provides a foundation for:
+
+- **Multi-tenancy**: Enable tenant isolation for different environments
+- **High Availability**: Deploy multiple Mimir instances with load balancing
+- **Remote Storage**: Use cloud S3 instead of local MinIO
+- **Advanced Queries**: Leverage Mimir's enhanced PromQL features
+- **Alerting**: Integrate with Mimir's alerting capabilities
 
 ## Performance Tuning
 

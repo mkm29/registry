@@ -1,6 +1,26 @@
+x-minio-common: &minio-common
+  image: minio/minio:RELEASE.2025-09-07T16-13-09Z-cpuv1
+  command: server --console-address ":9001" /data
+  ports:
+    - "9000:9000"
+    - "9001:9001"
+  healthcheck:
+    test:
+      [
+        "CMD",
+        "curk",
+        "-f",
+        "--tries=1",
+        "http://localhost:9000/minio/health/live",
+      ]
+    interval: 30s
+    timeout: 20s
+    retries: 3
+  networks:
+    - monitoring
 services:
   minio:
-    image: registry.smigula.io/docker/minio/minio:latest
+    image: registry.smigula.io/docker/minio/minio:RELEASE.2025-09-07T16-13-09Z-cpuv1
     container_name: minio
     restart: unless-stopped
     command: server /data --console-address ":9001"
@@ -20,8 +40,8 @@ services:
       MINIO_STORAGE_CLASS_STANDARD: ${MINIO_STORAGE_CLASS_STANDARD:-EC:0}
     # Remove external port exposure when using Traefik
     # ports:
-    #   - "9000:9000"   # API port
-    #   - "9001:9001"   # Console port
+    #   - "9000:9000" # API port
+    #   - "9001:9001" # Console port
     volumes:
       - /mnt/data/minio:/data
     healthcheck:
@@ -32,23 +52,24 @@ services:
       start_period: 30s
     networks:
       - monitoring
+      - traefik
     deploy:
       resources:
         limits:
-          cpus: '2'
-          memory: 2G
+          cpus: "2"
+          memory: 8g
         reservations:
-          cpus: '0.5'
-          memory: 512M
+          cpus: "2"
+          memory: 4g
 
   # Optional: MinIO Client for administration
   mc:
-    image: registry.smigula.io/docker/minio/mc:latest
+    image: registry.smigula.io/docker/minio/mc:RELEASE.2025-08-13T08-35-41Z-cpuv1
     container_name: minio-mc
     depends_on:
       minio:
         condition: service_healthy
-    entrypoint: ["/bin/sh", "-c", "/setup.sh"]
+    # entrypoint: ["/bin/sh", "-c", "/setup.sh"]
     volumes:
       - ./setup.sh:/setup.sh:ro
     environment:
@@ -58,11 +79,22 @@ services:
       LOKI_USER_PASSWORD: ${LOKI_USER_PASSWORD:-SuperSecret1}
       MIMIR_USER_PASSWORD: ${MIMIR_USER_PASSWORD:-SuperSecret1}
       TEMPO_USER_PASSWORD: ${TEMPO_USER_PASSWORD:-SuperSecret1}
+    command: ["tail", "-f", "/dev/null"]
     env_file:
       - .env
     networks:
       - monitoring
+    deploy:
+      resources:
+        limits:
+          cpus: "0.1"
+          memory: 100M
+        reservations:
+          cpus: "0.1"
+          memory: 100M
 
 networks:
   monitoring:
+    external: true
+  traefik:
     external: true

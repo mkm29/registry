@@ -22,9 +22,9 @@ http:
         - security-headers
         - grafana-headers
 
-    prometheus:
-      rule: "Host(`prometheus.smigula.io`)"
-      service: prometheus
+    mimir:
+      rule: "Host(`mimir.smigula.io`)"
+      service: mimir
       entryPoints:
         - websecure
       tls:
@@ -60,10 +60,10 @@ http:
       loadBalancer:
         servers:
           - url: "http://grafana:3000"
-    prometheus:
+    mimir:
       loadBalancer:
         servers:
-          - url: "http://prometheus:9090"
+          - url: "http://mimir:9009"
     dozzle:
       loadBalancer:
         servers:

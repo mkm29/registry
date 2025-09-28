@@ -20,8 +20,16 @@ services:
       - .env
     networks:
       - auth
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 256M
+        reservations:
+          cpus: "0.25"
+          memory: 128M
   redis:
-    image: registry.smigula.io/docker/redis:alpine
+    image: registry.smigula.io/docker/redis:8.2.1-alpine
     container_name: authentik-redis
     command: --save 60 1 --loglevel warning
     restart: unless-stopped
@@ -35,6 +43,14 @@ services:
       - redis-data:/data
     networks:
       - auth
+    deploy:
+      resources:
+        limits:
+          cpus: "0.1"
+          memory: 128M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
   server:
     image: registry.smigula.io/ghcr/goauthentik/server:2025.6.3
     container_name: authentik-server
@@ -47,6 +63,7 @@ services:
       - media-data:/media
       - templates-data:/templates
       - /run/user/1000/docker.sock:/var/run/docker.sock
+      - ./dist/custom.css:/web/dist/custom.css
     ports:
       - "${COMPOSE_PORT_HTTP:-9008}:9000"
       - "${COMPOSE_PORT_HTTPS:-9443}:9443"
@@ -55,6 +72,14 @@ services:
     depends_on:
       - postgresql
       - redis
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1024M
+        reservations:
+          cpus: "0.5"
+          memory: 512M
   worker:
     image: registry.smigula.io/ghcr/goauthentik/server:2025.6.3
     container_name: authentik-worker
@@ -68,11 +93,20 @@ services:
       - media-data:/media
       - certs-data:/certs
       - templates-data:/templates
+      - ./dist/custom.css:/web/dist/custom.css
     networks:
       - auth
     depends_on:
       - postgresql
       - redis
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.25"
+          memory: 256M
 volumes:
   postgres-data:
     driver: local

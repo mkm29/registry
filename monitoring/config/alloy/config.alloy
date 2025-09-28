@@ -204,6 +204,10 @@ loki.process "traefik_logs" {
 loki.write "loki" {
 	endpoint {
 		url = "http://loki:3100/loki/api/v1/push"
+
+		headers = {
+			"X-Scope-OrgID" = "1",
+		}
 	}
 }
 
@@ -262,6 +266,37 @@ prometheus.relabel "cadvisor_metrics" {
 		source_labels = ["id"]
 		regex         = "^/$"
 		action        = "drop"
+	}
+
+	// Drop all container_label_* labels except the ones we explicitly kept
+	rule {
+		regex  = "container_label_.*"
+		action = "labeldrop"
+	}
+
+	// Drop other verbose labels that cAdvisor adds
+	rule {
+		regex  = "container_env_.*"
+		action = "labeldrop"
+	}
+
+	// Drop architecture and build info labels that might not be needed
+	rule {
+		regex  = "(architecture|build_date|build_version|maintainer|url|vcs_ref|vcs_url|vendor|version)"
+		action = "labeldrop"
+	}
+
+	// Drop device-specific labels if not needed
+	rule {
+		regex  = "(device|interface|device_major|device_minor)"
+		action = "labeldrop"
+	}
+
+	// Optionally, keep only essential labels for container metrics
+	// Aggressive but ensures we stay well under the limit
+	rule {
+		regex  = "__name__|job|instance|container_name|service|project|container_image|name|id|image"
+		action = "labelkeep"
 	}
 }
 
@@ -335,10 +370,13 @@ prometheus.relabel "zot_metrics" {
 	}
 }
 
-// Send metrics to Prometheus
+// Send metrics to Mimir
 prometheus.remote_write "metrics" {
 	endpoint {
-		url = "http://prometheus:9090/api/v1/write"
+		url     = "http://mimir-lb:9009/api/v1/push"
+		headers = {
+			"X-Scope-OrgID" = "1",
+		}
 	}
 }
 
