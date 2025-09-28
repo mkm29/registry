@@ -24,8 +24,6 @@ common:
       bucket_name: mimir
       region: us-east-1
       insecure: true
-      # Force path style for MinIO compatibility
-      s3_force_path_style: true
 
 # Memberlist configuration for service discovery
 memberlist:
@@ -42,7 +40,6 @@ blocks_storage:
     bucket_name: mimir
     region: us-east-1
     insecure: true
-    s3_force_path_style: true
 
   # TSDB configuration
   tsdb:

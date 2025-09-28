@@ -1,13 +1,15 @@
 services:
-  mimir:
-    image: registry.smigula.io/docker/grafana/mimir:2.17.1
+  mimir-1:
+    image: &mimir_image registry.smigula.io/docker/grafana/mimir:2.17.1
     container_name: mimir
     restart: unless-stopped
+    hostname: mimir-1
     ports:
       - "9009:9009"
     volumes:
       - ./mimir/config.yaml:/etc/mimir/config.yaml:ro
-      - mimir-data:/data
+      - ./config/alertmanager-fallback-config.yaml:/etc/alertmanager-fallback-config.yaml
+      - mimir-1-data:/data
     command:
       - --config.file=/etc/mimir/config.yaml
     networks:
@@ -18,7 +20,59 @@ services:
       resources:
         limits:
           cpus: "2"
-          memory: 8192M
+          memory: 2048M
+        reservations:
+          cpus: "1"
+          memory: 1024M
+
+  mimir-2:
+    image: *mimir_image
+    container_name: mimir
+    restart: unless-stopped
+    hostname: mimir-2
+    ports:
+      - "9009:9009"
+    volumes:
+      - ./mimir/config.yaml:/etc/mimir/config.yaml:ro
+      - ./config/alertmanager-fallback-config.yaml:/etc/alertmanager-fallback-config.yaml
+      - mimir-2-data:/data
+    command:
+      - --config.file=/etc/mimir/config.yaml
+    networks:
+      - monitoring
+    # depends_on:
+    #   - minio # minio is part of different docker compose file...
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 2048M
+        reservations:
+          cpus: "1"
+          memory: 1024M
+
+  mimir-3:
+    image: *mimir_image
+    container_name: mimir
+    restart: unless-stopped
+    hostname: mimir-3
+    ports:
+      - "9009:9009"
+    volumes:
+      - ./mimir/config.yaml:/etc/mimir/config.yaml:ro
+      - ./config/alertmanager-fallback-config.yaml:/etc/alertmanager-fallback-config.yaml
+      - mimir-3-data:/data
+    command:
+      - --config.file=/etc/mimir/config.yaml
+    networks:
+      - monitoring
+    # depends_on:
+    #   - minio # minio is part of different docker compose file...
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 2048M
         reservations:
           cpus: "1"
           memory: 1024M
@@ -49,7 +103,7 @@ services:
       - "AWS_SECRET_ACCESS_KEY=LokiP@ss5"
       - "AWS_ACCESS_KEY_ID=lokiuser"
     volumes:
-      - ./loki/loki-config.yaml:/etc/loki/loki-config.yaml:ro
+      - ./config/loki/loki-config.yaml:/etc/loki/loki-config.yaml:ro
       - loki-data:/loki
     command: -config.file=/etc/loki/loki-config.yaml
     networks:
@@ -87,8 +141,21 @@ services:
       - "3000:3000"
     volumes:
       - grafana-data:/var/lib/grafana
-      - ./grafana/provisioning:/etc/grafana/provisioning:ro
-      - ./grafana/grafana.ini:/etc/grafana/grafana.ini:ro
+      - ./config/grafana/provisioning-datasources.yaml:/etc/grafana/provisioning/provisioning-datasources.yaml:ro
+      - ./config/grafana/provisioning-dashboards.yaml:/etc/grafana/provisioning/provisioning-dashboards.yaml:ro
+      - ./config/grafana/grafana.ini:/etc/grafana/grafana.ini:ro
+      # Explicitly list the dashboards we want to show in the demo. We intentionally exclude dashboards that require
+      # Kubernetes metrics (eg. resources or networking) and other services not available in the demo (eg. Grafana Loki).
+      - ./config/grafana/dashboards/mimir-alertmanager.json:/var/lib/grafana/dashboards/mimir-alertmanager.json:ro
+      - ./config/grafana/dashboards/mimir-compactor.json:/var/lib/grafana/dashboards/mimir-compactor.json:ro
+      - ./config/grafana/dashboards/mimir-object-store.json:/var/lib/grafana/dashboards/mimir-object-store.json:ro
+      - ./config/grafana/dashboards/mimir-overrides.json:/var/lib/grafana/dashboards/mimir-overrides.json:ro
+      - ./config/grafana/dashboards/mimir-queries.json:/var/lib/grafana/dashboards/mimir-queries.json:ro
+      - ./config/grafana/dashboards/mimir-reads.json:/var/lib/grafana/dashboards/mimir-reads.json:ro
+      - ./config/grafana/dashboards/mimir-ruler.json:/var/lib/grafana/dashboards/mimir-ruler.json:ro
+      - ./config/grafana/dashboards/mimir-tenants.json:/var/lib/grafana/dashboards/mimir-tenants.json:ro
+      - ./config/grafana/dashboards/mimir-top-tenants.json:/var/lib/grafana/dashboards/mimir-top-tenants.json:ro
+      - ./config/grafana/dashboards/mimir-writes.json:/var/lib/grafana/dashboards/mimir-writes.json:ro
     # environment:
     #   - "GF_PLUGINS_PREINSTALL=grafana-clock-panel, grafana-simple-json-datasource"
     env_file:
@@ -179,7 +246,7 @@ services:
     restart: unless-stopped
     volumes:
       - /run/user/1000/docker.sock:/var/run/docker.sock:ro
-      - ./alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - ./config/alloy/config.alloy:/etc/alloy/config.alloy:ro
       - /mnt/data/logs/traefik:/var/log/traefik:ro
       - alloy-data:/var/lib/alloy
     command:
@@ -259,8 +326,24 @@ services:
 #   users:
 #     file: users.yml
 volumes:
-  mimir-data:
+  mimir-1-data:
     driver: local
+    driver_opts:
+      type: none
+      device: /mnt/data/mimir-1
+      o: bind
+  mimir-2-data:
+    driver: local
+    driver_opts:
+      type: none
+      device: /mnt/data/mimir-2
+      o: bind
+  mimir-3-data:
+    driver: local
+    driver_opts:
+      type: none
+      device: /mnt/data/mimir-3
+      o: bind
   grafana-data:
     driver: local
     driver_opts:
