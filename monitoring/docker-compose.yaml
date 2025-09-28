@@ -5,7 +5,14 @@ x-minio-common: &minio-common
     - "9000:9000"
     - "9001:9001"
   healthcheck:
-    test: ["CMD", "curk", "-f", "--tries=1", "http://localhost:9000/minio/health/live"]
+    test:
+      [
+        "CMD",
+        "curk",
+        "-f",
+        "--tries=1",
+        "http://localhost:9000/minio/health/live",
+      ]
     interval: 30s
     timeout: 20s
     retries: 3
@@ -28,6 +35,14 @@ services:
       - monitoring
     depends_on:
       - minio
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 8192M
+        reservations:
+          cpus: "1"
+          memory: 1024M
 
   loki-init:
     image: registry.smigula.io/docker/alpine:latest
@@ -61,13 +76,29 @@ services:
     networks:
       - monitoring
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3100/ready"]
+      test:
+        [
+          "CMD",
+          "wget",
+          "--quiet",
+          "--tries=1",
+          "--spider",
+          "http://localhost:3100/ready",
+        ]
       interval: 15s
       timeout: 10s
       retries: 5
       start_period: 30s
     depends_on:
       - loki-init
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 2048M
+        reservations:
+          cpus: "1"
+          memory: 512M
   # Grafana for visualization
   grafana:
     image: registry.smigula.io/docker/grafana/grafana:latest
@@ -89,6 +120,14 @@ services:
       - mimir
       - tempo
       - loki
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.25"
+          memory: 256M
   dozzle:
     container_name: dozzle
     image: registry.smigula.io/docker/amir20/dozzle:latest
@@ -109,6 +148,14 @@ services:
     restart: unless-stopped
     networks:
       - monitoring
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 256M
+        reservations:
+          cpus: "0.25"
+          memory: 256M
   # cAdvisor for container metrics in rootless mode
   cadvisor:
     image: registry.smigula.io/gcr/cadvisor/cadvisor:v0.52.0
@@ -138,6 +185,14 @@ services:
       - --max_procs=4
     networks:
       - monitoring
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 4098M
+        reservations:
+          cpus: "0.25"
+          memory: 512M
   # Grafana Alloy for observability data collection
   alloy:
     image: registry.smigula.io/docker/grafana/alloy:latest
@@ -160,6 +215,14 @@ services:
     networks:
       - monitoring
       - registry
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 8192M
+        reservations:
+          cpus: "1"
+          memory: 1024M
   # Tempo runs as user 10001, and docker compose creates the volume as root.
   # As such, we need to chown the volume in order for Tempo to start correctly.
   tempo-init:
@@ -193,8 +256,16 @@ services:
     networks:
       - monitoring
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1024M
+        reservations:
+          cpus: "0.25"
+          memory: 256M
 
-# troubleshooting pod
+  # troubleshooting pod
   troubleshooting:
     image: registry.smigula.io/docker/nicolaka/netshoot:latest
     container_name: troubleshooting
@@ -204,7 +275,6 @@ services:
     networks:
       - monitoring
       - registry
-
 
 # secrets:
 #   users:

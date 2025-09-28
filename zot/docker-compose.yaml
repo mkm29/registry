@@ -1,7 +1,7 @@
 services:
   # Docker Registry with TLS
   registry:
-    image: ghcr.io/project-zot/zot-linux-amd64:v2.1.5
+    image: ghcr.io/project-zot/zot-linux-amd64:v2.1.8
     container_name: registry
     restart: always
     ports:
@@ -15,6 +15,17 @@ services:
       # - ./certs/registry.key:/etc/ssl/private/registry.key:ro
       # - ./certs/registry1-ca:/etc/zot/certs/registry1-ca:ro
       - zot-data:/var/lib/zot
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1024M
+        reservations:
+          cpus: "0.35"
+          memory: 1024M
+    # cpuset: "0-1"
+    environment:
+      GOMEMLIMIT: 800MiB
     networks:
       - registry
       - monitoring
@@ -22,7 +33,16 @@ services:
       - serve
       - /etc/zot/config.yaml
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5000/v2/", "--no-check-certificate"]
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:5000/v2/",
+          "--no-check-certificate",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3

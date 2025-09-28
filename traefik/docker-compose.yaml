@@ -22,6 +22,14 @@ services:
       - mediaserver
       - registry
       - auth
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 256M
+        reservations:
+          cpus: "0.5"
+          memory: 100M
   landing:
     image: nginx:alpine
     container_name: landing-page
@@ -45,6 +53,14 @@ services:
       - "traefik.http.middlewares.landing-redirects.redirectregex.regex=^https://smigula.io/(grafana|plex|registry)$$"
       - "traefik.http.middlewares.landing-redirects.redirectregex.replacement=https://$$1.smigula.io"
       - "traefik.http.middlewares.landing-redirects.redirectregex.permanent=true"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 100M
+        reservations:
+          cpus: "0.25"
+          memory: 100M
 volumes:
   traefik_certs:
     external: false
