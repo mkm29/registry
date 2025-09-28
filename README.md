@@ -1,160 +1,157 @@
-# Zot Registry with Pull-Through Cache and Monitoring Stack (Rootless Docker)
+# Multi-Stack Container Infrastructure
 
-This repository provides a complete setup for a local Zot registry that acts as a pull-through cache for multiple container registries including Docker Hub, ghcr.io, gcr.io, quay.io, and registry.k8s.io. The project is organized into three main components:
+This repository provides a comprehensive, production-ready container infrastructure with six integrated Docker Compose stacks for identity management, observability, storage, registry services, and media automation. The architecture emphasizes security, observability, and operational excellence.
 
-- **Zot Registry** (`zot/`): The OCI-compliant registry with pull-through caching and authentication
-- **Monitoring Stack** (`monitoring/`): Full observability stack with Grafana Mimir, Tempo, Grafana, Loki, and Alloy
-- **Caddy Reverse Proxy** (`caddy/`): HTTPS reverse proxy with automatic TLS certificate management
+## Infrastructure Stacks
 
-This setup is optimized for **rootless Docker** with native Alloy installation for better security and performance. The registry is accessible via HTTPS at `registry.smigula.io` with authentication handled externally by Authentik through Traefik.
+- **Authentication Stack** (`auth/`): Authentik identity provider with PostgreSQL and Redis
+- **Traefik Stack** (`traefik/`): Reverse proxy with automatic SSL termination and service discovery
+- **Monitoring Stack** (`monitoring/`): Complete observability platform with Mimir cluster, Grafana, Loki, Tempo, and Alloy
+- **Storage Stack** (`minio/`): S3-compatible object storage for monitoring backends
+- **Registry Stack** (`zot/`): OCI-compliant container registry with pull-through caching
+- **Media Stack** (`mediaserver/`): Automated media server with Plex and content management
 
-- [Zot Registry with Pull-Through Cache and Monitoring Stack (Rootless Docker)](#zot-registry-with-pull-through-cache-and-monitoring-stack-rootless-docker)
-  - [Overview](#overview)
-  - [Prerequisites](#prerequisites)
-    - [Required Software](#required-software)
-    - [Optional Tools](#optional-tools)
-    - [System Requirements](#system-requirements)
-    - [Docker Hub Account](#docker-hub-account)
-  - [Rootless Docker Setup](#rootless-docker-setup)
-    - [1. Remove Regular Docker (if installed)](#1-remove-regular-docker-if-installed)
-    - [2. Install Docker CE](#2-install-docker-ce)
-    - [3. Install Rootless Docker](#3-install-rootless-docker)
-    - [4. Start Rootless Docker](#4-start-rootless-docker)
-    - [5. Configure Docker Daemon](#5-configure-docker-daemon)
-  - [Install and Configure Alloy](#install-and-configure-alloy)
-    - [1. Download and Install Alloy](#1-download-and-install-alloy)
-    - [2. Create Alloy Configuration](#2-create-alloy-configuration)
-    - [3. Create Systemd User Service](#3-create-systemd-user-service)
-  - [Architecture](#architecture)
-  - [Registry Authentication](#registry-authentication)
-  - [Available Commands](#available-commands)
-  - [Quick Start](#quick-start)
-  - [CFSSL Configuration](#cfssl-configuration)
-    - [1. Root CA Configuration (`cfssl/ca.json`)](#1-root-ca-configuration-cfsslcajson)
-    - [2. Intermediate CA Configuration (`cfssl/intermediate-ca.json`)](#2-intermediate-ca-configuration-cfsslintermediate-cajson)
-    - [3. Registry Certificate Configuration (`cfssl/registry.json`)](#3-registry-certificate-configuration-cfsslregistryjson)
-    - [4. Certificate Profiles (`cfssl/cfssl.json`)](#4-certificate-profiles-cfsslcfssljson)
-    - [Common Customizations](#common-customizations)
-    - [Example for Local Development](#example-for-local-development)
-  - [Certificate Generation with CFSSL](#certificate-generation-with-cfssl)
-  - [Zot Registry Configuration](#zot-registry-configuration)
-    - [Key Configuration Settings](#key-configuration-settings)
-      - [Storage Configuration](#storage-configuration)
-      - [HTTP Configuration](#http-configuration)
-      - [Multi-Registry Sync Configuration](#multi-registry-sync-configuration)
-      - [Extensions](#extensions)
-  - [Services Architecture](#services-architecture)
-    - [Zot Registry (port 5000)](#zot-registry-port-5000)
-    - [Jaeger (port 16686)](#jaeger-port-16686)
-    - [Prometheus (port 9090)](#prometheus-port-9090)
-    - [Loki (port 3100)](#loki-port-3100)
-    - [Grafana Alloy (port 12345) - Native Installation](#grafana-alloy-port-12345---native-installation)
-    - [Grafana (port 3000)](#grafana-port-3000)
-  - [Docker Compose Configuration](#docker-compose-configuration)
-  - [Testing the Registry](#testing-the-registry)
-    - [Configure Docker to Trust the Registry](#configure-docker-to-trust-the-registry)
-      - [Step 1: Configure TLS Trust](#step-1-configure-tls-trust)
-        - [Option A: Configure Docker daemon certificates (Recommended)](#option-a-configure-docker-daemon-certificates-recommended)
-        - [Option B: System-wide trust (macOS)](#option-b-system-wide-trust-macos)
-      - [Step 2: Configure Docker Hub Mirror](#step-2-configure-docker-hub-mirror)
-        - [Rootless Docker](#rootless-docker)
-        - [macOS (Docker Desktop)](#macos-docker-desktop)
-        - [Linux (Regular Docker)](#linux-regular-docker)
-        - [Verify Mirror Configuration](#verify-mirror-configuration)
-    - [Test Registry Access](#test-registry-access)
-  - [Monitoring and Observability](#monitoring-and-observability)
-    - [Grafana Dashboard](#grafana-dashboard)
-    - [Prometheus Queries](#prometheus-queries)
-    - [Jaeger Traces](#jaeger-traces)
-    - [Loki Log Queries](#loki-log-queries)
-  - [Management Commands](#management-commands)
-    - [Docker Compose Operations](#docker-compose-operations)
-    - [Registry Maintenance](#registry-maintenance)
-    - [Alloy Management](#alloy-management)
-  - [Security Considerations](#security-considerations)
-  - [Troubleshooting](#troubleshooting)
-    - [Rootless Docker Issues](#rootless-docker-issues)
-    - [Alloy Issues](#alloy-issues)
-    - [Volume Permission Issues](#volume-permission-issues)
-    - [Certificate Issues](#certificate-issues)
-    - [Authentication Issues](#authentication-issues)
-    - [Registry Connection Issues](#registry-connection-issues)
-    - [Metrics Not Appearing](#metrics-not-appearing)
-  - [File Structure](#file-structure)
-  - [Migration from Prometheus to Grafana Mimir](#migration-from-prometheus-to-grafana-mimir)
-  - [Performance Tuning](#performance-tuning)
-  - [References](#references)
+The infrastructure uses external Docker networks for service isolation, Traefik for centralized ingress, and Authentik for unified authentication across all services.
 
-## Overview
+## Table of Contents
 
-This setup creates a production-ready local Zot registry with:
+- [Architecture Overview](#architecture-overview)
+- [Stack Documentation](#stack-documentation)
+  - [Traefik Stack - Reverse Proxy](#traefik-stack---reverse-proxy)
+  - [Authentication Stack - Authentik IdP](#authentication-stack---authentik-idp)
+  - [Monitoring Stack - Observability Platform](#monitoring-stack---observability-platform)
+  - [Storage Stack - MinIO S3](#storage-stack---minio-s3)
+  - [Registry Stack - Zot OCI Registry](#registry-stack---zot-oci-registry)
+  - [Media Stack - Plex Automation](#media-stack---plex-automation)
+- [Network Architecture](#network-architecture)
+- [Quick Start Guide](#quick-start-guide)
+- [Management Commands](#management-commands)
+- [Security Considerations](#security-considerations)
+- [Troubleshooting](#troubleshooting)
+- [References](#references)
 
-- **Rootless Docker**: Enhanced security with user-namespace isolation
-- **Multi-Registry Pull-Through Cache**: Acts as a caching proxy for multiple registries:
-  - Docker Hub (`/docker` prefix)
-  - GitHub Container Registry (`/ghcr` prefix)
-  - Google Container Registry (`/gcr` prefix)
-  - Quay.io (`/quay` prefix)
-  - Kubernetes Registry (`/k8s` prefix)
-- **Zot Registry**: High-performance OCI-compliant registry with advanced features
-- **HTTPS Access**: Secure external access via Caddy reverse proxy with automatic TLS certificates
-- **Authentication**: Handled externally by Authentik through Traefik
-- **Bandwidth Optimization**: Caches images locally to reduce repeated downloads from upstream registries
-- **Native Alloy**: Grafana Alloy runs as a native systemd service for better Docker socket access
-- **Distributed Tracing**: OpenTelemetry integration with Grafana Tempo
-- **Metrics Collection**: Grafana Mimir for scalable metrics storage with pre-configured dashboards
-- **Log Aggregation**: Loki for centralized log collection and querying
-- **Visualization**: Grafana dashboards for monitoring registry performance and logs
-- **Advanced Features**: Built-in UI, search capabilities, and sync management
+## Architecture Overview
 
-When properly configured, Zot will automatically cache images from multiple registries, significantly improving pull speeds and reducing bandwidth usage.
+This infrastructure provides a comprehensive, enterprise-grade container platform with the following capabilities:
+
+### Overall Infrastructure Architecture
+
+```mermaid
+graph LR
+    subgraph "External"
+        Internet[🌐 Internet<br/>Port 80/443]
+        Users[👥 Users]
+    end
+
+    subgraph "Ingress"
+        Traefik[🚦 Traefik<br/>Reverse Proxy<br/>+ SSL]
+    end
+
+    subgraph "Core Services"
+        Auth[🔐 Authentik<br/>Identity Provider]
+        Monitor[📊 Monitoring<br/>Grafana + LGTM Stack]
+        Registry[📦 Zot Registry<br/>Container Images]
+        Storage[💾 MinIO<br/>S3 Storage]
+        Media[🎬 Plex Stack<br/>Media Automation]
+    end
+
+    subgraph "External Sources"
+        DockerHub[🐳 Docker Hub]
+        MediaSources[📺 Media Sources]
+    end
+
+    %% Main flow
+    Internet --> Traefik
+    Users --> Traefik
+
+    %% Service routing
+    Traefik --> Auth
+    Traefik --> Monitor
+    Traefik --> Registry
+    Traefik --> Storage
+    Traefik --> Media
+
+    %% Authentication flow
+    Auth -.->|SSO| Monitor
+    Auth -.->|SSO| Registry
+    Auth -.->|SSO| Storage
+    Auth -.->|SSO| Media
+
+    %% Data dependencies
+    Monitor --> Storage
+    Registry --> DockerHub
+    Media --> MediaSources
+
+    %% Styling
+    classDef external fill:#ffebee,stroke:#d32f2f,stroke-width:2px,color:#424242
+    classDef ingress fill:#e3f2fd,stroke:#1976d2,stroke-width:3px,color:#424242
+    classDef core fill:#e8f5e8,stroke:#388e3c,stroke-width:2px,color:#424242
+    classDef sources fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#424242
+
+    class Internet,Users external
+    class Traefik ingress
+    class Auth,Monitor,Registry,Storage,Media core
+    class DockerHub,MediaSources sources
+```
+
+### Key Features
+
+- **Unified Authentication**: Authentik provides SSO across all services
+- **Automatic HTTPS**: Traefik with Let's Encrypt certificate automation
+- **Complete Observability**: Grafana LGTM stack with Mimir clustering
+- **Container Registry**: OCI-compliant registry with pull-through caching
+- **S3 Storage**: MinIO provides scalable object storage
+- **Media Automation**: Complete Plex-based media management pipeline
+- **Production-Ready**: Resource limits, health checks, and persistent storage
 
 ## Prerequisites
 
-### Required Software
-
-1. **CFSSL** (CloudFlare's PKI toolkit)
-
-   - macOS: `brew install cfssl`
-   - Linux: `sudo apt-get install golang-cfssl` or download from [CFSSL releases](https://github.com/cloudflare/cfssl/releases)
-   - Verify: `cfssl version`
-
-1. **Make** (GNU Make 3.81 or later)
-
-   - macOS: Included with Xcode Command Line Tools or `brew install make`
-   - Linux: `sudo apt-get install build-essential`
-   - Verify: `make --version`
-
-1. **OpenSSL** (for certificate verification)
-
-   - macOS/Linux: Usually pre-installed
-   - Verify: `openssl version`
-
-### Optional Tools
-
-- **curl** or **wget**: For testing endpoints (usually pre-installed)
-- **jq**: For parsing JSON responses (`brew install jq` or `apt-get install jq`)
-
 ### System Requirements
 
-- **Disk Space**: At least 10GB free for Docker images and registry storage
-- **Memory**: Minimum 4GB RAM (8GB recommended for full monitoring stack)
-- **Ports**: Ensure the following ports are available:
-  - 5000: Registry API
-  - 3000: Grafana
-  - 9009: Grafana Mimir
-  - 3200: Grafana Tempo
-  - 4317/4318: OpenTelemetry receivers
-  - 3100: Loki
-  - 12345: Alloy UI
+- **Hardware**: Minimum 8GB RAM, 50GB free disk space
+- **Operating System**: Linux (Ubuntu 20.04+ recommended) or macOS with Docker support
+- **Docker**: Docker Engine 24.0+ with Docker Compose v2
+- **Network**: Internet connectivity for image pulls and certificate generation
 
-### Registry Accounts (Optional)
+### Required Software
 
-For authenticated registries, you'll need credentials:
+- **Docker Engine**: Latest stable version with compose plugin
+- **Git**: For repository management
+- **Make**: For automation commands (optional)
 
-1. **Docker Hub**: Create a free account at [hub.docker.com](https://hub.docker.com)
-1. **GitHub Container Registry**: Use your GitHub username and a [personal access token](https://github.com/settings/tokens)
-1. **Other registries**: Most public images don't require authentication
+### Port Requirements
+
+The following ports should be available on your system:
+
+| Port      | Service   | Description             |
+| --------- | --------- | ----------------------- |
+| 80/443    | Traefik   | HTTP/HTTPS ingress      |
+| 8080      | Traefik   | Dashboard               |
+| 9008/9443 | Authentik | Identity provider       |
+| 3000      | Grafana   | Visualization dashboard |
+| 9009      | Mimir     | Metrics storage         |
+| 3100      | Loki      | Log aggregation         |
+| 3200      | Tempo     | Distributed tracing     |
+| 5000      | Zot       | Container registry      |
+| 9000/9001 | MinIO     | Object storage          |
+| 32400     | Plex      | Media server            |
+
+### Storage Structure
+
+The infrastructure expects the following directory structure:
+
+```bash
+/mnt/data/
+├── postgres/         # PostgreSQL data
+├── redis/            # Redis data
+├── authentik/        # Authentik media/templates
+├── mimir-{1,2,3}/    # Mimir cluster data
+├── grafana/          # Grafana dashboards/config
+├── loki/             # Loki log data
+├── zot/              # Registry storage
+├── minio/            # MinIO object storage
+└── logs/             # Application logs
+```
 
 ## Rootless Docker Setup
 
@@ -238,237 +235,487 @@ systemctl --user restart docker
 docker info  # Verify configuration
 ```
 
-## Install and Configure Alloy
+## Stack Documentation
 
-### 1. Download and Install Alloy
+### Traefik Stack - Reverse Proxy
 
-```bash
-# Create local bin directory
-mkdir -p ~/.local/bin
-
-# Download Alloy
-cd /tmp
-wget https://github.com/grafana/alloy/releases/download/v1.9.2/alloy-linux-amd64.zip
-unzip alloy-linux-amd64.zip
-mv alloy-linux-amd64 ~/.local/bin/alloy
-chmod +x ~/.local/bin/alloy
-
-# Verify installation
-~/.local/bin/alloy --version
-```
-
-### 2. Create Alloy Configuration
-
-```bash
-# Create config directory
-mkdir -p ~/alloy
-
-# Create configuration file
-tee ~/alloy/config.alloy << 'EOF'
-discovery.docker "containers" {
-  host = "unix:///run/user/1000/docker.sock"
-  refresh_interval = "5s"
-}
-
-discovery.relabel "containers" {
-  targets = discovery.docker.containers.targets
-
-  rule {
-    source_labels = ["__meta_docker_container_name"]
-    target_label  = "container"
-  }
-
-  rule {
-    source_labels = ["__meta_docker_container_log_stream"]
-    target_label  = "stream"
-  }
-
-  rule {
-    source_labels = ["__meta_docker_container_id"]
-    target_label  = "container_id"
-  }
-
-  rule {
-    source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
-    target_label  = "service"
-  }
-}
-
-loki.source.file "docker_logs" {
-  targets    = discovery.relabel.containers.output
-  forward_to = [loki.process.docker_logs.receiver]
-}
-
-loki.process.docker_logs "docker_logs" {
-  forward_to = [loki.write.loki.receiver]
-
-  stage.json {
-    expressions = {
-      timestamp = "time",
-      message   = "log",
-    }
-  }
-
-  stage.timestamp {
-    source = "timestamp"
-    format = "RFC3339Nano"
-  }
-
-  stage.labels {
-    values = {
-      level = "level",
-    }
-  }
-}
-
-loki.write "loki" {
-  endpoint {
-    url = "http://localhost:3100/loki/api/v1/push"
-  }
-}
-
-logging {
-  level  = "info"
-  format = "logfmt"
-}
-EOF
-```
-
-### 3. Create Systemd User Service
-
-```bash
-# Create user systemd directory
-mkdir -p ~/.config/systemd/user
-
-# Create service file
-tee ~/.config/systemd/user/alloy.service << 'EOF'
-[Unit]
-Description=Grafana Alloy
-After=network.target
-Wants=network.target
-
-[Service]
-Type=simple
-WorkingDirectory=%h
-ExecStart=%h/.local/bin/alloy run %h/registry/monitoring/alloy/config.alloy --server.http.listen-addr=0.0.0.0:12345 --storage.path=%h/.local/share/alloy
-Restart=always
-RestartSec=5
-
-[Install]
-WantedBy=default.target
-EOF
-
-# Reload and enable service
-systemctl --user daemon-reload
-systemctl --user enable --now alloy
-
-# Enable user services to start at boot (optional)
-sudo loginctl enable-linger $USER
-```
-
-## Architecture
+**Purpose**: Central ingress controller with automatic HTTPS and service discovery
 
 ```mermaid
 graph TB
-    subgraph "External Access"
-        Internet[Internet<br/>HTTPS]
-        Client[Docker Client]
+    subgraph "External"
+        Internet[Internet :80/:443]
+        LE[Let's Encrypt<br/>DNS Challenge]
     end
 
-    subgraph "External Registries"
-        DH[Docker Hub<br/>registry-1.docker.io]
-        GHCR[GitHub Container Registry<br/>ghcr.io]
-        GCR[Google Container Registry<br/>gcr.io]
-        QUAY[Quay.io]
-        K8S[Kubernetes Registry<br/>registry.k8s.io]
+    subgraph "Traefik Stack"
+        Traefik[Traefik v3.4<br/>:80/:443<br/>Dashboard :8080]
+        Landing[Landing Page<br/>Static HTML]
+        Config[Dynamic Config<br/>File Provider]
     end
 
-    subgraph "Rootless Docker Environment"
-        subgraph "Reverse Proxy (caddy/docker-compose.yaml)"
-            Caddy[Caddy<br/>:443/:80<br/>TLS Termination]
-            CaddyAuth[Auth handled by<br/>Traefik/Authentik]
+    subgraph "Routing Rules"
+        Rules["`Host-based Routing:
+        auth.domain → Authentik
+        grafana.domain → Grafana
+        minio.domain → MinIO
+        registry.domain → Zot
+        plex.domain → Plex`"]
+    end
+
+    Internet --> Traefik
+    LE --> Traefik
+    Traefik --> Landing
+    Traefik --> Config
+    Config --> Rules
+
+    classDef external fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#424242
+    classDef proxy fill:#e1f5fe,stroke:#0277bd,stroke-width:3px,color:#424242
+    classDef config fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#424242
+
+    class Internet,LE external
+    class Traefik,Landing proxy
+    class Config,Rules config
+```
+
+**Key Features**:
+
+- Automatic SSL certificate management via Let's Encrypt
+- Host-based routing with middleware support
+- Dashboard and metrics endpoints
+- Docker label-based service discovery
+
+**Services**:
+
+- `traefik`: Main reverse proxy container
+- `landing`: Static landing page with subdomain redirects
+
+### Authentication Stack - Authentik IdP
+
+**Purpose**: Unified identity provider with SSO capabilities
+
+```mermaid
+graph TB
+    subgraph "Auth Stack"
+        Authentik[Authentik IdP<br/>:9008 HTTP<br/>:9443 HTTPS]
+        Worker[Authentik Worker<br/>Background Tasks]
+
+        subgraph "Database Layer"
+            PostgreSQL[PostgreSQL 16<br/>:5432<br/>User Database]
+            Redis[Redis 7<br/>:6379<br/>Session Cache]
         end
 
-        subgraph "Zot Registry (zot/docker-compose.yaml)"
-            subgraph "Zot Registry Service"
-                Zot[Zot Registry<br/>:5000]
-                ZotAuth[External Auth<br/>via Traefik]
-                UI[Web UI<br/>Search API]
-                Sync[Sync Engine<br/>On-demand Pull]
-
-                Zot --> ZotAuth
-                Zot --> UI
-                Zot --> Sync
-            end
-        end
-
-        subgraph "Monitoring Stack (monitoring/docker-compose.yaml)"
-            subgraph "Monitoring Services"
-                Tempo[Grafana Tempo<br/>:4317/:4318 OTLP]
-                Mimir[Grafana Mimir<br/>:9009]
-                Loki[Loki<br/>:3100]
-                Grafana[Grafana<br/>:3000]
-                MinIO[MinIO<br/>:9000/:9001<br/>S3 Storage]
-
-                Mimir --> Grafana
-                Tempo --> Grafana
-                Loki --> Grafana
-                Mimir --> MinIO
-            end
-
-            subgraph "Rootless Docker Infrastructure"
-                Docker[Rootless Docker Daemon<br/>~/.local/share/docker]
-                Logs[Container Logs<br/>~/.local/share/docker/containers]
-                Socket[Docker Socket<br/>/run/user/1000/docker.sock]
-
-                Docker --> Logs
-                Docker --> Socket
-            end
-        end
-
-        subgraph "Native Services"
-            Alloy[Grafana Alloy<br/>:12345<br/>Systemd User Service]
-
-            Alloy -->|Read| Socket
-            Alloy -->|Read| Logs
-            Alloy -->|Push logs| Loki
+        subgraph "Storage"
+            Media[Media Volume<br/>Static Assets]
+            Templates[Templates Volume<br/>Custom Templates]
+            PGData[PostgreSQL Data<br/>Persistent Volume]
         end
     end
 
-    Internet -->|registry.smigula.io| Caddy
-    Client -->|localhost:5000| Zot
-    Caddy -->|HTTP| Zot
-    Sync -->|Cache| DH
-    Sync -->|Cache| GHCR
-    Sync -->|Cache| GCR
-    Sync -->|Cache| QUAY
-    Sync -->|Cache| K8S
-    Zot -->|Traces| Tempo
-    Alloy -->|Push metrics| Mimir
-    Alloy -->|Scrape /metrics| Zot
+    subgraph "SSO Integration"
+        Services["`Protected Services:
+        • Grafana
+        • MinIO Console
+        • Registry UI
+        • Media Services`"]
+    end
 
-    style DH fill:#000000,color:#ffffff
-    style GHCR fill:#000000,color:#ffffff
-    style GCR fill:#000000,color:#ffffff
-    style QUAY fill:#000000,color:#ffffff
-    style K8S fill:#000000,color:#ffffff
-    style Client fill:#000000,color:#ffffff
-    style Internet fill:#0066cc,color:#ffffff
-    style Caddy fill:#22b638
-    style CaddyAuth fill:#cccccc,color:#000000
-    style Zot fill:#2496ed
-    style ZotAuth fill:#ff9900
-    style Tempo fill:#60d0e4,color:#000000
-    style Mimir fill:#e6522c
-    style MinIO fill:#c7202a,color:#ffffff
-    style Loki fill:#ff0000,color:#ffffff
-    style Alloy fill:#800080,color:#ffffff
-    style Grafana fill:#f46800
-    style UI fill:#404040,color:#ffffff
-    style Sync fill:#404040,color:#ffffff
-    style Docker fill:#00ff00,color:#000000
-    style Logs fill:#404040,color:#ffffff
-    style Socket fill:#404040,color:#ffffff
+    Authentik --> PostgreSQL
+    Authentik --> Redis
+    Worker --> PostgreSQL
+    Worker --> Redis
+    Authentik --> Media
+    Authentik --> Templates
+    PostgreSQL --> PGData
+
+    Authentik -.->|OIDC/SAML| Services
+
+    classDef auth fill:#f3e5f5,stroke:#7b1fa2,stroke-width:3px,color:#424242
+    classDef database fill:#e8f5e8,stroke:#2e7d32,stroke-width:2px,color:#424242
+    classDef storage fill:#fff3e0,stroke:#ef6c00,stroke-width:2px,color:#424242
+    classDef services fill:#e3f2fd,stroke:#1976d2,stroke-width:2px,color:#424242
+
+    class Authentik,Worker auth
+    class PostgreSQL,Redis database
+    class Media,Templates,PGData storage
+    class Services services
+```
+
+**Key Features**:
+
+- OAuth2, SAML, LDAP protocol support
+- User management and group-based access control
+- Custom branding and templates
+- Background task processing
+
+**Services**:
+
+- `postgresql`: Primary database for user data
+- `redis`: Session cache and task queue
+- `server`: Main Authentik web application
+- `worker`: Background task processor
+
+### Monitoring Stack - Observability Platform
+
+**Purpose**: Complete observability with metrics, logs, and traces
+
+```mermaid
+graph TB
+    subgraph "Data Sources"
+        Apps[Application Services<br/>All Stacks]
+        Containers[Docker Containers<br/>cAdvisor]
+        Logs[Application Logs<br/>Docker Logs]
+        Traces[Application Traces<br/>OpenTelemetry]
+        Metrics[System Metrics<br/>Node Exporter]
+    end
+
+    subgraph "Collection Layer"
+        Alloy[Grafana Alloy<br/>Unified Collector<br/>:12345]
+        cAdvisor[cAdvisor<br/>Container Metrics<br/>:8080]
+        Dozzle[Dozzle<br/>Real-time Log Viewer<br/>:8080]
+    end
+
+    subgraph "Load Balancing"
+        NginxLB[Nginx Load Balancer<br/>:80 → Mimir Cluster<br/>Round Robin]
+    end
+
+    subgraph "Storage Backends - Mimir Cluster"
+        Mimir1[Mimir Node 1<br/>:8080]
+        Mimir2[Mimir Node 2<br/>:8080]
+        Mimir3[Mimir Node 3<br/>:8080]
+    end
+
+    subgraph "Log & Trace Storage"
+        Loki[Loki<br/>Log Aggregation<br/>:3100]
+        Tempo[Tempo<br/>Distributed Tracing<br/>:3200]
+    end
+
+    subgraph "Visualization"
+        Grafana[Grafana<br/>Dashboards & Alerts<br/>:3000]
+    end
+
+    subgraph "Object Storage"
+        MinIO[MinIO S3 Storage<br/>Persistent Backend<br/>:9000]
+    end
+
+    Apps --> Alloy
+    Containers --> cAdvisor
+    Logs --> Alloy
+    Traces --> Alloy
+    Metrics --> Alloy
+    Apps --> Dozzle
+
+    Alloy -->|Metrics| NginxLB
+    Alloy -->|Logs| Loki
+    Alloy -->|Traces| Tempo
+    cAdvisor --> Alloy
+
+    NginxLB --> Mimir1
+    NginxLB --> Mimir2
+    NginxLB --> Mimir3
+
+    Mimir1 --> MinIO
+    Mimir2 --> MinIO
+    Mimir3 --> MinIO
+    Loki --> MinIO
+    Tempo --> MinIO
+
+    Grafana --> NginxLB
+    Grafana --> Loki
+    Grafana --> Tempo
+
+    classDef source fill:#fff3e0,stroke:#ef6c00,stroke-width:2px,color:#424242
+    classDef collector fill:#e8f5e8,stroke:#2e7d32,stroke-width:2px,color:#424242
+    classDef storage fill:#e3f2fd,stroke:#1976d2,stroke-width:2px,color:#424242
+    classDef visualization fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#424242
+    classDef loadbalancer fill:#fce4ec,stroke:#c2185b,stroke-width:2px,color:#424242
+    classDef backend fill:#fff8e1,stroke:#ffa000,stroke-width:2px,color:#424242
+
+    class Apps,Containers,Logs,Traces,Metrics source
+    class Alloy,cAdvisor,Dozzle collector
+    class Mimir1,Mimir2,Mimir3,Loki,Tempo storage
+    class Grafana visualization
+    class NginxLB loadbalancer
+    class MinIO backend
+```
+
+**Key Features**:
+
+- Grafana LGTM stack (Loki, Grafana, Tempo, Mimir)
+- High-availability Mimir cluster with load balancing
+- Unified data collection via Alloy
+- Container metrics collection with cAdvisor
+- Real-time log viewing with Dozzle
+
+**Services**:
+
+- `mimir-1/2/3`: 3-node Mimir cluster for metrics
+- `mimir-lb`: Nginx load balancer for cluster
+- `grafana`: Visualization and dashboards
+- `loki`: Log aggregation and querying
+- `tempo`: Distributed tracing
+- `alloy`: Unified observability collector
+- `cadvisor`: Container metrics collection
+- `dozzle`: Real-time log viewer
+
+### Storage Stack - MinIO S3
+
+**Purpose**: S3-compatible object storage for monitoring backends
+
+```mermaid
+graph TB
+    subgraph "MinIO Stack"
+        MinIO[MinIO Server<br/>:9000 S3 API<br/>:9001 Console]
+        Console[MinIO Console<br/>Web Management]
+
+        subgraph "Storage"
+            Data[MinIO Data<br/>S3 Buckets]
+        end
+
+        subgraph "Configuration"
+            Credentials[Admin Credentials<br/>Access/Secret Keys]
+            Policies[Bucket Policies<br/>Access Control]
+        end
+    end
+
+    subgraph "S3 Clients"
+        Mimir[Mimir Cluster<br/>Metrics Storage]
+        Loki[Loki<br/>Log Storage]
+        Tempo[Tempo<br/>Trace Storage]
+        Apps[Other Applications<br/>S3 SDK]
+    end
+
+    MinIO --> Data
+    MinIO --> Credentials
+    MinIO --> Policies
+    Console --> MinIO
+
+    Mimir --> MinIO
+    Loki --> MinIO
+    Tempo --> MinIO
+    Apps --> MinIO
+
+    classDef storage fill:#fff3e0,stroke:#ef6c00,stroke-width:3px,color:#424242
+    classDef config fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#424242
+    classDef data fill:#e8f5e8,stroke:#2e7d32,stroke-width:2px,color:#424242
+    classDef clients fill:#e3f2fd,stroke:#1976d2,stroke-width:2px,color:#424242
+
+    class MinIO,Console storage
+    class Credentials,Policies config
+    class Data data
+    class Mimir,Loki,Tempo,Apps clients
+```
+
+**Key Features**:
+
+- S3-compatible API for broad compatibility
+- Web-based management console
+- Automated bucket creation and policies
+- Service user management
+
+**Services**:
+
+- `minio`: Main storage server
+- `mc`: MinIO client for setup and administration
+
+### Registry Stack - Zot OCI Registry
+
+**Purpose**: OCI-compliant container registry with pull-through caching
+
+```mermaid
+graph TB
+    subgraph "Registry Stack"
+        Zot[Zot OCI Registry<br/>:5000 Registry API<br/>:5001 Metrics]
+        ZotUI[Zot UI<br/>:3000<br/>Web Interface]
+
+        subgraph "Configuration"
+            Config[Registry Config<br/>config.yaml]
+            Auth[Registry Auth<br/>htpasswd]
+        end
+
+        subgraph "Storage"
+            RegData[Registry Data<br/>OCI Artifacts]
+            Cache[Pull-through Cache<br/>Docker Hub Mirror]
+        end
+    end
+
+    subgraph "External Dependencies"
+        DockerHub[Docker Hub<br/>Upstream Registry]
+        Clients[Docker Clients<br/>Podman/Docker]
+    end
+
+    Zot --> Config
+    Zot --> Auth
+    Zot --> RegData
+    Zot --> Cache
+    ZotUI --> Zot
+
+    Cache --> DockerHub
+    Clients --> Zot
+
+    classDef registry fill:#fce4ec,stroke:#c2185b,stroke-width:3px,color:#424242
+    classDef config fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#424242
+    classDef storage fill:#fff3e0,stroke:#ef6c00,stroke-width:2px,color:#424242
+    classDef external fill:#e3f2fd,stroke:#1976d2,stroke-width:2px,color:#424242
+
+    class Zot,ZotUI registry
+    class Config,Auth config
+    class RegData,Cache storage
+    class DockerHub,Clients external
+```
+
+**Key Features**:
+
+- OCI Distribution Specification compliance
+- Pull-through caching for improved performance
+- Web UI for registry management
+- Vulnerability scanning and image signing support
+
+**Services**:
+
+- `registry`: Main Zot registry server
+
+### Media Stack - Plex Automation
+
+**Purpose**: Complete media server with automated content management
+
+```mermaid
+graph TB
+    subgraph "Request Management"
+        Overseerr[Overseerr<br/>:5055<br/>Request Interface]
+    end
+
+    subgraph "Content Automation"
+        Sonarr[Sonarr<br/>:8989<br/>TV Series Manager]
+        Radarr[Radarr<br/>:7878<br/>Movie Manager]
+        Bazarr[Bazarr<br/>:6767<br/>Subtitle Manager]
+    end
+
+    subgraph "Indexing & Search"
+        Prowlarr[Prowlarr<br/>:9696<br/>Indexer Manager]
+        Indexers[External Indexers<br/>Torrent/Usenet]
+    end
+
+    subgraph "Download Management"
+        qBittorrent[qBittorrent<br/>:8080<br/>Download Client]
+        Downloads[Download Storage<br/>Temporary Files]
+    end
+
+    subgraph "Media Library"
+        Plex[Plex Media Server<br/>:32400<br/>Streaming Service]
+        Library[Media Library<br/>Organized Content]
+    end
+
+    Overseerr --> Sonarr
+    Overseerr --> Radarr
+
+    Sonarr --> Prowlarr
+    Radarr --> Prowlarr
+    Prowlarr --> Indexers
+
+    Sonarr --> qBittorrent
+    Radarr --> qBittorrent
+    qBittorrent --> Downloads
+
+    Sonarr --> Library
+    Radarr --> Library
+    Downloads --> Library
+
+    Bazarr --> Sonarr
+    Bazarr --> Radarr
+    Bazarr --> Library
+
+    Library --> Plex
+
+    classDef request fill:#e1f5fe,stroke:#0277bd,stroke-width:3px,color:#424242
+    classDef automation fill:#e8f5e8,stroke:#2e7d32,stroke-width:3px,color:#424242
+    classDef indexing fill:#fff3e0,stroke:#ef6c00,stroke-width:2px,color:#424242
+    classDef download fill:#fce4ec,stroke:#c2185b,stroke-width:2px,color:#424242
+    classDef media fill:#f3e5f5,stroke:#7b1fa2,stroke-width:3px,color:#424242
+
+    class Overseerr request
+    class Sonarr,Radarr,Bazarr automation
+    class Prowlarr,Indexers indexing
+    class qBittorrent,Downloads download
+    class Plex,Library media
+```
+
+**Key Features**:
+
+- Complete media automation pipeline
+- Request management with approval workflows
+- Multiple content source integration
+- Automated subtitle management
+
+**Services**:
+
+- `plex`: Media server and streaming platform
+- `sonarr`: TV series management and automation
+- `radarr`: Movie management and automation
+- `prowlarr`: Indexer and search management
+- `qbittorrent`: Download client for torrents
+- `overseerr`: User request management interface
+- `bazarr`: Subtitle download and management
+
+## Network Architecture
+
+The infrastructure uses external Docker networks for service isolation:
+
+```mermaid
+graph LR
+    subgraph "External Networks"
+        Internet[Internet<br/>Port 80/443]
+        DNS[DNS Provider<br/>Let's Encrypt DNS-01]
+    end
+
+    subgraph "Traefik Network"
+        TraefikNet[traefik_default<br/>Overlay Network]
+    end
+
+    subgraph "Internal Networks"
+        AuthNet[auth_default<br/>Auth Stack Network]
+        MonNet[monitoring_default<br/>Monitoring Network]
+        StorageNet[storage_default<br/>MinIO Network]
+        RegistryNet[registry_default<br/>Zot Network]
+        MediaNet[media_default<br/>Media Stack Network]
+    end
+
+    subgraph "Service Connections"
+        TraefikSvc[Traefik Container<br/>Connected to ALL networks]
+        AuthSvc[Authentik Services]
+        MonSvc[Monitoring Services]
+        StorageSvc[MinIO Services]
+        RegistrySvc[Zot Services]
+        MediaSvc[Media Services]
+    end
+
+    Internet --> TraefikNet
+    DNS --> TraefikNet
+
+    TraefikNet --> TraefikSvc
+    AuthNet --> TraefikSvc
+    MonNet --> TraefikSvc
+    StorageNet --> TraefikSvc
+    RegistryNet --> TraefikSvc
+    MediaNet --> TraefikSvc
+
+    AuthNet --> AuthSvc
+    MonNet --> MonSvc
+    StorageNet --> StorageSvc
+    RegistryNet --> RegistrySvc
+    MediaNet --> MediaSvc
+
+    MonSvc -.->|S3 API| StorageSvc
+    AuthSvc -.->|SSO| MonSvc
+    RegistrySvc -.->|External| Internet
+
+    classDef external fill:#ffebee,stroke:#c62828,stroke-width:3px,color:#424242
+    classDef network fill:#e3f2fd,stroke:#1976d2,stroke-width:2px,color:#424242
+    classDef service fill:#f1f8e9,stroke:#689f38,stroke-width:2px,color:#424242
+
+    class Internet,DNS external
+    class TraefikNet,AuthNet,MonNet,StorageNet,RegistryNet,MediaNet network
+    class TraefikSvc,AuthSvc,MonSvc,StorageSvc,RegistrySvc,MediaSvc service
 ```
 
 ## Registry Authentication
@@ -533,15 +780,6 @@ docker-compose logs -f loki
 docker-compose logs -f tempo
 ```
 
-### Alloy Management
-
-```bash
-systemctl --user start alloy      # Start Alloy service
-systemctl --user stop alloy       # Stop Alloy service
-systemctl --user status alloy     # Check Alloy status
-journalctl --user -u alloy -f    # View Alloy logs
-```
-
 ## Quick Start
 
 1. **Set up credentials** (optional):
@@ -568,10 +806,6 @@ journalctl --user -u alloy -f    # View Alloy logs
 
    Follow the [Rootless Docker Setup](#rootless-docker-setup) section above.
 
-1. **Install and configure Alloy** (if not already done):
-
-   Follow the [Install and Configure Alloy](#install-and-configure-alloy) section above.
-
 1. **Start all services**:
 
    ```bash
@@ -586,12 +820,6 @@ journalctl --user -u alloy -f    # View Alloy logs
    # Start monitoring stack
    cd ../monitoring
    docker-compose up -d
-   ```
-
-1. **Start Alloy service**:
-
-   ```bash
-   systemctl --user start alloy
    ```
 
 1. **Configure Docker to use the registry**:
@@ -930,7 +1158,7 @@ extensions:
   - Integration with Grafana for trace-to-logs correlation
 - **Internal endpoints**:
   - `:4317` - OTLP gRPC receiver
-  - `:4318` - OTLP HTTP receiver  
+  - `:4318` - OTLP HTTP receiver
   - `:3200` - Tempo query API
 - **Storage**: Uses filesystem storage for dev environment
 
@@ -941,9 +1169,9 @@ extensions:
   - S3-compatible API for Mimir blocks and metadata
   - Built-in web console for storage management
   - High performance for local development
-- **Configuration**: 
+- **Configuration**:
   - API endpoint: `:9000`
-  - Web console: `:9001` 
+  - Web console: `:9001`
   - Bucket: `mimir` (created automatically)
   - Credentials: `mimiruser` / `SuperSecret1`
 - **Access**: Web console available at <http://localhost:9001>
@@ -978,14 +1206,14 @@ extensions:
   - Parses JSON log format and extracts fields
   - Provides a web UI for monitoring collection status
   - Supports complex processing pipelines
-- **Configuration**: `~/alloy/config.alloy`
-- **Service Management**: `systemctl --user {start|stop|status} alloy`
+- **Configuration**: `monitoring/config/alloy/config.alloy`
+- **Service Management**: Managed via Docker Compose
 - **UI Access**: <http://localhost:12345>
-- **Rootless advantages**:
-  - Direct access to rootless Docker socket (`/run/user/1000/docker.sock`)
-  - No namespace isolation issues
-  - Better performance than containerized version
-  - Easier debugging and configuration
+- **Container advantages**:
+  - Integrated with Docker Compose stack management
+  - Automatic restart and health monitoring
+  - Consistent deployment across environments
+  - Simplified configuration and updates
 
 ### Grafana (port 3000)
 
@@ -1300,24 +1528,10 @@ docker-compose down -v
 ### Alloy Management
 
 ```bash
-# Start Alloy service
-systemctl --user start alloy
-# Or: make alloy-start
-
-# Stop Alloy service
-systemctl --user stop alloy
-# Or: make alloy-stop
-
-# Check Alloy status
-systemctl --user status alloy
-# Or: make alloy-status
-
-# View Alloy logs
-journalctl --user -u alloy -f
-# Or: make alloy-logs
-
-# Restart Alloy service
-systemctl --user restart alloy
+# Alloy is managed as part of the monitoring stack
+cd monitoring/
+docker-compose logs -f alloy      # View Alloy logs
+docker-compose restart alloy      # Restart Alloy container
 
 # Access Alloy UI
 curl http://localhost:12345
@@ -1376,27 +1590,27 @@ curl http://localhost:12345
 1. **Cannot connect to Docker socket**:
 
    ```bash
-   # Check socket path and permissions
+   # Check socket path and permissions (for native setup)
    ls -la /run/user/$(id -u)/docker.sock
 
-   # Verify Alloy configuration
-   ~/.local/bin/alloy fmt ~/alloy/config.alloy
+   # Check Alloy container logs
+   docker-compose logs -f alloy
 
-   # Test manually
-   ~/.local/bin/alloy run ~/alloy/config.alloy --server.http.listen-addr=0.0.0.0:12345
+   # Verify container configuration
+   docker-compose exec alloy cat /etc/alloy/config.alloy
    ```
 
-1. **Service fails to start**:
+1. **Container fails to start**:
 
    ```bash
-   # Check service logs
-   journalctl --user -u alloy -f
+   # Check container logs
+   docker-compose logs -f alloy
 
-   # Verify binary location
-   ls -la ~/.local/bin/alloy
+   # Check container status
+   docker-compose ps alloy
 
-   # Check service configuration
-   systemctl --user cat alloy
+   # Restart the container
+   docker-compose restart alloy
    ```
 
 1. **No containers discovered**:
@@ -1467,6 +1681,7 @@ ls -la /etc/docker/certs.d/localhost:5000/ # Regular Docker
 1. **Update authentication**:
 
    Authentication is managed externally through Authentik. To update access:
+
    - Configure users and groups in Authentik
    - Update Traefik middleware configuration as needed
    - No local registry restart required for auth changes
@@ -1528,7 +1743,7 @@ docker pull localhost:5000/docker/alpine:latest
    ```bash
    # Check Mimir health
    curl http://localhost:9009/ready
-   
+
    # Check Alloy is pushing metrics to Mimir
    docker-compose logs -f alloy | grep -i "remote_write\|mimir"
    ```
@@ -1551,7 +1766,7 @@ docker pull localhost:5000/docker/alpine:latest
    ```bash
    # Check Alloy configuration
    docker exec alloy cat /etc/alloy/config.alloy
-   
+
    # Check Alloy targets
    curl http://localhost:12345/api/v1/targets
    ```
@@ -1561,7 +1776,7 @@ docker pull localhost:5000/docker/alpine:latest
    ```bash
    # Verify MinIO is accessible
    curl http://localhost:9000/minio/health/live
-   
+
    # Check MinIO console
    open http://localhost:9001
    ```
@@ -1607,11 +1822,7 @@ docker pull localhost:5000/docker/alpine:latest
 
 # User-specific files (rootless Docker)
 ~/.config/docker/daemon.json  # Docker daemon configuration
-~/.local/bin/alloy            # Alloy binary
-~/alloy/config.alloy          # Alloy configuration
-~/.config/systemd/user/alloy.service  # Alloy systemd service
 ~/.local/share/docker/        # Docker data directory
-~/.local/share/alloy/         # Alloy data directory
 ```
 
 ## Migration from Prometheus to Grafana Mimir
@@ -1632,6 +1843,7 @@ The monitoring stack has been migrated from a traditional Prometheus setup to a 
 #### 1. Replaced Prometheus with Grafana Mimir
 
 **Before:**
+
 ```yaml
 # Prometheus service in docker-compose.yaml
 prometheus:
@@ -1643,6 +1855,7 @@ prometheus:
 ```
 
 **After:**
+
 ```yaml
 # Mimir service with S3 storage
 mimir:
@@ -1670,6 +1883,7 @@ minio:
 #### 3. Updated Grafana Alloy Configuration
 
 **Key Changes in Alloy:**
+
 - Changed remote_write endpoint from Prometheus to Mimir
 - Added required `X-Scope-OrgID: "1"` header for Mimir multi-tenancy
 - Updated scraping targets and relabeling rules
@@ -1696,6 +1910,7 @@ prometheus.remote_write "metrics" {
 #### 4. Updated Grafana Data Sources
 
 **Before:**
+
 ```yaml
 datasources:
   - name: Prometheus
@@ -1703,6 +1918,7 @@ datasources:
 ```
 
 **After:**
+
 ```yaml
 datasources:
   - name: Mimir
@@ -1713,6 +1929,7 @@ datasources:
 #### 5. Replaced Jaeger with Grafana Tempo
 
 **Migration Benefits:**
+
 - Better integration with Grafana ecosystem
 - More efficient trace storage and querying
 - Built-in trace-to-logs and trace-to-metrics correlation
@@ -1745,19 +1962,19 @@ datasources:
 ### Migration Benefits
 
 1. **Scalability**: Mimir scales horizontally vs Prometheus vertical scaling
-2. **Storage**: S3 backend enables unlimited storage capacity
-3. **Performance**: Better handling of high-cardinality metrics
-4. **Reliability**: Component separation increases fault tolerance
-5. **Features**: Advanced query capabilities and multi-tenancy support
+1. **Storage**: S3 backend enables unlimited storage capacity
+1. **Performance**: Better handling of high-cardinality metrics
+1. **Reliability**: Component separation increases fault tolerance
+1. **Features**: Advanced query capabilities and multi-tenancy support
 
 ### Troubleshooting the New Setup
 
 #### Common Issues and Solutions
 
 1. **Mimir not starting**: Check MinIO connectivity and credentials
-2. **Metrics not appearing**: Verify Alloy `X-Scope-OrgID` header
-3. **Storage errors**: Check MinIO bucket permissions and accessibility
-4. **Query performance**: Monitor Mimir query-frontend and query-scheduler logs
+1. **Metrics not appearing**: Verify Alloy `X-Scope-OrgID` header
+1. **Storage errors**: Check MinIO bucket permissions and accessibility
+1. **Query performance**: Monitor Mimir query-frontend and query-scheduler logs
 
 #### Health Checks
 
