@@ -3,3 +3,11 @@ creation_rules:
   - path_regex: '(^|.*/)\.?[^/]*-?secrets\.env$'
     age: >-
       age1dmxw2j4aljq3hht2m3tlatlv8kq9hx3prqyeu07klnm75r2gz3usvycvhz
+  # Encrypt all files in the secrets/ directory (both .dec source files and .enc encrypted files)
+  - path_regex: '^secrets/.*\.(dec|enc)$'
+    age: >-
+      age1dmxw2j4aljq3hht2m3tlatlv8kq9hx3prqyeu07klnm75r2gz3usvycvhz
+  # Fallback rule for any files in secrets/ directory without extension
+  - path_regex: '^secrets/[^/]*$'
+    age: >-
+      age1dmxw2j4aljq3hht2m3tlatlv8kq9hx3prqyeu07klnm75r2gz3usvycvhz

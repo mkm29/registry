@@ -70,7 +70,8 @@ yarn-error.log*
 *.pfx
 # .htpasswd - commented out to track auth file
 # htpasswd
-secrets/
+# secrets/
+*.dec
 credentials/
 .claude/
 CLAUDE.md
