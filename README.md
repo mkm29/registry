@@ -174,20 +174,47 @@ The following ports should be available on your system:
 
 ### Storage Structure
 
-The infrastructure expects the following directory structure:
+The infrastructure automatically creates the following directory structure:
 
 ```bash
 /mnt/data/
-├── postgres/         # PostgreSQL data
-├── redis/            # Redis data
-├── authentik/        # Authentik media/templates
-├── mimir-{1,2,3}/    # Mimir cluster data
-├── grafana/          # Grafana dashboards/config
-├── loki/             # Loki log data
-├── zot/              # Registry storage
-├── minio/            # MinIO object storage
-└── logs/             # Application logs
+├── postgres/              # PostgreSQL data
+├── redis/                 # Redis data
+├── mimir-{1,2,3}/         # Mimir cluster data
+├── grafana/               # Grafana data and exports
+│   ├── csv/               # CSV exports
+│   ├── dashboards/        # Dashboard storage
+│   ├── pdf/               # PDF exports
+│   ├── plugins/           # Plugin data
+│   └── png/               # PNG exports
+├── zot/                   # Registry storage
+├── minio/                 # MinIO object storage
+├── media/                 # Media storage
+│   ├── media/             # Media files
+│   └── torrents/          # Torrent downloads
+└── logs/                  # Application logs
+    └── traefik/           # Traefik access logs
+
+/mnt/filestore/data/       # Configurable mediaserver data (via DATA_ROOT)
+├── media/
+│   ├── movies/            # Movie library
+│   └── tv/                # TV show library
+└── torrents/
+    ├── movies/            # Movie downloads
+    ├── tv/                # TV downloads
+    └── incomplete/        # Incomplete downloads
+
+/mnt/filestore/config/     # Configurable mediaserver config (via CONFIG_ROOT)
+├── radarr/                # Radarr configuration
+├── sonarr/                # Sonarr configuration
+├── bazarr/                # Bazarr configuration
+├── prowlarr/              # Prowlarr configuration
+├── qbittorrent/           # qBittorrent configuration
+├── overseerr/             # Overseerr configuration
+└── plex/                  # Plex configuration
 ```
+
+All directories are automatically created with proper ownership when running `./run.sh`.
 
 ## Rootless Docker Setup
 
@@ -331,20 +358,35 @@ docker-compose logs -f tempo
 
 ### Automated Infrastructure Deployment
 
-The infrastructure includes an orchestration script that handles secret management and coordinated service startup:
+The infrastructure includes a comprehensive orchestration script that handles the complete setup and deployment:
 
 ```bash
 # One-command infrastructure startup
 ./run.sh
 
-# The script will:
-# 1. Decrypt all SOPS-encrypted secrets
-# 2. Collect environment variables
-# 3. Create Docker networks
-# 4. Start services in dependency order:
+# The script performs the following operations:
+# 1. Pre-flight checks (Docker, required directories)
+# 2. Decrypt all SOPS-encrypted secrets
+# 3. Collect environment variables from all .env files
+# 4. Create all required infrastructure directories with proper ownership:
+#    - /mnt/data/* directories for all services
+#    - Mediaserver config and data directories
+#    - Proper ownership using current user UID/GID
+# 5. Create Docker networks for service isolation
+# 6. Start services in dependency order with health checks:
 #    zot → traefik → auth → minio → monitoring → mediaserver
-# 5. Wait for each service to be healthy before proceeding
+# 7. Wait for each service to be healthy before proceeding
+# 8. Display final status and access points
 ```
+
+### Directory Management
+
+The orchestration script automatically handles directory creation and ownership:
+
+- **Infrastructure directories**: All `/mnt/data/*` directories are created with current user ownership
+- **Mediaserver directories**: Both config and data directories with configurable paths
+- **Proper permissions**: All directories created with appropriate ownership for container access
+- **No manual setup**: No need to manually create directories or set permissions
 
 ### Secret Management
 
@@ -369,9 +411,36 @@ Use the SOPS helper script for managing encrypted secrets:
 - `.dec` - Decrypted files (git ignored, for local use)
 - `.enc` - Encrypted files (committed to repository)
 
+**Automated Integration:**
+The `run.sh` script automatically calls the appropriate SOPS commands, so manual secret management is only needed for initial setup or when adding new secrets.
+
 ## Quick Start
 
-For a complete installation guide, see the [Quick Start Guide](docs/guides/quick-start.md).
+### Prerequisites
+
+1. **SOPS and AGE setup**: Configure SOPS with AGE keys for secret management
+2. **Docker**: Install Docker with rootless mode (recommended)
+3. **Secrets**: Place encrypted secrets in the `secrets/` directory
+
+### One-Command Deployment
+
+```bash
+# Clone the repository
+git clone <repository-url>
+cd registry
+
+# Run the complete infrastructure
+./run.sh
+```
+
+The script will automatically:
+- Verify prerequisites and dependencies
+- Set up all required directories with proper permissions
+- Decrypt and prepare secrets
+- Start all services in the correct order
+- Provide access points and status information
+
+For detailed setup instructions, see the [Quick Start Guide](docs/guides/quick-start.md).
 
 ## Configuration
 
