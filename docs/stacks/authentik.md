@@ -88,8 +88,8 @@ docker-compose logs -f      # View logs
 
 ## Access Points
 
-- **Admin Interface**: https://auth.yourdomain.com (or http://localhost:9008)
-- **User Portal**: https://auth.yourdomain.com/if/user/
+- **Admin Interface**: <https://auth.yourdomain.com> (or <http://localhost:9008>)
+- **User Portal**: <https://auth.yourdomain.com/if/user/>
 
 ## Related Documentation
 

@@ -68,6 +68,6 @@ docker-compose logs -f      # View logs
 
 ## Access Points
 
-- **Dashboard**: http://localhost:8080
+- **Dashboard**: <http://localhost:8080>
 - **Main Routes**: Port 80/443 (automatic HTTPS redirect)
-- **Metrics**: http://localhost:8082
+- **Metrics**: <http://localhost:8082>

@@ -31,16 +31,16 @@ auth:
 
 ### Important URLs
 
-- **OIDC Discovery**: https://auth.smigula.io/application/o/registry/.well-known/openid-configuration
-- **Authorization**: https://auth.smigula.io/application/o/authorize/
-- **Token**: https://auth.smigula.io/application/o/token/
-- **UserInfo**: https://auth.smigula.io/application/o/userinfo/
-- **JWKS**: https://auth.smigula.io/application/o/registry/jwks/
+- **OIDC Discovery**: <https://auth.smigula.io/application/o/registry/.well-known/openid-configuration>
+- **Authorization**: <https://auth.smigula.io/application/o/authorize/>
+- **Token**: <https://auth.smigula.io/application/o/token/>
+- **UserInfo**: <https://auth.smigula.io/application/o/userinfo/>
+- **JWKS**: <https://auth.smigula.io/application/o/registry/jwks/>
 
 ## Authentication Flow
 
-1. **Web UI Access**: When accessing the Zot web UI at https://registry.smigula.io/home, users will be redirected to Authentik for authentication
-1. **API Access**: The registry API supports both:
+1. **Web UI Access**: When accessing the Zot web UI at <https://registry.smigula.io/home>, users will be redirected to Authentik for authentication
+2. **API Access**: The registry API supports both:
    - Basic auth using htpasswd (for backward compatibility)
    - OIDC tokens from Authentik
 
@@ -49,7 +49,8 @@ auth:
 ### Using OIDC Token
 
 1. First, obtain an access token from Authentik
-1. Use the token with docker login:
+2. Use the token with docker login:
+
    ```bash
    docker login registry.smigula.io -u <username> -p <access-token>
    ```
@@ -71,12 +72,12 @@ docker login registry.smigula.io -u smigula -p <password>
    - Ensure the issuer URL includes the trailing slash: `https://auth.smigula.io/application/o/registry/`
    - Verify the application slug in Authentik matches "registry"
 
-1. **Invalid Client Credentials**
+2. **Invalid Client Credentials**
 
    - Double-check the client ID and secret in Authentik
    - Ensure the client secret hasn't been rotated
 
-1. **Scope Issues**
+3. **Scope Issues**
 
    - Zot requires: openid, profile, email, groups
    - Verify these scopes are enabled in the Authentik application
@@ -97,7 +98,7 @@ docker logs registry | grep -i "oidc\|openid\|auth"
    - Implementing secret management
    - Restricting file permissions
 
-1. **Dual Authentication**: Both htpasswd and OIDC are active, providing:
+2. **Dual Authentication**: Both htpasswd and OIDC are active, providing:
 
    - Fallback authentication method
    - Gradual migration path
@@ -106,8 +107,8 @@ docker logs registry | grep -i "oidc\|openid\|auth"
 ## Future Enhancements
 
 1. **Remove htpasswd**: Once OIDC is proven stable, consider removing htpasswd authentication
-1. **Group-based Access**: Implement authorization based on Authentik groups
-1. **Token Refresh**: Implement automatic token refresh for long-running operations
+2. **Group-based Access**: Implement authorization based on Authentik groups
+3. **Token Refresh**: Implement automatic token refresh for long-running operations
 
 ## Related Documentation
 

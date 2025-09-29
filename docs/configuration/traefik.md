@@ -20,24 +20,24 @@ This guide covers the Traefik reverse proxy configuration that provides automati
    - Caddy: Single `Caddyfile`
    - Traefik: Split into static (`traefik.yml`) and dynamic configurations
 
-1. **Service Discovery**:
+2. **Service Discovery**:
 
    - Caddy: Manual proxy configuration
    - Traefik: Can use Docker labels OR file-based configuration
 
-1. **Logging**:
+3. **Logging**:
 
    - Caddy: Per-domain log files
    - Traefik: Centralized access and error logs (can be filtered by service)
 
-1. **OpenTelemetry Support**:
+4. **OpenTelemetry Support**:
 
    - Caddy: Limited native support
    - Traefik: Full OTLP support with configurable sampling
 
 ### File Structure
 
-```
+```bash
 traefik/
 ├── docker-compose.yaml     # Main compose file
 ├── config/
@@ -60,7 +60,7 @@ traefik/
    docker compose up -d
    ```
 
-1. **View Logs**:
+2. **View Logs**:
 
    ```bash
    docker logs traefik
@@ -68,9 +68,9 @@ traefik/
    tail -f logs/access.log
    ```
 
-1. **Access Dashboard**:
+3. **Access Dashboard**:
 
-   - URL: https://traefik.smigula.io
+   - URL: <https://traefik.smigula.io>
    - Credentials: Same as configured in basic auth
 
 ## OpenTelemetry Configuration
@@ -90,9 +90,9 @@ Traefik is configured to send traces to Alloy on port 4317 (OTLP gRPC). The conf
 ## Security Features
 
 1. **Automatic HTTPS redirect**: All HTTP traffic redirected to HTTPS
-1. **Security Headers**: HSTS, XSS Protection, Content-Type sniffing prevention
-1. **Basic Authentication**: For sensitive services (using same credentials as Caddy)
-1. **Rate Limiting**: Available as middleware (not enabled by default)
+2. **Security Headers**: HSTS, XSS Protection, Content-Type sniffing prevention
+3. **Basic Authentication**: For sensitive services (using same credentials as Caddy)
+4. **Rate Limiting**: Available as middleware (not enabled by default)
 
 ## Differences in Behavior
 
@@ -101,15 +101,15 @@ Traefik is configured to send traces to Alloy on port 4317 (OTLP gRPC). The conf
    - Caddy: `/path*`
    - Traefik: `PathPrefix(\`/path\`)\`
 
-1. **Header Handling**: Traefik automatically adds X-Forwarded-\* headers
+2. **Header Handling**: Traefik automatically adds X-Forwarded-\* headers
 
-1. **WebSocket Support**: Automatically detected and handled
+3. **WebSocket Support**: Automatically detected and handled
 
 ## Troubleshooting
 
 1. **Certificate Issues**: Check `/letsencrypt/acme.json` permissions (should be 600)
-1. **Service Discovery**: Ensure services are on the correct Docker network
-1. **Configuration Errors**: Check `docker logs traefik` for validation errors
+2. **Service Discovery**: Ensure services are on the correct Docker network
+3. **Configuration Errors**: Check `docker logs traefik` for validation errors
 
 ## Adding New Services
 

@@ -95,10 +95,10 @@ docker-compose logs -f      # View logs
 
 ## Access Points
 
-- **Plex**: http://localhost:32400
-- **Sonarr**: http://localhost:8989
-- **Radarr**: http://localhost:7878
-- **Prowlarr**: http://localhost:9696
-- **qBittorrent**: http://localhost:8080
-- **Overseerr**: http://localhost:5055
-- **Bazarr**: http://localhost:6767
+- **Plex**: <http://localhost:32400>
+- **Sonarr**: <http://localhost:8989>
+- **Radarr**: <http://localhost:7878>
+- **Prowlarr**: <http://localhost:9696>
+- **qBittorrent**: <http://localhost:8080>
+- **Overseerr**: <http://localhost:5055>
+- **Bazarr**: <http://localhost:6767>

@@ -1,0 +1,436 @@
+version: '3'
+
+vars:
+  # Certificate paths
+  CERTS_DIR: "certs"
+  CFSSL_DIR: "cfssl"
+
+  # Registry configuration
+  REGISTRY_PORT: "5000"
+  REGISTRY_DEBUG_PORT: "5001"
+  REGISTRY_NAME: "registry"
+
+tasks:
+  # Certificate Management Tasks
+  certs:clean:
+    desc: Remove all generated certificates and keys
+    cmds:
+      - rm -f {{.CERTS_DIR}}/*.pem {{.CERTS_DIR}}/*.csr {{.CERTS_DIR}}/*.crt {{.CERTS_DIR}}/*.key
+
+  certs:ca:
+    desc: Generate root certificate authority
+    deps: [certs:clean]
+    cmds:
+      - cfssl gencert -initca {{.CFSSL_DIR}}/ca.json | cfssljson -bare {{.CERTS_DIR}}/ca
+    sources:
+      - "{{.CFSSL_DIR}}/ca.json"
+    generates:
+      - "{{.CERTS_DIR}}/ca.pem"
+      - "{{.CERTS_DIR}}/ca-key.pem"
+
+  certs:intermediate:
+    desc: Generate intermediate certificate authority
+    deps: [certs:ca]
+    cmds:
+      - cfssl gencert -initca {{.CFSSL_DIR}}/intermediate-ca.json | cfssljson -bare {{.CERTS_DIR}}/intermediate_ca
+      - cfssl sign -ca {{.CERTS_DIR}}/ca.pem -ca-key {{.CERTS_DIR}}/ca-key.pem -config {{.CFSSL_DIR}}/cfssl.json -profile intermediate_ca {{.CERTS_DIR}}/intermediate_ca.csr | cfssljson -bare {{.CERTS_DIR}}/intermediate_ca
+    sources:
+      - "{{.CFSSL_DIR}}/intermediate-ca.json"
+      - "{{.CFSSL_DIR}}/cfssl.json"
+      - "{{.CERTS_DIR}}/ca.pem"
+      - "{{.CERTS_DIR}}/ca-key.pem"
+    generates:
+      - "{{.CERTS_DIR}}/intermediate_ca.pem"
+      - "{{.CERTS_DIR}}/intermediate_ca-key.pem"
+
+  certs:registry:
+    desc: Generate registry certificates (server, client, peer)
+    deps: [certs:intermediate]
+    cmds:
+      - cfssl gencert -ca {{.CERTS_DIR}}/intermediate_ca.pem -ca-key {{.CERTS_DIR}}/intermediate_ca-key.pem -config {{.CFSSL_DIR}}/cfssl.json -profile=peer {{.CFSSL_DIR}}/registry.json | cfssljson -bare {{.CERTS_DIR}}/registry-peer
+      - cfssl gencert -ca {{.CERTS_DIR}}/intermediate_ca.pem -ca-key {{.CERTS_DIR}}/intermediate_ca-key.pem -config {{.CFSSL_DIR}}/cfssl.json -profile=server {{.CFSSL_DIR}}/registry.json | cfssljson -bare {{.CERTS_DIR}}/registry-server
+      - cfssl gencert -ca {{.CERTS_DIR}}/intermediate_ca.pem -ca-key {{.CERTS_DIR}}/intermediate_ca-key.pem -config {{.CFSSL_DIR}}/cfssl.json -profile=client {{.CFSSL_DIR}}/registry.json | cfssljson -bare {{.CERTS_DIR}}/registry-client
+      - cat {{.CERTS_DIR}}/registry-server.pem {{.CERTS_DIR}}/intermediate_ca.pem > {{.CERTS_DIR}}/registry.crt
+      - cp {{.CERTS_DIR}}/registry-server-key.pem {{.CERTS_DIR}}/registry.key
+    sources:
+      - "{{.CFSSL_DIR}}/registry.json"
+      - "{{.CFSSL_DIR}}/cfssl.json"
+      - "{{.CERTS_DIR}}/intermediate_ca.pem"
+      - "{{.CERTS_DIR}}/intermediate_ca-key.pem"
+    generates:
+      - "{{.CERTS_DIR}}/registry-peer.pem"
+      - "{{.CERTS_DIR}}/registry-server.pem"
+      - "{{.CERTS_DIR}}/registry-client.pem"
+      - "{{.CERTS_DIR}}/registry.crt"
+      - "{{.CERTS_DIR}}/registry.key"
+
+  certs:all:
+    desc: Generate all certificates (root CA, intermediate CA, registry certificates)
+    deps: [certs:registry]
+
+  # Registry Management Tasks
+  registry:start:
+    desc: Start the Docker registry
+    deps: [certs:all]
+    cmds:
+      - |
+        docker run -d --restart=always --name {{.REGISTRY_NAME}} \
+          -p {{.REGISTRY_PORT}}:5000 -p {{.REGISTRY_DEBUG_PORT}}:5001 \
+          -v ./config.yml:/etc/distribution/config.yml \
+          -v {{.PWD}}/{{.CERTS_DIR}}/registry.crt:/etc/ssl/certs/domain.crt \
+          -v {{.PWD}}/{{.CERTS_DIR}}/registry.key:/etc/ssl/private/domain.key \
+          -v $HOME/.local/share/containers/storage:/var/lib/registry \
+          registry:3
+    status:
+      - docker ps --filter "name={{.REGISTRY_NAME}}" --filter "status=running" --format "{{.Names}}" | grep -q "{{.REGISTRY_NAME}}"
+
+  registry:stop:
+    desc: Stop the Docker registry
+    cmds:
+      - docker stop {{.REGISTRY_NAME}} || true
+
+  registry:remove:
+    desc: Remove the Docker registry container
+    deps: [registry:stop]
+    cmds:
+      - docker rm {{.REGISTRY_NAME}} || true
+
+  registry:restart:
+    desc: Restart the Docker registry
+    deps: [registry:remove]
+    cmds:
+      - task: registry:start
+
+  registry:logs:
+    desc: View registry logs
+    cmds:
+      - docker logs {{.REGISTRY_NAME}}
+
+  registry:logs-follow:
+    desc: Follow registry logs
+    cmds:
+      - docker logs -f {{.REGISTRY_NAME}}
+
+  registry:status:
+    desc: Check registry status and health
+    cmds:
+      - docker ps --filter "name={{.REGISTRY_NAME}}" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+      - echo "Registry API Health:"
+      - curl -k -s https://localhost:{{.REGISTRY_DEBUG_PORT}}/debug/health || echo "Health check failed"
+      - echo "Registry Metrics:"
+      - curl -k -s https://localhost:{{.REGISTRY_DEBUG_PORT}}/metrics | head -5 || echo "Metrics unavailable"
+
+  # Secret Management Tasks (using existing sops-helper.sh)
+  secrets:encrypt:
+    desc: Encrypt secrets (file or entire secrets directory)
+    summary: |
+      Encrypt secrets using SOPS. Usage:
+        task secrets:encrypt FILE=<file>     # Encrypt single file
+        task secrets:encrypt DIR=secrets     # Encrypt all .dec files in secrets/
+    cmds:
+      - |
+        if [[ "{{.FILE}}" ]]; then
+          ./sops-helper.sh encrypt "{{.FILE}}"
+        elif [[ "{{.DIR}}" == "secrets" ]]; then
+          ./sops-helper.sh encrypt secrets
+        else
+          echo "Error: Must specify FILE=<file> or DIR=secrets"
+          echo "Examples:"
+          echo "  task secrets:encrypt FILE=auth/.secrets.env"
+          echo "  task secrets:encrypt DIR=secrets"
+          exit 1
+        fi
+
+  secrets:decrypt:
+    desc: Decrypt secrets (file or entire secrets directory)
+    summary: |
+      Decrypt secrets using SOPS. Usage:
+        task secrets:decrypt FILE=<file>     # Decrypt single file
+        task secrets:decrypt DIR=secrets     # Decrypt all .enc files in secrets/
+    cmds:
+      - |
+        if [[ "{{.FILE}}" ]]; then
+          ./sops-helper.sh decrypt "{{.FILE}}"
+        elif [[ "{{.DIR}}" == "secrets" ]]; then
+          ./sops-helper.sh decrypt secrets
+        else
+          echo "Error: Must specify FILE=<file> or DIR=secrets"
+          echo "Examples:"
+          echo "  task secrets:decrypt FILE=auth/.secrets.env.enc"
+          echo "  task secrets:decrypt DIR=secrets"
+          exit 1
+        fi
+
+  secrets:collect:
+    desc: Collect all .env files from secrets directory into a single file
+    summary: |
+      Collect all .env.dec files from secrets/ into one file. Usage:
+        task secrets:collect                        # Default: secrets/all.env.dec
+        task secrets:collect OUTPUT=<filename>      # Custom output file
+    cmds:
+      - ./sops-helper.sh collect {{.OUTPUT}}
+
+  # Infrastructure Deployment Tasks (using existing run.sh)
+  infra:deploy:
+    desc: Deploy the complete infrastructure using run.sh
+    cmds:
+      - ./run.sh
+
+  infra:status:
+    desc: Show current status of all infrastructure services
+    cmds:
+      - echo "Current service status:"
+      - echo ""
+      - docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep -E "(registry|traefik|authentik|minio|mimir|grafana|loki|tempo|alloy|plex|radarr|sonarr)" || echo "No infrastructure services running"
+      - echo ""
+
+  # Testing Tasks
+  test:certs:
+    desc: Test certificate generation and validation
+    deps: [certs:all]
+    cmds:
+      - echo "Testing certificate chain..."
+      - openssl verify -CAfile {{.CERTS_DIR}}/ca.pem -untrusted {{.CERTS_DIR}}/intermediate_ca.pem {{.CERTS_DIR}}/registry-server.pem
+      - echo "Testing certificate details..."
+      - openssl x509 -in {{.CERTS_DIR}}/registry-server.pem -text -noout | grep -A 5 "Subject:"
+      - echo "Testing certificate chain file..."
+      - openssl verify -CAfile {{.CERTS_DIR}}/ca.pem {{.CERTS_DIR}}/registry.crt
+
+  test:registry:
+    desc: Test registry connectivity and basic functionality
+    deps: [registry:start]
+    cmds:
+      - echo "Testing registry health..."
+      - curl -k -f https://localhost:{{.REGISTRY_DEBUG_PORT}}/debug/health
+      - echo "Testing registry API..."
+      - curl -k -f https://localhost:{{.REGISTRY_PORT}}/v2/
+      - echo "Testing registry metrics..."
+      - curl -k -s https://localhost:{{.REGISTRY_DEBUG_PORT}}/metrics | head -10
+
+  test:all:
+    desc: Run all tests
+    deps: [test:certs, test:registry]
+
+  # Registry API Tasks
+  registry:list-repos:
+    desc: List all repositories in the registry
+    cmds:
+      - echo "Listing repositories..."
+      - curl -sk https://localhost:{{.REGISTRY_PORT}}/v2/_catalog | jq . 2>/dev/null || curl -sk https://localhost:{{.REGISTRY_PORT}}/v2/_catalog
+
+  registry:list-tags:
+    desc: List tags for a repository (usage - task registry:list-tags REPO=library/alpine)
+    cmds:
+      - |
+        if [[ -z "{{.REPO}}" ]]; then
+          echo "Usage: task registry:list-tags REPO=library/alpine"
+          exit 1
+        fi
+        echo "Listing tags for {{.REPO}}..."
+        curl -sk https://localhost:{{.REGISTRY_PORT}}/v2/{{.REPO}}/tags/list | jq . 2>/dev/null || curl -sk https://localhost:{{.REGISTRY_PORT}}/v2/{{.REPO}}/tags/list
+
+  registry:get-manifest:
+    desc: Get manifest for a repository tag (usage - task registry:get-manifest REPO=library/alpine TAG=latest)
+    cmds:
+      - |
+        if [[ -z "{{.REPO}}" ]] || [[ -z "{{.TAG}}" ]]; then
+          echo "Usage: task registry:get-manifest REPO=library/alpine TAG=latest"
+          exit 1
+        fi
+        echo "Getting manifest for {{.REPO}}:{{.TAG}}..."
+        curl -sk -H "Accept: application/vnd.docker.distribution.manifest.v2+json" \
+          https://localhost:{{.REGISTRY_PORT}}/v2/{{.REPO}}/manifests/{{.TAG}} | jq . 2>/dev/null || \
+        curl -sk -H "Accept: application/vnd.docker.distribution.manifest.v2+json" \
+          https://localhost:{{.REGISTRY_PORT}}/v2/{{.REPO}}/manifests/{{.TAG}}
+
+  registry:gc:
+    desc: Run garbage collection on registry
+    cmds:
+      - echo "Running garbage collection on registry..."
+      - docker exec {{.REGISTRY_NAME}} registry garbage-collect /etc/distribution/config.yml
+
+  registry:metrics:
+    desc: View registry metrics
+    cmds:
+      - echo "Fetching registry metrics..."
+      - docker exec {{.REGISTRY_NAME}} wget -O- --no-check-certificate https://localhost:5001/metrics 2>/dev/null | grep -E '^registry_' | head -20
+
+  # TLS Configuration Tasks
+  tls:trust-cert:
+    desc: Trust CA certificate (macOS only)
+    cmds:
+      - echo "Adding CA certificate to system trust store (requires sudo)..."
+      - |
+        if [[ "$(uname)" == "Darwin" ]]; then
+          sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain {{.CERTS_DIR}}/ca.pem
+          echo "CA certificate trusted successfully"
+        else
+          echo "This command is only for macOS. For other systems, please manually trust {{.CERTS_DIR}}/ca.pem"
+        fi
+
+  tls:configure-docker:
+    desc: Configure Docker to trust the registry certificates
+    cmds:
+      - echo "Configuring Docker to trust registry certificates..."
+      - |
+        if [[ "$(uname)" == "Darwin" ]]; then
+          echo "Configuring for macOS..."
+          mkdir -p $HOME/.docker/certs.d/localhost:{{.REGISTRY_PORT}}
+          cp {{.CERTS_DIR}}/ca.pem $HOME/.docker/certs.d/localhost:{{.REGISTRY_PORT}}/ca.crt
+          chmod 644 $HOME/.docker/certs.d/localhost:{{.REGISTRY_PORT}}/ca.crt
+          echo "Docker Desktop will reload automatically."
+        else
+          echo "Configuring for Linux..."
+          sudo mkdir -p /etc/docker/certs.d/localhost:{{.REGISTRY_PORT}}
+          sudo cp {{.CERTS_DIR}}/ca.pem /etc/docker/certs.d/localhost:{{.REGISTRY_PORT}}/ca.crt
+          sudo chmod 644 /etc/docker/certs.d/localhost:{{.REGISTRY_PORT}}/ca.crt
+          echo "Restart Docker with: sudo systemctl restart docker"
+        fi
+        echo "Docker TLS configuration complete."
+
+  tls:test:
+    desc: Test TLS connection to registry
+    cmds:
+      - echo "Testing TLS connection to registry..."
+      - openssl s_client -connect localhost:{{.REGISTRY_PORT}} -CAfile {{.CERTS_DIR}}/ca.pem -showcerts </dev/null
+
+  # Docker Image Testing
+  test:pull:
+    desc: Test pulling an image through the registry
+    cmds:
+      - echo "Testing image pull through registry..."
+      - docker pull localhost:{{.REGISTRY_PORT}}/library/alpine:latest
+
+  test:push:
+    desc: Test pushing an image to the registry
+    deps: [test:pull]
+    cmds:
+      - echo "Testing image push to registry..."
+      - docker tag localhost:{{.REGISTRY_PORT}}/library/alpine:latest localhost:{{.REGISTRY_PORT}}/test/alpine:latest
+      - docker push localhost:{{.REGISTRY_PORT}}/test/alpine:latest
+
+  # Quick Setup
+  quickstart:
+    desc: Generate certs and start registry (equivalent to make quickstart)
+    deps: [certs:all, registry:start]
+    cmds:
+      - echo ""
+      - echo "Quick start complete! Registry is running."
+      - echo ""
+      - echo "IMPORTANT: To use the registry with Docker, you must configure TLS trust:"
+      - echo "  task tls:configure-docker  # Configure Docker daemon (required)"
+      - echo "  task tls:trust-cert        # Add to system keychain (optional, macOS only)"
+      - echo ""
+      - echo "Service URLs:"
+      - echo "  Registry: https://localhost:{{.REGISTRY_PORT}}"
+      - echo "  Debug:    https://localhost:{{.REGISTRY_DEBUG_PORT}}"
+
+  # Utility Tasks
+  clean:all:
+    desc: Clean all generated files and stop all services
+    cmds:
+      - task: registry:remove
+      - task: certs:clean
+      - echo "✓ All cleaned"
+
+  logs:
+    desc: Follow logs for a specific service
+    summary: |
+      Follow logs for a Docker service. Usage:
+        task logs SERVICE=<service-name>
+    cmds:
+      - |
+        if [[ -z "{{.SERVICE}}" ]]; then
+          echo "Error: Must specify SERVICE=<service-name>"
+          echo "Available services: registry, traefik, authentik-server, minio, grafana, etc."
+          exit 1
+        fi
+        docker logs -f "{{.SERVICE}}"
+
+  shell:
+    desc: Open a shell in a running container
+    summary: |
+      Open a shell in a running container. Usage:
+        task shell SERVICE=<service-name> [SHELL=/bin/bash]
+    cmds:
+      - |
+        if [[ -z "{{.SERVICE}}" ]]; then
+          echo "Error: Must specify SERVICE=<service-name>"
+          exit 1
+        fi
+        shell="{{.SHELL | default "/bin/bash"}}"
+        docker exec -it "{{.SERVICE}}" "$shell"
+
+  # Help
+  help:
+    desc: Show help for available tasks
+    silent: true
+    cmds:
+      - |
+        cat << 'EOF'
+        Available task categories:
+
+        Certificate Management:
+          certs:clean        - Remove all generated certificates
+          certs:ca           - Generate root CA
+          certs:intermediate - Generate intermediate CA
+          certs:registry     - Generate registry certificates
+          certs:all          - Generate all certificates
+
+        Registry Management:
+          registry:start        - Start Docker registry
+          registry:stop         - Stop Docker registry
+          registry:restart      - Restart Docker registry
+          registry:logs         - View registry logs
+          registry:status       - Check registry status
+          registry:list-repos   - List all repositories
+          registry:list-tags    - List tags for repository (REPO=name)
+          registry:get-manifest - Get manifest (REPO=name TAG=tag)
+          registry:gc           - Run garbage collection
+          registry:metrics      - View registry metrics
+
+        Secret Management:
+          secrets:encrypt    - Encrypt secrets (FILE=<file> or DIR=secrets)
+          secrets:decrypt    - Decrypt secrets (FILE=<file> or DIR=secrets)
+          secrets:collect    - Collect .env files (OUTPUT=<file>)
+
+        Infrastructure Deployment:
+          infra:deploy       - Deploy complete infrastructure (uses run.sh)
+          infra:status       - Show service status
+
+        TLS Configuration:
+          tls:trust-cert     - Trust CA certificate (macOS only)
+          tls:configure-docker - Configure Docker to trust registry certs
+          tls:test           - Test TLS connection to registry
+
+        Testing:
+          test:certs         - Test certificate generation
+          test:registry      - Test registry functionality
+          test:pull          - Test pulling images through registry
+          test:push          - Test pushing images to registry
+          test:all           - Run all tests
+
+        Utilities:
+          logs               - Follow service logs (SERVICE=<name>)
+          shell              - Open shell in container (SERVICE=<name>)
+          clean:all          - Clean everything
+          help               - Show this help
+          quickstart         - Generate certs and start registry
+
+        Examples:
+          task quickstart                           # Quick setup: certs + registry
+          task certs:all                            # Generate all certificates
+          task registry:start                       # Start registry with certificates
+          task registry:list-repos                  # List repositories
+          task registry:list-tags REPO=alpine       # List tags for alpine
+          task tls:configure-docker                 # Configure Docker TLS
+          task test:push                            # Test pushing images
+          task secrets:encrypt DIR=secrets          # Encrypt all secrets
+          task infra:deploy                         # Deploy complete infrastructure
+          task logs SERVICE=registry                # Follow registry logs
+        EOF
+
+  default:
+    desc: Show help (default task)
+    cmds:
+      - task: help

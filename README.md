@@ -38,7 +38,16 @@ The infrastructure uses external Docker networks for service isolation, Traefik 
   - [Available Commands](#available-commands)
     - [Zot Registry Commands](#zot-registry-commands)
     - [Monitoring Stack Commands](#monitoring-stack-commands)
-  - [Quick Start](#quick-start)
+  - [Orchestrated Startup](#orchestrated-startup)
+    - [Automated Infrastructure Deployment](#automated-infrastructure-deployment)
+    - [Directory Management](#directory-management)
+    - [Secret Management](#secret-management)
+  - [Setup and Deployment](#setup-and-deployment)
+    - [Infrastructure Host Setup](#infrastructure-host-setup)
+    - [Prerequisites](#prerequisites-1)
+    - [Orchestrated Deployment](#orchestrated-deployment)
+      - [One-Command Infrastructure Deployment](#one-command-infrastructure-deployment)
+      - [Secret Management](#secret-management-1)
   - [Configuration](#configuration)
     - [Authentication](#authentication)
     - [Reverse Proxy](#reverse-proxy)
@@ -319,8 +328,8 @@ docker pull localhost:5000/docker/nginx:latest
 ### Authentication Flow
 
 1. **External Access**: Traefik handles authentication via Authentik
-1. **Local Access**: Direct access to port 5000 bypasses authentication
-1. **Metrics Access**: Prometheus can access `/metrics` endpoint without authentication
+2. **Local Access**: Direct access to port 5000 bypasses authentication
+3. **Metrics Access**: Prometheus can access `/metrics` endpoint without authentication
 
 ## Available Commands
 
@@ -408,21 +417,31 @@ Use the SOPS helper script for managing encrypted secrets:
 ```
 
 **File Extensions:**
+
 - `.dec` - Decrypted files (git ignored, for local use)
 - `.enc` - Encrypted files (committed to repository)
 
 **Automated Integration:**
 The `run.sh` script automatically calls the appropriate SOPS commands, so manual secret management is only needed for initial setup or when adding new secrets.
 
-## Quick Start
+## Setup and Deployment
+
+### Infrastructure Host Setup
+
+For comprehensive VM/host setup instructions including Docker installation and system configuration, see the [VM Setup Guide](docs/guides/vm-setup.md).
 
 ### Prerequisites
 
-1. **SOPS and AGE setup**: Configure SOPS with AGE keys for secret management
-2. **Docker**: Install Docker with rootless mode (recommended)
-3. **Secrets**: Place encrypted secrets in the `secrets/` directory
+1. **Infrastructure Host**: VM or physical machine with Docker support
+2. **SOPS and AGE setup**: Configure SOPS with AGE keys for secret management
+3. **Docker**: Install Docker with rootless mode (recommended)
+4. **Secrets**: Place encrypted secrets in the `secrets/` directory
 
-### One-Command Deployment
+### Orchestrated Deployment
+
+The infrastructure includes comprehensive automation scripts:
+
+#### One-Command Infrastructure Deployment
 
 ```bash
 # Clone the repository
@@ -433,12 +452,34 @@ cd registry
 ./run.sh
 ```
 
-The script will automatically:
-- Verify prerequisites and dependencies
-- Set up all required directories with proper permissions
-- Decrypt and prepare secrets
-- Start all services in the correct order
-- Provide access points and status information
+The `run.sh` script automatically:
+
+- Verifies prerequisites and dependencies
+- Decrypts and prepares all secrets using SOPS
+- Creates all required directories with proper permissions
+- Sets up Docker networks for service isolation
+- Starts all services in dependency order with health checks
+- Provides access points and status information
+
+#### Secret Management
+
+Use the SOPS helper for managing encrypted secrets:
+
+```bash
+# Decrypt all secrets
+./sops-helper.sh decrypt secrets
+
+# Encrypt all .dec files to .enc files
+./sops-helper.sh encrypt secrets
+
+# Collect all .env files into one file
+./sops-helper.sh collect
+```
+
+**File Extensions:**
+
+- `.dec` - Decrypted files (git ignored, for local use)
+- `.enc` - Encrypted files (committed to repository)
 
 For detailed setup instructions, see the [Quick Start Guide](docs/guides/quick-start.md).
 
@@ -502,14 +543,14 @@ For monitoring setup and query examples, see the [Monitoring Guide](docs/guides/
 ## Security Considerations
 
 1. **Rootless Docker**: Provides better security isolation with user-namespace separation
-1. **Self-signed certificates**: Not suitable for production environments
-1. **Credentials**: Stored in `.env` file - ensure it's in `.gitignore`
-1. **Network isolation**: Internal service ports not exposed to host
-1. **TLS enforcement**: Minimum TLS 1.2 with strong cipher suites
-1. **Mutual TLS**: Prometheus authenticates to registry using client certificates
-1. **User services**: Alloy runs as user service with limited privileges
-1. **Socket access**: Rootless Docker socket has restricted access
-1. **Volume permissions**: Init containers ensure proper ownership
+2. **Self-signed certificates**: Not suitable for production environments
+3. **Credentials**: Stored in `.env` file - ensure it's in `.gitignore`
+4. **Network isolation**: Internal service ports not exposed to host
+5. **TLS enforcement**: Minimum TLS 1.2 with strong cipher suites
+6. **Mutual TLS**: Prometheus authenticates to registry using client certificates
+7. **User services**: Alloy runs as user service with limited privileges
+8. **Socket access**: Rootless Docker socket has restricted access
+9. **Volume permissions**: Init containers ensure proper ownership
 
 ## Troubleshooting
 
@@ -529,7 +570,7 @@ For troubleshooting common issues, see the [Troubleshooting Guide](docs/guides/t
 ├── monitoring/                   # Monitoring stack directory
 │   ├── docker-compose.yaml       # Monitoring services definition
 │   ├── .grafana-secrets.env      # Grafana credentials (git ignored)
-│   ├── .alloy-secrets.env        # Alloy secrets (git ignored)  
+│   ├── .alloy-secrets.env        # Alloy secrets (git ignored)
 │   ├── mimir/                    # Mimir configuration
 │   │   └── config.yaml           # Mimir server configuration
 │   ├── loki/                     # Loki configuration
@@ -555,8 +596,8 @@ For troubleshooting common issues, see the [Troubleshooting Guide](docs/guides/t
 └── README.md                     # This file
 
 # User-specific files (rootless Docker)
-~/.config/docker/daemon.json  # Docker daemon configuration
-~/.local/share/docker/        # Docker data directory
+~/.config/docker/daemon.json      # Docker daemon configuration
+~/.local/share/docker/            # Docker data directory
 ```
 
 ## Performance Tuning

@@ -210,7 +210,7 @@ EOF
 create_networks() {
 	log_info "Creating external Docker networks..."
 
-	local networks=("registry" "traefik" "auth" "monitoring" "mediaserver")
+	local networks=("traefik" "registry" "mediaserver" "monitoring" "auth")
 
 	for network in "${networks[@]}"; do
 		if ! docker network inspect "$network" >/dev/null 2>&1; then

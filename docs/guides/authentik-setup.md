@@ -25,7 +25,7 @@ docker compose up -d
 
 ### 3. Complete initial setup
 
-- Navigate to https://auth.yourdomain.com/if/flow/initial-setup/
+- Navigate to <https://auth.yourdomain.com/if/flow/initial-setup/>
 - Create the admin user (username: akadmin)
 - Set a secure password
 

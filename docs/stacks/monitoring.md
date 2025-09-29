@@ -122,16 +122,17 @@ docker-compose logs -f tempo
 
 ## Access Points
 
-- **Grafana**: http://localhost:3000 (admin/admin)
-- **Mimir**: http://localhost:9009 (metrics storage)
-- **Tempo**: http://localhost:3200 (tracing)
-- **Loki**: http://localhost:3100 (logs)
-- **Alloy**: http://localhost:12345 (Grafana Alloy UI)
+- **Grafana**: <http://localhost:3000> (admin/admin)
+- **Mimir**: <http://localhost:9009> (metrics storage)
+- **Tempo**: <http://localhost:3200> (tracing)
+- **Loki**: <http://localhost:3100> (logs)
+- **Alloy**: <http://localhost:12345> (Grafana Alloy UI)
 
 ## Sample Queries
 
 ### Mimir (PromQL)
-```promql
+
+```bash
 # Request rate by method
 rate(zot_http_requests_total[5m])
 
@@ -143,7 +144,8 @@ rate(container_cpu_usage_seconds_total{container_name="registry"}[5m])
 ```
 
 ### Loki (LogQL)
-```logql
+
+```bash
 # View all Docker container logs
 {job="docker_logs"}
 

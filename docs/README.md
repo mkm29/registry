@@ -42,7 +42,7 @@ Day-to-day operations and maintenance:
 
 ## Document Structure
 
-```
+```bash
 docs/
 ├── README.md                    # This index file
 ├── stacks/                      # Individual stack documentation

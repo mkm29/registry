@@ -99,7 +99,7 @@ curl http://localhost:5000/v2/docker/nginx/tags/list      # List tags for a repo
 
 ## Access Points
 
-- **Registry API (local)**: http://localhost:5000/v2/ (no auth)
-- **Registry API (external)**: https://registry.yourdomain.com/v2/ (auth via Traefik/Authentik)
-- **Web UI**: http://localhost:5000/home
-- **Metrics**: http://localhost:5000/metrics
+- **Registry API (local)**: <http://localhost:5000/v2/> (no auth)
+- **Registry API (external)**: <https://registry.yourdomain.com/v2/> (auth via Traefik/Authentik)
+- **Web UI**: <http://localhost:5000/home>
+- **Metrics**: <http://localhost:5000/metrics>

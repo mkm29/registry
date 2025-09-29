@@ -1,37 +1,36 @@
-# VM Creation Instructions
+# VM Setup Guide
 
-## This file contains instructions for setting up a virtual machine (VM) environment on Proxmox.
+This guide provides comprehensive instructions for setting up a virtual machine environment on Proxmox to host the container infrastructure.
 
-- OS: Ubuntu 24.04 Server
-- CPU: 4 cores
-- RAM: 16 GB
-- Disk: 32 GB
-- Network: Bridged (default bridge)
+## VM Specifications
+
+- **OS**: Ubuntu 24.04 Server
+- **CPU**: 4 cores
+- **RAM**: 16 GB
+- **Disk**: 32 GB (system) + 10 TB (data from ZFS pool)
+- **Network**: Bridged (default bridge)
   - Get a DHCP address initially
   - Set static IP later
-- Hostname: `mediaserver`
-- Storage: Local LVM
-  - Will add 10 TB disk later (from ZFS pool)
-- User: `madmin`
+- **Hostname**: `mediaserver`
+- **Storage**: Local LVM
+- **User**: `madmin`
   - Password: `SuperSecret1`
 
-Once VM is created, lets assign a static IP address to the VM.
+## Initial VM Setup
 
-### Setup
-
-#### 1 - Update and Upgrade
+### 1. Update and Upgrade System
 
 ```bash
 sudo apt update && sudo apt upgrade -y
 ```
 
-#### 2 - Install Required Packages
+### 2. Install Required Packages
 
 ```bash
 sudo apt install -y build-essential openssh-server curl git vim htop net-tools dnsutils iputils-ping ca-certificates unzip gpg
 ```
 
-#### 3 - Sudo
+### 3. Configure Sudo Access
 
 ```bash
 sudo usermod -aG sudo `whoami`
@@ -40,16 +39,22 @@ mkdir -p ~/.ssh
 chmod 700 -R ~/.ssh
 ```
 
-#### 4 - Generate SSH Key Pair
+### 4. Generate SSH Key Pair
 
 ```bash
 ssh-keygen -t ed25519 -C "madmin@mediaserver" -f ~/.ssh/id_mediaserver
 ssh-copy-id -i ~/.ssh/id_mediaserver.pub madmin@<VM_IP_ADDRESS>
 ```
 
-#### 5 - Assign Static IP Address
+### 5. Assign Static IP Address
 
-SSH into the VM, and first remove the cloud-init generated file: `sudo rm /etc/netplan/50-cloud-init.yaml` and then run the following command:
+SSH into the VM, and first remove the cloud-init generated file:
+
+```bash
+sudo rm /etc/netplan/50-cloud-init.yaml
+```
+
+Then create the static network configuration:
 
 ```bash
 sudo tee /etc/netplan/01-netcfg.yaml <<EOF
@@ -67,30 +72,30 @@ network:
         addresses:
           - 1.1.1.1
           - 1.0.0.1
-          - 192.168.1.1 # my proxmox DNS sever
+          - 192.168.1.1 # my proxmox DNS server
 EOF
 sudo chmod 600 /etc/netplan/01-netcfg.yaml
 ```
 
-In my case I set:
+**Example Configuration:**
 
 - `<STATIC_IP_ADDRESS>` to `192.168.1.66`
 - `<GATEWAY_IP_ADDRESS>` to `192.168.1.1`
 
-Now validate the configuration and apply it:
+Apply the network configuration:
 
 ```bash
 sudo netplan try
 sudo netplan apply
 ```
 
-Then create an entry in the `~/.ssh/config` file for easy SSH access:
+Create an SSH config entry for easy access:
 
 ```bash
-echo -e "Host mediaserver\n\tHostName 192.168.1.66\n\tUser madmin\n\tIdentityFile ~/.ssh/id_mediaserver\n\tStrictHostKeyChecking no\n\tIdentitiesOnly yes" | tee -a ~/.ssh/config
+echo -e "Host mediaserver\\n\\tHostName 192.168.1.66\\n\\tUser madmin\\n\\tIdentityFile ~/.ssh/id_mediaserver\\n\\tStrictHostKeyChecking no\\n\\tIdentitiesOnly yes" | tee -a ~/.ssh/config
 ```
 
-#### 6 - Restrict SSH Access
+### 6. Secure SSH Access
 
 Edit the SSH configuration file:
 
@@ -100,7 +105,7 @@ sudo vim /etc/ssh/sshd_config
 
 Change or add the following lines:
 
-```plaintext
+```bash
 PermitRootLogin no
 PasswordAuthentication no
 ChallengeResponseAuthentication no
@@ -108,13 +113,15 @@ UsePAM no
 AllowUsers madmin
 ```
 
-Then restart the SSH service:
+Restart the SSH service:
 
 ```bash
 sudo systemctl restart sshd
 ```
 
-#### 7 - Install Docker
+## Docker Installation
+
+### 7. Install Docker
 
 ```bash
 # Add Docker's official GPG key:
@@ -134,27 +141,27 @@ sudo apt-get update
 sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin -y
 ```
 
-Now add your user to the Docker group:
+Add your user to the Docker group:
 
 ```bash
 sudo usermod -aG docker madmin
 ```
 
-#### 8 - Rootless Docker
+### 8. Configure Rootless Docker
 
-To enable rootless Docker, first install the required packages:
+Install required packages for rootless Docker:
 
 ```bash
 sudo apt-get install uidmap -y
 ```
 
-To expose privileged ports (< 1024), set `CAP_NET_BIND_SERVICE` on rootlesskit binary and restart the daemon.
+Enable privileged port access:
 
 ```bash
 sudo setcap cap_net_bind_service=ep $(which rootlesskit)
 ```
 
-To allow delegation of all controllers, you need to change the systemd configuration as follows:
+Configure systemd for cgroup delegation:
 
 ```bash
 sudo mkdir -p /etc/systemd/system/user@.service.d
@@ -165,14 +172,14 @@ EOF
 sudo systemctl daemon-reload
 ```
 
-Now disable the Docker service and enable the rootless Docker service:
+Disable system Docker service:
 
 ```bash
 sudo systemctl disable --now docker.service docker.socket
 sudo rm /var/run/docker.sock
 ```
 
-Now install the rootless Docker service:
+Install rootless Docker service:
 
 ```bash
 sudo sh -eux <<EOF
@@ -182,15 +189,17 @@ EOF
 dockerd-rootless-setuptool.sh install
 ```
 
-To run `docker.service` on system startup, run: `sudo loginctl enable-linger madmin`.
+Enable Docker service on system startup:
 
-he connection between Docker rootless mode and GRUB (Grand Unified Bootloader) primarily concerns the cgroup v2 (unified cgroup hierarchy) requirement for full functionality, particularly for resource limiting features.
+```bash
+sudo loginctl enable-linger madmin
+```
 
-You need to edit the `GRUB_CMDLINE_LINUX` variable in `/etc/default/grub` to include `systemd.unified_cgroup_hierarchy=1`. After modifying, you would run `sudo update-grub` and reboot for the changes to take effect.
+> **Note**: For full rootless Docker functionality, particularly resource limiting features, you may need to enable cgroup v2 by editing `/etc/default/grub` to include `systemd.unified_cgroup_hierarchy=1` in the `GRUB_CMDLINE_LINUX` variable, then run `sudo update-grub` and reboot.
 
-#### 9 - Configure Docker Daemon
+### 9. Configure Docker Daemon
 
-Create or edit the Docker daemon configuration file:
+Create the Docker daemon configuration:
 
 ```bash
 mkdir -p ~/.config/docker
@@ -211,36 +220,38 @@ cat <<EOF > ~/.config/docker/daemon.json
   },
   "insecure-registries": [
     "localhost:5000"
-  ],
+  ]
 }
 EOF
 systemctl --user restart docker
 ```
 
-The `data-root` will be set (by default) to `~/.local/share/docker`, which is the rootless Docker storage location. This can be changed by setting the `data-root` option in the `daemon.json` file.
+> **Note**: The `data-root` defaults to `~/.local/share/docker` for rootless Docker. This can be changed by setting the `data-root` option in the `daemon.json` file.
 
-#### 10 - Install Rust
+## Development Tools
+
+### 10. Install Rust
 
 ```bash
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-# Add to ~/bashrc
+# Add to ~/.bashrc
 echo 'source $HOME/.cargo/env' >> ~/.bashrc
 source ~/.bashrc
 ```
 
-##### 10.a - Install Rust Components
+#### 10.a Install Rust-based Tools
 
 ```bash
 sudo apt-get install -y ripgrep fd-find
 ```
 
-###### 10.b - Install Node.js
+#### 10.b Install Node.js
 
 ```bash
 sudo apt install -y nodejs npm
 ```
 
-##### 10.c - Install Nerd Fonts
+#### 10.c Install Nerd Fonts
 
 ```bash
 mkdir -p ~/.local/share/fonts
@@ -293,7 +304,7 @@ chmod +x ~/fonts.sh
 ~/fonts.sh
 ```
 
-##### 10.d - Install Neovim
+#### 10.d Install Neovim
 
 ```bash
 curl -LO https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.tar.gz
@@ -303,7 +314,7 @@ rm nvim-linux-x86_64.tar.gz
 git clone https://github.com/nvim-lua/kickstart.nvim.git "${XDG_CONFIG_HOME:-$HOME/.config}"/nvim
 ```
 
-##### 10.e - Install eza
+#### 10.e Install eza
 
 ```bash
 sudo mkdir -p /etc/apt/keyrings
@@ -314,38 +325,45 @@ sudo apt update
 sudo apt install -y eza
 ```
 
-#### 11 - Add Data Disk
+## Storage Configuration
+
+### 11. Add Data Disk
+
+Find the additional disk:
 
 ```bash
-# find the disk
 lsblk
-# Assuming the disk is /dev/sdb
+```
+
+Assuming the disk is `/dev/sdb`, partition it:
+
+```bash
 sudo fdisk /dev/sdb
 ```
 
 In fdisk:
 
-- Type n for new partition
+- Type `n` for new partition
 - Press Enter to accept default (primary)
 - Press Enter to accept default partition number (1)
 - Press Enter to accept default first sector
 - Press Enter to accept default last sector (uses entire disk)
-- Type w to write changes and exit
+- Type `w` to write changes and exit
 
-Now format the disk:
+Format the disk:
 
 ```bash
 sudo mkfs.ext4 /dev/sdb1
 ```
 
-Mount the disk:
+Create mount points and mount the disk:
 
 ```bash
 sudo mkdir -p /mnt/data/{filestore,faststore,logstore,cache}
 sudo mount /dev/sdb1 /mnt/data
 ```
 
-Now make it permanent:
+Make the mount permanent:
 
 ```bash
 # Get the UUID
@@ -358,26 +376,53 @@ sudo vim /etc/fstab
 UUID=e45ed3dc-5544-49f6-9447-919b470a8b81 /mnt/data ext4 defaults 0 2
 ```
 
-#### 12 - Install McFly
+## Additional Tools
+
+### 12. Install McFly (Enhanced History)
 
 ```bash
 curl -LSfs https://raw.githubusercontent.com/cantino/mcfly/master/ci/install.sh | sudo sh -s -- --git cantino/mcfly
 ```
 
-#### 13 - Install zinit
+### 13. Install zinit (Zsh Plugin Manager)
 
 ```bash
 bash -c "$(curl --fail --show-error --silent --location https://raw.githubusercontent.com/zdharma-continuum/zinit/HEAD/scripts/install.sh)"
 ```
 
-### Proxmox Memory
+## System Optimization
 
-The buffer/cache memory in Proxmox will likely need to be tweaked to ensure that the VM has enough memory available for its operations. You can adjust the memory settings in the Proxmox web interface by selecting the VM, going to the "Hardware" tab, and modifying the "Memory" settings. I prefer to use the command line though:
+### Proxmox Memory Optimization
+
+For better memory management in the VM environment, adjust kernel parameters:
 
 ```bash
 echo "vm.vfs_cache_pressure=200" | sudo tee -a /etc/sysctl.conf
 echo "vm.dirty_ratio=5" | sudo tee -a /etc/sysctl.conf
 echo "vm.dirty_background_ratio=3" | sudo tee -a /etc/sysctl.conf
+```
 
+Optional: Add a cron job to periodically clear caches:
+
+```bash
+# Add to crontab (uncomment if needed):
 # */30 * * * * sync; echo 3 > /proc/sys/vm/drop_caches
 ```
+
+## Next Steps
+
+After completing this VM setup, you can proceed with deploying the container infrastructure:
+
+1. Clone the infrastructure repository
+2. Configure SOPS and AGE for secret management
+3. Set up encrypted secrets in the `secrets/` directory
+4. Run the orchestrated infrastructure deployment with `./run.sh`
+
+See the main [Quick Start Guide](quick-start.md) for infrastructure deployment instructions.
+
+## Notes
+
+- The VM is configured for development and testing environments
+- For production use, consider additional security hardening
+- Memory settings may need adjustment based on workload requirements
+- The 10 TB data disk provides ample storage for media files and container volumes

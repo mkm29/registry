@@ -40,7 +40,7 @@ make verify-certs
 The Makefile automates the following steps:
 
 1. Generates root CA certificate
-1. Generates intermediate CA certificate
-1. Signs intermediate CA with root CA
-1. Generates registry certificates (peer, server, client profiles)
-1. Creates certificate chain for the registry
+2. Generates intermediate CA certificate
+3. Signs intermediate CA with root CA
+4. Generates registry certificates (peer, server, client profiles)
+5. Creates certificate chain for the registry

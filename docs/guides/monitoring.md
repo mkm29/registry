@@ -18,7 +18,7 @@
 
 Access Mimir through Grafana at <http://localhost:3000> (Explore → Mimir datasource) and try these PromQL queries:
 
-```promql
+```bash
 # Request rate by method
 rate(zot_http_requests_total[5m])
 
@@ -49,7 +49,7 @@ container_memory_usage_bytes{container_name="registry"}
 
 Access Loki through Grafana's Explore interface or use these example LogQL queries:
 
-```logql
+```bash
 # View all Docker container logs
 {job="docker_logs"}
 
