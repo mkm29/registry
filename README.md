@@ -1,474 +1,304 @@
-# Zot Registry with Pull-Through Cache and Monitoring Stack (Rootless Docker)
+# Multi-Stack Container Infrastructure
 
-This repository provides a complete setup for a local Zot registry that acts as a pull-through cache for multiple container registries including Docker Hub, ghcr.io, gcr.io, quay.io, and registry.k8s.io. The project is organized into three main components:
+This repository provides a comprehensive, production-ready container infrastructure with six integrated Docker Compose stacks for identity management, observability, storage, registry services, and media automation. The architecture emphasizes security, observability, and operational excellence.
 
-- **Zot Registry** (`zot/`): The OCI-compliant registry with pull-through caching and authentication
-- **Monitoring Stack** (`monitoring/`): Full observability stack with Grafana Mimir, Tempo, Grafana, Loki, and Alloy
-- **Caddy Reverse Proxy** (`caddy/`): HTTPS reverse proxy with automatic TLS certificate management
+## Infrastructure Stacks
 
-This setup is optimized for **rootless Docker** with native Alloy installation for better security and performance. The registry is accessible via HTTPS at `registry.smigula.io` with authentication handled externally by Authentik through Traefik.
+- **Authentication Stack** (`auth/`): Authentik identity provider with PostgreSQL and Redis
+- **Traefik Stack** (`traefik/`): Reverse proxy with automatic SSL termination and service discovery
+- **Monitoring Stack** (`monitoring/`): Complete observability platform with Mimir cluster, Grafana, Loki, Tempo, and Alloy
+- **Storage Stack** (`minio/`): S3-compatible object storage for monitoring backends
+- **Registry Stack** (`zot/`): OCI-compliant container registry with pull-through caching
+- **Media Stack** (`mediaserver/`): Automated media server with Plex and content management
 
-- [Zot Registry with Pull-Through Cache and Monitoring Stack (Rootless Docker)](#zot-registry-with-pull-through-cache-and-monitoring-stack-rootless-docker)
-  - [Overview](#overview)
+The infrastructure uses external Docker networks for service isolation, Traefik for centralized ingress, and Authentik for unified authentication across all services.
+
+## Table of Contents
+
+- [Multi-Stack Container Infrastructure](#multi-stack-container-infrastructure)
+  - [Infrastructure Stacks](#infrastructure-stacks)
+  - [Table of Contents](#table-of-contents)
+  - [Architecture Overview](#architecture-overview)
+    - [Overall Infrastructure Architecture](#overall-infrastructure-architecture)
+    - [Key Features](#key-features)
   - [Prerequisites](#prerequisites)
-    - [Required Software](#required-software)
-    - [Optional Tools](#optional-tools)
     - [System Requirements](#system-requirements)
-    - [Docker Hub Account](#docker-hub-account)
+    - [Required Software](#required-software)
+    - [Port Requirements](#port-requirements)
+    - [Storage Structure](#storage-structure)
   - [Rootless Docker Setup](#rootless-docker-setup)
-    - [1. Remove Regular Docker (if installed)](#1-remove-regular-docker-if-installed)
-    - [2. Install Docker CE](#2-install-docker-ce)
-    - [3. Install Rootless Docker](#3-install-rootless-docker)
-    - [4. Start Rootless Docker](#4-start-rootless-docker)
-    - [5. Configure Docker Daemon](#5-configure-docker-daemon)
-  - [Install and Configure Alloy](#install-and-configure-alloy)
-    - [1. Download and Install Alloy](#1-download-and-install-alloy)
-    - [2. Create Alloy Configuration](#2-create-alloy-configuration)
-    - [3. Create Systemd User Service](#3-create-systemd-user-service)
-  - [Architecture](#architecture)
+  - [Stack Documentation](#stack-documentation)
+    - [Individual Stack Guides](#individual-stack-guides)
+  - [Network Architecture](#network-architecture)
   - [Registry Authentication](#registry-authentication)
+    - [Accessing the Registry](#accessing-the-registry)
+      - [Via HTTPS (External Access)](#via-https-external-access)
+      - [Via HTTP (Local Access)](#via-http-local-access)
+    - [Authentication Flow](#authentication-flow)
   - [Available Commands](#available-commands)
-  - [Quick Start](#quick-start)
-  - [CFSSL Configuration](#cfssl-configuration)
-    - [1. Root CA Configuration (`cfssl/ca.json`)](#1-root-ca-configuration-cfsslcajson)
-    - [2. Intermediate CA Configuration (`cfssl/intermediate-ca.json`)](#2-intermediate-ca-configuration-cfsslintermediate-cajson)
-    - [3. Registry Certificate Configuration (`cfssl/registry.json`)](#3-registry-certificate-configuration-cfsslregistryjson)
-    - [4. Certificate Profiles (`cfssl/cfssl.json`)](#4-certificate-profiles-cfsslcfssljson)
-    - [Common Customizations](#common-customizations)
-    - [Example for Local Development](#example-for-local-development)
-  - [Certificate Generation with CFSSL](#certificate-generation-with-cfssl)
-  - [Zot Registry Configuration](#zot-registry-configuration)
-    - [Key Configuration Settings](#key-configuration-settings)
-      - [Storage Configuration](#storage-configuration)
-      - [HTTP Configuration](#http-configuration)
-      - [Multi-Registry Sync Configuration](#multi-registry-sync-configuration)
-      - [Extensions](#extensions)
+    - [Zot Registry Commands](#zot-registry-commands)
+    - [Monitoring Stack Commands](#monitoring-stack-commands)
+  - [Orchestrated Startup](#orchestrated-startup)
+    - [Automated Infrastructure Deployment](#automated-infrastructure-deployment)
+    - [Directory Management](#directory-management)
+    - [Secret Management](#secret-management)
+  - [Setup and Deployment](#setup-and-deployment)
+    - [Infrastructure Host Setup](#infrastructure-host-setup)
+    - [Prerequisites](#prerequisites-1)
+    - [Orchestrated Deployment](#orchestrated-deployment)
+      - [One-Command Infrastructure Deployment](#one-command-infrastructure-deployment)
+      - [Secret Management](#secret-management-1)
+  - [Configuration](#configuration)
+    - [Authentication](#authentication)
+    - [Reverse Proxy](#reverse-proxy)
+    - [TLS Certificates](#tls-certificates)
+    - [Registry Configuration](#registry-configuration)
   - [Services Architecture](#services-architecture)
-    - [Zot Registry (port 5000)](#zot-registry-port-5000)
-    - [Jaeger (port 16686)](#jaeger-port-16686)
-    - [Prometheus (port 9090)](#prometheus-port-9090)
-    - [Loki (port 3100)](#loki-port-3100)
-    - [Grafana Alloy (port 12345) - Native Installation](#grafana-alloy-port-12345---native-installation)
-    - [Grafana (port 3000)](#grafana-port-3000)
+    - [Core Services](#core-services)
   - [Docker Compose Configuration](#docker-compose-configuration)
-  - [Testing the Registry](#testing-the-registry)
-    - [Configure Docker to Trust the Registry](#configure-docker-to-trust-the-registry)
-      - [Step 1: Configure TLS Trust](#step-1-configure-tls-trust)
-        - [Option A: Configure Docker daemon certificates (Recommended)](#option-a-configure-docker-daemon-certificates-recommended)
-        - [Option B: System-wide trust (macOS)](#option-b-system-wide-trust-macos)
-      - [Step 2: Configure Docker Hub Mirror](#step-2-configure-docker-hub-mirror)
-        - [Rootless Docker](#rootless-docker)
-        - [macOS (Docker Desktop)](#macos-docker-desktop)
-        - [Linux (Regular Docker)](#linux-regular-docker)
-        - [Verify Mirror Configuration](#verify-mirror-configuration)
-    - [Test Registry Access](#test-registry-access)
-  - [Monitoring and Observability](#monitoring-and-observability)
-    - [Grafana Dashboard](#grafana-dashboard)
-    - [Prometheus Queries](#prometheus-queries)
-    - [Jaeger Traces](#jaeger-traces)
-    - [Loki Log Queries](#loki-log-queries)
-  - [Management Commands](#management-commands)
-    - [Docker Compose Operations](#docker-compose-operations)
-    - [Registry Maintenance](#registry-maintenance)
-    - [Alloy Management](#alloy-management)
+  - [Testing and Monitoring](#testing-and-monitoring)
+    - [Testing the Registry](#testing-the-registry)
+    - [Monitoring and Observability](#monitoring-and-observability)
   - [Security Considerations](#security-considerations)
   - [Troubleshooting](#troubleshooting)
-    - [Rootless Docker Issues](#rootless-docker-issues)
-    - [Alloy Issues](#alloy-issues)
-    - [Volume Permission Issues](#volume-permission-issues)
-    - [Certificate Issues](#certificate-issues)
-    - [Authentication Issues](#authentication-issues)
-    - [Registry Connection Issues](#registry-connection-issues)
-    - [Metrics Not Appearing](#metrics-not-appearing)
   - [File Structure](#file-structure)
-  - [Migration from Prometheus to Grafana Mimir](#migration-from-prometheus-to-grafana-mimir)
   - [Performance Tuning](#performance-tuning)
   - [References](#references)
 
-## Overview
+## Architecture Overview
 
-This setup creates a production-ready local Zot registry with:
+This infrastructure provides a comprehensive, enterprise-grade container platform with the following capabilities:
 
-- **Rootless Docker**: Enhanced security with user-namespace isolation
-- **Multi-Registry Pull-Through Cache**: Acts as a caching proxy for multiple registries:
-  - Docker Hub (`/docker` prefix)
-  - GitHub Container Registry (`/ghcr` prefix)
-  - Google Container Registry (`/gcr` prefix)
-  - Quay.io (`/quay` prefix)
-  - Kubernetes Registry (`/k8s` prefix)
-- **Zot Registry**: High-performance OCI-compliant registry with advanced features
-- **HTTPS Access**: Secure external access via Caddy reverse proxy with automatic TLS certificates
-- **Authentication**: Handled externally by Authentik through Traefik
-- **Bandwidth Optimization**: Caches images locally to reduce repeated downloads from upstream registries
-- **Native Alloy**: Grafana Alloy runs as a native systemd service for better Docker socket access
-- **Distributed Tracing**: OpenTelemetry integration with Grafana Tempo
-- **Metrics Collection**: Grafana Mimir for scalable metrics storage with pre-configured dashboards
-- **Log Aggregation**: Loki for centralized log collection and querying
-- **Visualization**: Grafana dashboards for monitoring registry performance and logs
-- **Advanced Features**: Built-in UI, search capabilities, and sync management
+### Overall Infrastructure Architecture
 
-When properly configured, Zot will automatically cache images from multiple registries, significantly improving pull speeds and reducing bandwidth usage.
+```mermaid
+graph LR
+    subgraph "External"
+        Internet[🌐 Internet<br/>Port 80/443]
+        Users[👥 Users]
+    end
+
+    subgraph "Ingress"
+        Traefik[🚦 Traefik<br/>Reverse Proxy<br/>+ SSL]
+    end
+
+    subgraph "Core Services"
+        Auth[🔐 Authentik<br/>Identity Provider]
+        Monitor[📊 Monitoring<br/>Grafana + LGTM Stack]
+        Registry[📦 Zot Registry<br/>Container Images]
+        Storage[💾 MinIO<br/>S3 Storage]
+        Media[🎬 Plex Stack<br/>Media Automation]
+    end
+
+    subgraph "External Sources"
+        DockerHub[🐳 Docker Hub]
+        MediaSources[📺 Media Sources]
+    end
+
+    %% Main flow
+    Internet --> Traefik
+    Users --> Traefik
+
+    %% Service routing
+    Traefik --> Auth
+    Traefik --> Monitor
+    Traefik --> Registry
+    Traefik --> Storage
+    Traefik --> Media
+
+    %% Authentication flow
+    Auth -.->|SSO| Monitor
+    Auth -.->|SSO| Registry
+    Auth -.->|SSO| Storage
+    Auth -.->|SSO| Media
+
+    %% Data dependencies
+    Monitor --> Storage
+    Registry --> DockerHub
+    Media --> MediaSources
+
+    %% Styling
+    classDef external fill:#ffebee,stroke:#d32f2f,stroke-width:2px,color:#424242
+    classDef ingress fill:#e3f2fd,stroke:#1976d2,stroke-width:3px,color:#424242
+    classDef core fill:#e8f5e8,stroke:#388e3c,stroke-width:2px,color:#424242
+    classDef sources fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#424242
+
+    class Internet,Users external
+    class Traefik ingress
+    class Auth,Monitor,Registry,Storage,Media core
+    class DockerHub,MediaSources sources
+```
+
+### Key Features
+
+- **Unified Authentication**: Authentik provides SSO across all services
+- **Automatic HTTPS**: Traefik with Let's Encrypt certificate automation
+- **Complete Observability**: Grafana LGTM stack with Mimir clustering
+- **Container Registry**: OCI-compliant registry with pull-through caching
+- **S3 Storage**: MinIO provides scalable object storage
+- **Media Automation**: Complete Plex-based media management pipeline
+- **Production-Ready**: Resource limits, health checks, and persistent storage
+
+> [!NOTE]
+> ⚠️ **Development Deployment Mode**: The monitoring components (Grafana Loki, Mimir, and Alloy) in this stack are deployed in **monolithic mode** intended only for development and testing environments.
+>
+> For production deployments, these components should be deployed on Kubernetes with appropriate scaling and high availability configurations:
+>
+> - **Grafana Mimir**: See [deployment modes documentation](https://grafana.com/docs/mimir/latest/references/architecture/deployment-modes/) for microservices and distributed architectures
+> - **Grafana Loki**: See [deployment modes documentation](https://grafana.com/docs/loki/latest/get-started/deployment-modes/) for scalable production configurations
+
+The current Docker Compose setup provides a complete development environment but lacks the redundancy, scaling, and operational features required for production workloads.
 
 ## Prerequisites
 
-### Required Software
-
-1. **CFSSL** (CloudFlare's PKI toolkit)
-
-   - macOS: `brew install cfssl`
-   - Linux: `sudo apt-get install golang-cfssl` or download from [CFSSL releases](https://github.com/cloudflare/cfssl/releases)
-   - Verify: `cfssl version`
-
-1. **Make** (GNU Make 3.81 or later)
-
-   - macOS: Included with Xcode Command Line Tools or `brew install make`
-   - Linux: `sudo apt-get install build-essential`
-   - Verify: `make --version`
-
-1. **OpenSSL** (for certificate verification)
-
-   - macOS/Linux: Usually pre-installed
-   - Verify: `openssl version`
-
-### Optional Tools
-
-- **curl** or **wget**: For testing endpoints (usually pre-installed)
-- **jq**: For parsing JSON responses (`brew install jq` or `apt-get install jq`)
-
 ### System Requirements
 
-- **Disk Space**: At least 10GB free for Docker images and registry storage
-- **Memory**: Minimum 4GB RAM (8GB recommended for full monitoring stack)
-- **Ports**: Ensure the following ports are available:
-  - 5000: Registry API
-  - 3000: Grafana
-  - 9009: Grafana Mimir
-  - 3200: Grafana Tempo
-  - 4317/4318: OpenTelemetry receivers
-  - 3100: Loki
-  - 12345: Alloy UI
+- **Hardware**: Minimum 8GB RAM, 50GB free disk space
+- **Operating System**: Linux (Ubuntu 20.04+ recommended) or macOS with Docker support
+- **Docker**: Docker Engine 24.0+ with Docker Compose v2
+- **Network**: Internet connectivity for image pulls and certificate generation
 
-### Registry Accounts (Optional)
+### Required Software
 
-For authenticated registries, you'll need credentials:
+- **Docker Engine**: Latest stable version with compose plugin
+- **Git**: For repository management
+- **Make**: For automation commands (optional)
 
-1. **Docker Hub**: Create a free account at [hub.docker.com](https://hub.docker.com)
-1. **GitHub Container Registry**: Use your GitHub username and a [personal access token](https://github.com/settings/tokens)
-1. **Other registries**: Most public images don't require authentication
+### Port Requirements
+
+The following ports should be available on your system:
+
+| Port      | Service   | Description             |
+| --------- | --------- | ----------------------- |
+| 80/443    | Traefik   | HTTP/HTTPS ingress      |
+| 8080      | Traefik   | Dashboard               |
+| 9008/9443 | Authentik | Identity provider       |
+| 3000      | Grafana   | Visualization dashboard |
+| 9009      | Mimir     | Metrics storage         |
+| 3100      | Loki      | Log aggregation         |
+| 3200      | Tempo     | Distributed tracing     |
+| 5000      | Zot       | Container registry      |
+| 9000/9001 | MinIO     | Object storage          |
+| 32400     | Plex      | Media server            |
+
+### Storage Structure
+
+The infrastructure automatically creates the following directory structure:
+
+```bash
+/mnt/data/
+├── postgres/              # PostgreSQL data
+├── redis/                 # Redis data
+├── mimir-{1,2,3}/         # Mimir cluster data
+├── grafana/               # Grafana data and exports
+│   ├── csv/               # CSV exports
+│   ├── dashboards/        # Dashboard storage
+│   ├── pdf/               # PDF exports
+│   ├── plugins/           # Plugin data
+│   └── png/               # PNG exports
+├── zot/                   # Registry storage
+├── minio/                 # MinIO object storage
+├── media/                 # Media storage
+│   ├── media/             # Media files
+│   └── torrents/          # Torrent downloads
+└── logs/                  # Application logs
+    └── traefik/           # Traefik access logs
+
+/mnt/filestore/data/       # Configurable mediaserver data (via DATA_ROOT)
+├── media/
+│   ├── movies/            # Movie library
+│   └── tv/                # TV show library
+└── torrents/
+    ├── movies/            # Movie downloads
+    ├── tv/                # TV downloads
+    └── incomplete/        # Incomplete downloads
+
+/mnt/filestore/config/     # Configurable mediaserver config (via CONFIG_ROOT)
+├── radarr/                # Radarr configuration
+├── sonarr/                # Sonarr configuration
+├── bazarr/                # Bazarr configuration
+├── prowlarr/              # Prowlarr configuration
+├── qbittorrent/           # qBittorrent configuration
+├── overseerr/             # Overseerr configuration
+└── plex/                  # Plex configuration
+```
+
+All directories are automatically created with proper ownership when running `./run.sh`.
 
 ## Rootless Docker Setup
 
-### 1. Remove Regular Docker (if installed)
+For detailed Docker installation and configuration, see the [Rootless Docker Setup Guide](docs/configuration/rootless-docker.md).
 
-```bash
-sudo systemctl stop docker
-sudo systemctl disable docker
-sudo apt remove docker docker-engine docker.io containerd runc
-```
+## Stack Documentation
 
-### 2. Install Docker CE
+### Individual Stack Guides
 
-```bash
-# Add Docker's official GPG key
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+- **[Traefik Stack](docs/stacks/traefik.md)** - Reverse proxy with automatic HTTPS
+- **[Authentication Stack](docs/stacks/authentik.md)** - Unified identity provider with SSO
+- **[Monitoring Stack](docs/stacks/monitoring.md)** - Complete observability platform
+- **[Storage Stack](docs/stacks/storage.md)** - S3-compatible object storage
+- **[Registry Stack](docs/stacks/registry.md)** - OCI-compliant container registry
+- **[Media Stack](docs/stacks/media.md)** - Automated media server with Plex
 
-# Add repository
-echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+## Network Architecture
 
-# Install Docker
-sudo apt update
-sudo apt install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-```
-
-### 3. Install Rootless Docker
-
-```bash
-# Install rootless Docker
-dockerd-rootless-setuptool.sh install
-
-# Add to shell profile
-echo 'export PATH=$HOME/bin:$PATH' >> ~/.bashrc
-echo 'export DOCKER_HOST=unix://$XDG_RUNTIME_DIR/docker.sock' >> ~/.bashrc
-source ~/.bashrc
-```
-
-### 4. Start Rootless Docker
-
-```bash
-systemctl --user enable --now docker
-
-# Verify installation
-docker version
-docker info
-```
-
-### 5. Configure Docker Daemon
-
-```bash
-# Create Docker configuration directory
-mkdir -p ~/.config/docker
-
-# Create daemon.json configuration
-tee ~/.config/docker/daemon.json << 'EOF'
-{
-  "data-root": "/home/madmin/.config/containers/storage",
-  "builder": {
-    "gc": {
-      "defaultKeepStorage": "20GB",
-      "enabled": true
-    }
-  },
-  "experimental": false,
-  "insecure-registries": [ "localhost:5000" ],
-  "log-driver": "json-file",
-  "log-opts": {
-    "max-size": "10m",
-    "max-file": "3",
-    "compress": "true"
-  },
-  "features": {
-    "buildkit": true
-  },
-  "registry-mirrors": ["http://localhost:5000"]
-}
-EOF
-
-# Restart Docker to apply configuration
-systemctl --user restart docker
-docker info  # Verify configuration
-```
-
-## Install and Configure Alloy
-
-### 1. Download and Install Alloy
-
-```bash
-# Create local bin directory
-mkdir -p ~/.local/bin
-
-# Download Alloy
-cd /tmp
-wget https://github.com/grafana/alloy/releases/download/v1.9.2/alloy-linux-amd64.zip
-unzip alloy-linux-amd64.zip
-mv alloy-linux-amd64 ~/.local/bin/alloy
-chmod +x ~/.local/bin/alloy
-
-# Verify installation
-~/.local/bin/alloy --version
-```
-
-### 2. Create Alloy Configuration
-
-```bash
-# Create config directory
-mkdir -p ~/alloy
-
-# Create configuration file
-tee ~/alloy/config.alloy << 'EOF'
-discovery.docker "containers" {
-  host = "unix:///run/user/1000/docker.sock"
-  refresh_interval = "5s"
-}
-
-discovery.relabel "containers" {
-  targets = discovery.docker.containers.targets
-
-  rule {
-    source_labels = ["__meta_docker_container_name"]
-    target_label  = "container"
-  }
-
-  rule {
-    source_labels = ["__meta_docker_container_log_stream"]
-    target_label  = "stream"
-  }
-
-  rule {
-    source_labels = ["__meta_docker_container_id"]
-    target_label  = "container_id"
-  }
-
-  rule {
-    source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
-    target_label  = "service"
-  }
-}
-
-loki.source.file "docker_logs" {
-  targets    = discovery.relabel.containers.output
-  forward_to = [loki.process.docker_logs.receiver]
-}
-
-loki.process.docker_logs "docker_logs" {
-  forward_to = [loki.write.loki.receiver]
-
-  stage.json {
-    expressions = {
-      timestamp = "time",
-      message   = "log",
-    }
-  }
-
-  stage.timestamp {
-    source = "timestamp"
-    format = "RFC3339Nano"
-  }
-
-  stage.labels {
-    values = {
-      level = "level",
-    }
-  }
-}
-
-loki.write "loki" {
-  endpoint {
-    url = "http://localhost:3100/loki/api/v1/push"
-  }
-}
-
-logging {
-  level  = "info"
-  format = "logfmt"
-}
-EOF
-```
-
-### 3. Create Systemd User Service
-
-```bash
-# Create user systemd directory
-mkdir -p ~/.config/systemd/user
-
-# Create service file
-tee ~/.config/systemd/user/alloy.service << 'EOF'
-[Unit]
-Description=Grafana Alloy
-After=network.target
-Wants=network.target
-
-[Service]
-Type=simple
-WorkingDirectory=%h
-ExecStart=%h/.local/bin/alloy run %h/registry/monitoring/alloy/config.alloy --server.http.listen-addr=0.0.0.0:12345 --storage.path=%h/.local/share/alloy
-Restart=always
-RestartSec=5
-
-[Install]
-WantedBy=default.target
-EOF
-
-# Reload and enable service
-systemctl --user daemon-reload
-systemctl --user enable --now alloy
-
-# Enable user services to start at boot (optional)
-sudo loginctl enable-linger $USER
-```
-
-## Architecture
+The infrastructure uses external Docker networks for service isolation:
 
 ```mermaid
-graph TB
-    subgraph "External Access"
-        Internet[Internet<br/>HTTPS]
-        Client[Docker Client]
+graph LR
+    subgraph "External Networks"
+        Internet[Internet<br/>Port 80/443]
+        DNS[DNS Provider<br/>Let's Encrypt DNS-01]
     end
 
-    subgraph "External Registries"
-        DH[Docker Hub<br/>registry-1.docker.io]
-        GHCR[GitHub Container Registry<br/>ghcr.io]
-        GCR[Google Container Registry<br/>gcr.io]
-        QUAY[Quay.io]
-        K8S[Kubernetes Registry<br/>registry.k8s.io]
+    subgraph "Traefik Network"
+        TraefikNet[traefik_default<br/>Overlay Network]
     end
 
-    subgraph "Rootless Docker Environment"
-        subgraph "Reverse Proxy (caddy/docker-compose.yaml)"
-            Caddy[Caddy<br/>:443/:80<br/>TLS Termination]
-            CaddyAuth[Auth handled by<br/>Traefik/Authentik]
-        end
-
-        subgraph "Zot Registry (zot/docker-compose.yaml)"
-            subgraph "Zot Registry Service"
-                Zot[Zot Registry<br/>:5000]
-                ZotAuth[External Auth<br/>via Traefik]
-                UI[Web UI<br/>Search API]
-                Sync[Sync Engine<br/>On-demand Pull]
-
-                Zot --> ZotAuth
-                Zot --> UI
-                Zot --> Sync
-            end
-        end
-
-        subgraph "Monitoring Stack (monitoring/docker-compose.yaml)"
-            subgraph "Monitoring Services"
-                Tempo[Grafana Tempo<br/>:4317/:4318 OTLP]
-                Mimir[Grafana Mimir<br/>:9009]
-                Loki[Loki<br/>:3100]
-                Grafana[Grafana<br/>:3000]
-                MinIO[MinIO<br/>:9000/:9001<br/>S3 Storage]
-
-                Mimir --> Grafana
-                Tempo --> Grafana
-                Loki --> Grafana
-                Mimir --> MinIO
-            end
-
-            subgraph "Rootless Docker Infrastructure"
-                Docker[Rootless Docker Daemon<br/>~/.local/share/docker]
-                Logs[Container Logs<br/>~/.local/share/docker/containers]
-                Socket[Docker Socket<br/>/run/user/1000/docker.sock]
-
-                Docker --> Logs
-                Docker --> Socket
-            end
-        end
-
-        subgraph "Native Services"
-            Alloy[Grafana Alloy<br/>:12345<br/>Systemd User Service]
-
-            Alloy -->|Read| Socket
-            Alloy -->|Read| Logs
-            Alloy -->|Push logs| Loki
-        end
+    subgraph "Internal Networks"
+        AuthNet[auth_default<br/>Auth Stack Network]
+        MonNet[monitoring_default<br/>Monitoring Network]
+        StorageNet[storage_default<br/>MinIO Network]
+        RegistryNet[registry_default<br/>Zot Network]
+        MediaNet[media_default<br/>Media Stack Network]
     end
 
-    Internet -->|registry.smigula.io| Caddy
-    Client -->|localhost:5000| Zot
-    Caddy -->|HTTP| Zot
-    Sync -->|Cache| DH
-    Sync -->|Cache| GHCR
-    Sync -->|Cache| GCR
-    Sync -->|Cache| QUAY
-    Sync -->|Cache| K8S
-    Zot -->|Traces| Tempo
-    Alloy -->|Push metrics| Mimir
-    Alloy -->|Scrape /metrics| Zot
+    subgraph "Service Connections"
+        TraefikSvc[Traefik Container<br/>Connected to ALL networks]
+        AuthSvc[Authentik Services]
+        MonSvc[Monitoring Services]
+        StorageSvc[MinIO Services]
+        RegistrySvc[Zot Services]
+        MediaSvc[Media Services]
+    end
 
-    style DH fill:#000000,color:#ffffff
-    style GHCR fill:#000000,color:#ffffff
-    style GCR fill:#000000,color:#ffffff
-    style QUAY fill:#000000,color:#ffffff
-    style K8S fill:#000000,color:#ffffff
-    style Client fill:#000000,color:#ffffff
-    style Internet fill:#0066cc,color:#ffffff
-    style Caddy fill:#22b638
-    style CaddyAuth fill:#cccccc,color:#000000
-    style Zot fill:#2496ed
-    style ZotAuth fill:#ff9900
-    style Tempo fill:#60d0e4,color:#000000
-    style Mimir fill:#e6522c
-    style MinIO fill:#c7202a,color:#ffffff
-    style Loki fill:#ff0000,color:#ffffff
-    style Alloy fill:#800080,color:#ffffff
-    style Grafana fill:#f46800
-    style UI fill:#404040,color:#ffffff
-    style Sync fill:#404040,color:#ffffff
-    style Docker fill:#00ff00,color:#000000
-    style Logs fill:#404040,color:#ffffff
-    style Socket fill:#404040,color:#ffffff
+    Internet --> TraefikNet
+    DNS --> TraefikNet
+
+    TraefikNet --> TraefikSvc
+    AuthNet --> TraefikSvc
+    MonNet --> TraefikSvc
+    StorageNet --> TraefikSvc
+    RegistryNet --> TraefikSvc
+    MediaNet --> TraefikSvc
+
+    AuthNet --> AuthSvc
+    MonNet --> MonSvc
+    StorageNet --> StorageSvc
+    RegistryNet --> RegistrySvc
+    MediaNet --> MediaSvc
+
+    MonSvc -.->|S3 API| StorageSvc
+    AuthSvc -.->|SSO| MonSvc
+    RegistrySvc -.->|External| Internet
+
+    classDef external fill:#ffebee,stroke:#c62828,stroke-width:3px,color:#424242
+    classDef network fill:#e3f2fd,stroke:#1976d2,stroke-width:2px,color:#424242
+    classDef service fill:#f1f8e9,stroke:#689f38,stroke-width:2px,color:#424242
+
+    class Internet,DNS external
+    class TraefikNet,AuthNet,MonNet,StorageNet,RegistryNet,MediaNet network
+    class TraefikSvc,AuthSvc,MonSvc,StorageSvc,RegistrySvc,MediaSvc service
 ```
 
 ## Registry Authentication
@@ -498,8 +328,8 @@ docker pull localhost:5000/docker/nginx:latest
 ### Authentication Flow
 
 1. **External Access**: Traefik handles authentication via Authentik
-1. **Local Access**: Direct access to port 5000 bypasses authentication
-1. **Metrics Access**: Prometheus can access `/metrics` endpoint without authentication
+2. **Local Access**: Direct access to port 5000 bypasses authentication
+3. **Metrics Access**: Prometheus can access `/metrics` endpoint without authentication
 
 ## Available Commands
 
@@ -533,1038 +363,198 @@ docker-compose logs -f loki
 docker-compose logs -f tempo
 ```
 
-### Alloy Management
+## Orchestrated Startup
+
+### Automated Infrastructure Deployment
+
+The infrastructure includes a comprehensive orchestration script that handles the complete setup and deployment:
 
 ```bash
-systemctl --user start alloy      # Start Alloy service
-systemctl --user stop alloy       # Stop Alloy service
-systemctl --user status alloy     # Check Alloy status
-journalctl --user -u alloy -f    # View Alloy logs
+# One-command infrastructure startup
+./run.sh
+
+# The script performs the following operations:
+# 1. Pre-flight checks (Docker, required directories)
+# 2. Decrypt all SOPS-encrypted secrets
+# 3. Collect environment variables from all .env files
+# 4. Create all required infrastructure directories with proper ownership:
+#    - /mnt/data/* directories for all services
+#    - Mediaserver config and data directories
+#    - Proper ownership using current user UID/GID
+# 5. Create Docker networks for service isolation
+# 6. Start services in dependency order with health checks:
+#    zot → traefik → auth → minio → monitoring → mediaserver
+# 7. Wait for each service to be healthy before proceeding
+# 8. Display final status and access points
 ```
 
-## Quick Start
+### Directory Management
 
-1. **Set up credentials** (optional):
+The orchestration script automatically handles directory creation and ownership:
 
-   ```bash
-   # Create credentials file for upstream registries (optional)
-   cat <<EOF > zot/config/credentials.yaml
-   registry-1.docker.io:
-     username: <your_docker_hub_username>
-     password: <your_docker_hub_password>
-   ghcr.io:
-     username: <your_github_username>
-     password: <your_github_token>
-   EOF
+- **Infrastructure directories**: All `/mnt/data/*` directories are created with current user ownership
+- **Mediaserver directories**: Both config and data directories with configurable paths
+- **Proper permissions**: All directories created with appropriate ownership for container access
+- **No manual setup**: No need to manually create directories or set permissions
 
-   # Set up Grafana credentials in monitoring directory
-   cat <<EOF > monitoring/.env
-   GF_SECURITY_ADMIN_USER=admin
-   GF_SECURITY_ADMIN_PASSWORD=admin
-   EOF
-   ```
+### Secret Management
 
-1. **Setup rootless Docker** (if not already done):
-
-   Follow the [Rootless Docker Setup](#rootless-docker-setup) section above.
-
-1. **Install and configure Alloy** (if not already done):
-
-   Follow the [Install and Configure Alloy](#install-and-configure-alloy) section above.
-
-1. **Start all services**:
-
-   ```bash
-   # Start Zot registry
-   cd zot
-   docker-compose up -d
-
-   # Start Caddy reverse proxy
-   cd ../caddy
-   docker-compose up -d
-
-   # Start monitoring stack
-   cd ../monitoring
-   docker-compose up -d
-   ```
-
-1. **Start Alloy service**:
-
-   ```bash
-   systemctl --user start alloy
-   ```
-
-1. **Configure Docker to use the registry**:
-
-   ```bash
-   # For external HTTPS access (authentication handled by Traefik/Authentik)
-   docker login registry.smigula.io
-
-   # For local HTTP access (no authentication required)
-   # First add to insecure registries - see "Configure Docker for Insecure Registry" section below
-   docker pull localhost:5000/docker/nginx:latest
-   ```
-
-1. **Access services**:
-
-   ```bash
-   # Check all running services
-   docker ps
-   ```
-
-   Service URLs:
-
-   - Zot Registry API (local): <http://localhost:5000/v2/> (no auth)
-   - Zot Registry API (external): <https://registry.smigula.io/v2/> (auth via Traefik/Authentik)
-   - Zot Web UI: <http://localhost:5000/home> or <https://registry.smigula.io/home>
-   - Grafana: <http://localhost:3000> (admin/admin)
-   - Mimir: <http://localhost:9009> (metrics storage)
-   - Tempo: <http://localhost:3200> (tracing)
-   - MinIO Console: <http://localhost:9001> (object storage)
-   - Loki: <http://localhost:3100> (logs)
-   - Alloy: <http://localhost:12345> (Grafana Alloy UI)
-
-1. **View logs in Grafana**:
-
-   - Navigate to <http://localhost:3000>
-   - Login with admin/admin
-   - Go to Explore → Select Loki datasource
-   - Try queries like `{container="registry"}` or `{job="docker_logs"}`
-
-## CFSSL Configuration
-
-Before generating certificates, you need to customize the CFSSL configuration files for your environment. The following files contain default values that should be updated:
-
-### 1. Root CA Configuration (`cfssl/ca.json`)
-
-Edit the following fields in `cfssl/ca.json`:
-
-```json
-{
-  "CN": "Smigula Root CA",     // Replace with your root CA name
-  "names": [{
-    "C": "US",                           // Your country code
-    "L": "Tampa",                    // Your city
-    "O": "Smigula",            // Your organization name
-    "OU": "development",             // Your department/unit
-    "ST": "FL"                   // Your state/province
-  }]
-}
-```
-
-### 2. Intermediate CA Configuration (`cfssl/intermediate-ca.json`)
-
-Update the same fields in `cfssl/intermediate-ca.json`:
-
-```json
-{
-  "CN": "Smigula Intermediate CA",
-  "names": [{
-    "C": "US",
-    "L": "Tampa",
-    "O": "Smigula",
-    "OU": "development",
-    "ST": "FL"
-  }],
-  "ca": {
-    "expiry": "42720h"    // 5 years - adjust as needed
-  }
-}
-```
-
-### 3. Registry Certificate Configuration (`cfssl/registry.json`)
-
-This is the most important configuration to customize:
-
-```json
-{
-  "CN": "registry.smigula.io",        // Your registry's FQDN
-  "hosts": [
-    "registry.smigula.io",            // Your registry's domain
-    "registry",                           // Short hostname
-    "localhost",                          // Keep for local testing
-    "127.0.0.1",                          // Localhost IP
-    "10.0.0.100"                          // Your registry's IP (if static)
-  ],
-  "names": [{
-    "C": "US",
-    "L": "Tampa",
-    "O": "Smigula",
-    "OU": "development",
-    "ST": "FL"
-  }]
-}
-```
-
-### 4. Certificate Profiles (`cfssl/cfssl.json`)
-
-The default profiles are suitable for most use cases, but you can adjust certificate expiry times:
-
-```json
-{
-  "signing": {
-    "profiles": {
-      "intermediate_ca": {
-        "expiry": "8760h",    // 1 year - adjust as needed
-        ...
-      },
-      "server": {
-        "expiry": "8760h",    // 1 year for server certs
-        ...
-      }
-    }
-  }
-}
-```
-
-### Common Customizations
-
-1. **For Local Development**:
-
-   - Keep "localhost" and "127.0.0.1" in the hosts array
-   - Add your machine's hostname
-   - Use a simple organization name like "Development"
-
-1. **For Production**:
-
-   - Use proper FQDN for the registry
-   - Add all possible access names (load balancer DNS, service names, etc.)
-   - Set appropriate certificate expiry times
-   - Use official organization details
-
-1. **For Kubernetes**:
-
-   - Add service names: `registry.namespace.svc.cluster.local`
-   - Add service IPs if using ClusterIP
-   - Include any ingress hostnames
-
-### Example for Local Development
-
-Here's a complete example for local development:
+Use the SOPS helper script for managing encrypted secrets:
 
 ```bash
-# Edit ca.json
-sed -i '' 's/Smigula Root CA/My Local Root CA/g' cfssl/ca.json
-sed -i '' 's/Smigula/My Organization/g' cfssl/ca.json
-sed -i '' 's/Tampa/My City/g' cfssl/ca.json
-sed -i '' 's/FL/My State/g' cfssl/ca.json
+# Decrypt all encrypted secrets in secrets/ directory
+./sops-helper.sh decrypt secrets
 
-# Edit registry.json for local use
-cat > cfssl/registry.json <<EOF
-{
-  "CN": "localhost",
-  "hosts": [
-    "localhost",
-    "127.0.0.1",
-    "registry",
-    "registry.local",
-    "*.local"
-  ],
-  "key": {
-    "algo": "rsa",
-    "size": 2048
-  },
-  "names": [{
-    "C": "US",
-    "L": "My City",
-    "O": "My Organization",
-    "OU": "Development",
-    "ST": "My State"
-  }]
-}
-EOF
+# Encrypt all .dec files to .enc files
+./sops-helper.sh encrypt secrets
+
+# Collect all .env files into a single file
+./sops-helper.sh collect
+
+# Individual file operations
+./sops-helper.sh encrypt secrets/.authentik.env.dec
+./sops-helper.sh decrypt secrets/.authentik.env.enc
 ```
 
-## Certificate Generation with CFSSL
+**File Extensions:**
 
-After customizing the configuration files, you can generate the certificates. This setup uses a proper PKI hierarchy with root and intermediate CAs:
+- `.dec` - Decrypted files (git ignored, for local use)
+- `.enc` - Encrypted files (committed to repository)
+
+**Automated Integration:**
+The `run.sh` script automatically calls the appropriate SOPS commands, so manual secret management is only needed for initial setup or when adding new secrets.
+
+## Setup and Deployment
+
+### Infrastructure Host Setup
+
+For comprehensive VM/host setup instructions including Docker installation and system configuration, see the [VM Setup Guide](docs/guides/vm-setup.md).
+
+### Prerequisites
+
+1. **Infrastructure Host**: VM or physical machine with Docker support
+2. **SOPS and AGE setup**: Configure SOPS with AGE keys for secret management
+3. **Docker**: Install Docker with rootless mode (recommended)
+4. **Secrets**: Place encrypted secrets in the `secrets/` directory
+
+### Orchestrated Deployment
+
+The infrastructure includes comprehensive automation scripts:
+
+#### One-Command Infrastructure Deployment
 
 ```bash
-# Generate all certificates at once
-make certs
+# Clone the repository
+git clone <repository-url>
+cd registry
 
-# Or generate them step by step:
-make cert-ca              # Generate root CA
-make cert-intermediate    # Generate intermediate CA
-make cert-registry        # Generate registry certificates
-
-# Verify the certificate chain
-make verify-certs
+# Run the complete infrastructure
+./run.sh
 ```
 
-The Makefile automates the following steps:
+The `run.sh` script automatically:
 
-1. Generates root CA certificate
-1. Generates intermediate CA certificate
-1. Signs intermediate CA with root CA
-1. Generates registry certificates (peer, server, client profiles)
-1. Creates certificate chain for the registry
+- Verifies prerequisites and dependencies
+- Decrypts and prepares all secrets using SOPS
+- Creates all required directories with proper permissions
+- Sets up Docker networks for service isolation
+- Starts all services in dependency order with health checks
+- Provides access points and status information
 
-## Zot Registry Configuration
+#### Secret Management
 
-Zot is configured via `zot/config/zot-config.yaml`. For detailed configuration options, see the [Zot documentation](https://zotregistry.dev).
+Use the SOPS helper for managing encrypted secrets:
 
-### Key Configuration Settings
+```bash
+# Decrypt all secrets
+./sops-helper.sh decrypt secrets
 
-Our configuration (`zot/config/zot-config.yaml`) includes:
+# Encrypt all .dec files to .enc files
+./sops-helper.sh encrypt secrets
 
-#### Storage Configuration
-
-```yaml
-storage:
-  rootDirectory: /var/lib/zot
-  gc: true                               # Enable garbage collection
+# Collect all .env files into one file
+./sops-helper.sh collect
 ```
 
-#### HTTP Configuration
+**File Extensions:**
 
-```yaml
-http:
-  address: 0.0.0.0
-  port: '5000'                           # Main API port
-  externalUrl: https://registry.smigula.io  # External URL for reverse proxy
-  # Authentication is now handled externally by Authentik through Traefik
-  # No local authentication is configured
-log:
-  level: info
-```
+- `.dec` - Decrypted files (git ignored, for local use)
+- `.enc` - Encrypted files (committed to repository)
 
-#### Multi-Registry Sync Configuration
+For detailed setup instructions, see the [Quick Start Guide](docs/guides/quick-start.md).
 
-```yaml
-extensions:
-  sync:
-    enable: true
-    credentialsFile: /etc/zot/credentials.yaml
-    registries:
-      - urls: ['https://registry-1.docker.io']
-        onDemand: true                   # Pull images only when requested
-        content:
-          - prefix: '**'
-            destination: /docker         # Access via localhost:5000/docker/<image>
-      - urls: ['https://ghcr.io']
-        onDemand: true
-        content:
-          - prefix: '**'
-            destination: /ghcr           # Access via localhost:5000/ghcr/<image>
-      - urls: ['https://gcr.io']
-        onDemand: true
-        content:
-          - prefix: '**'
-            destination: /gcr            # Access via localhost:5000/gcr/<image>
-      # Additional registries: quay.io, registry.k8s.io
-```
+## Configuration
 
-#### Extensions
+### Authentication
 
-```yaml
-extensions:
-  search:
-    enable: true                         # Enable search functionality
-  ui:
-    enable: true                         # Enable web UI
-  metrics:
-    enable: true                         # Prometheus metrics
-    prometheus:
-      path: /metrics
-  scrub:
-    enable: true                         # Enable image vulnerability scanning
-    interval: "24h"
-```
+For complete Authentik identity provider setup and configuration, see the [Authentik Setup Guide](docs/guides/authentik-setup.md).
+
+For secret management with SOPS encryption, see the [SOPS Configuration Guide](docs/configuration/sops.md).
+
+### Reverse Proxy
+
+For Traefik reverse proxy setup and configuration, see the [Traefik Configuration Guide](docs/configuration/traefik.md).
+
+### TLS Certificates
+
+For TLS certificate generation with CFSSL, see the [CFSSL Configuration Guide](docs/configuration/cfssl.md).
+
+### Registry Configuration
+
+For detailed Zot registry configuration, see the [Zot Registry Configuration Guide](docs/configuration/zot-registry.md).
+
+For Zot OIDC authentication with Authentik, see the [Zot OIDC Setup Guide](docs/configuration/zot-oidc.md).
 
 ## Services Architecture
 
-### Zot Registry (port 5000)
+### Core Services
 
-- **Purpose**: Multi-registry pull-through cache and local image storage
-- **Features**:
-  - OCI-compliant registry with distribution spec v1.1.0
-  - Pull-through cache for multiple registries with prefix routing
-  - Built-in web UI and search functionality
-  - External authentication through Traefik/Authentik
-  - External URL support for reverse proxy deployments
-  - Prometheus metrics exposure
-  - Image vulnerability scanning with scrub extension
-- **Registry Prefixes**:
-  - `/docker/` - Docker Hub images
-  - `/ghcr/` - GitHub Container Registry images
-  - `/gcr/` - Google Container Registry images
-  - `/quay/` - Quay.io images
-  - `/k8s/` - Kubernetes registry images
-- **API Endpoints**:
-  - Local: `http://localhost:5000`
-  - External: `https://registry.smigula.io` (via Caddy)
-  - `/v2/` - API version check (auth required for external access via Traefik/Authentik)
-  - `/v2/_catalog` - List all repositories
-  - `/v2/{name}/tags/list` - List tags for a repository
-  - `/v2/{name}/manifests/{reference}` - Get/Put/Delete manifests
-  - `/v2/{name}/blobs/{digest}` - Get/Put/Delete blobs
-  - `/home` - Web UI interface
-  - `/v2/_zot/ext/search` - Search API
-- **Metrics endpoint**:
-  - `/metrics` - Prometheus metrics
+- **Zot Registry** (port 5000): OCI-compliant registry with pull-through caching
+- **Grafana** (port 3000): Observability dashboards and visualization
+- **Grafana Mimir** (port 9009): Long-term metrics storage with S3 backend
+- **Grafana Tempo** (ports 3200, 4317, 4318): Distributed tracing system
+- **Grafana Loki** (port 3100): Log aggregation and querying
+- **Grafana Alloy** (port 12345): Unified observability data collector
+- **MinIO** (ports 9000, 9001): S3-compatible object storage backend
 
-### Grafana Mimir (port 9009)
-
-- **Purpose**: Horizontally scalable metrics storage system
-- **Features**:
-  - Long-term metrics storage with S3/MinIO backend
-  - Prometheus-compatible query API
-  - High availability and horizontal scaling
-  - Multi-tenant architecture (disabled for dev simplicity)
-- **Configuration**: `mimir/config.yaml`
-- **Storage**: Uses MinIO S3-compatible storage for blocks and metadata
-- **Deployment Mode**: Monolithic for dev environment
-- **API Endpoints**:
-  - `/prometheus/api/v1/query` - PromQL queries
-  - `/prometheus/api/v1/push` - Metrics ingestion
-  - `/ready` - Health check
-- **Multi-tenancy**: Requires `X-Scope-OrgID: "1"` header for dev tenant
-
-### Grafana Tempo (ports 4317, 4318, 3200)
-
-- **Purpose**: Distributed tracing system
-- **Features**:
-  - Collects traces via OTLP protocol (gRPC and HTTP)
-  - Trace visualization and analysis
-  - Integration with Grafana for trace-to-logs correlation
-- **Internal endpoints**:
-  - `:4317` - OTLP gRPC receiver
-  - `:4318` - OTLP HTTP receiver  
-  - `:3200` - Tempo query API
-- **Storage**: Uses filesystem storage for dev environment
-
-### MinIO (ports 9000, 9001)
-
-- **Purpose**: S3-compatible object storage for Mimir
-- **Features**:
-  - S3-compatible API for Mimir blocks and metadata
-  - Built-in web console for storage management
-  - High performance for local development
-- **Configuration**: 
-  - API endpoint: `:9000`
-  - Web console: `:9001` 
-  - Bucket: `mimir` (created automatically)
-  - Credentials: `mimiruser` / `SuperSecret1`
-- **Access**: Web console available at <http://localhost:9001>
-
-### Loki (port 3100)
-
-- **Purpose**: Log aggregation system for collecting and querying logs
-- **Features**:
-  - Collects logs from Docker containers via Grafana Alloy
-  - Supports LogQL query language for log searching
-  - Uses TSDB (Time Series Database) index for efficient storage
-  - Schema v13 with structured metadata support
-  - 7-day retention policy with automatic cleanup
-  - Integrates seamlessly with Grafana for visualization
-- **Configuration**: `loki/loki-config.yaml`
-  - Storage: Filesystem-based with TSDB shipper
-  - Retention: 168 hours (7 days)
-  - Ingestion limits: 4MB/s rate, 6MB burst
-- **Internal endpoints**:
-  - `:3100/ready` - Health check endpoint
-  - `:3100/loki/api/v1/push` - Log ingestion endpoint
-  - `:3100/loki/api/v1/query_range` - Query endpoint for log ranges
-- **Rootless considerations**: Uses init container to set proper permissions (UID 10001)
-
-### Grafana Alloy (port 12345) - Native Installation
-
-- **Purpose**: Modern observability collector running as native systemd user service
-- **Features**:
-  - Automatically discovers Docker containers via rootless Docker socket
-  - Collects and processes container logs from `~/.local/share/docker/containers`
-  - Extracts metadata and labels from containers
-  - Parses JSON log format and extracts fields
-  - Provides a web UI for monitoring collection status
-  - Supports complex processing pipelines
-- **Configuration**: `~/alloy/config.alloy`
-- **Service Management**: `systemctl --user {start|stop|status} alloy`
-- **UI Access**: <http://localhost:12345>
-- **Rootless advantages**:
-  - Direct access to rootless Docker socket (`/run/user/1000/docker.sock`)
-  - No namespace isolation issues
-  - Better performance than containerized version
-  - Easier debugging and configuration
-
-### Grafana (port 3000)
-
-- **Purpose**: Observability visualization and dashboards
-- **Features**:
-  - Pre-configured datasources (Mimir, Tempo, Loki)
-  - Docker Registry dashboard included
-  - Log exploration with Loki integration
-  - Distributed tracing with Tempo integration
-  - Trace-to-logs and trace-to-metrics correlation
-  - Anonymous viewer access enabled
-- **Data Sources**:
-  - **Mimir**: `http://mimir:9009/prometheus` (default)
-  - **Tempo**: `http://tempo:3200`
-  - **Loki**: `http://loki:3100`
-- **Default credentials**: Configured in `.grafana-secrets.env`
+For detailed service configurations, see the respective `docker-compose.yaml` files in each stack directory.
 
 ## Docker Compose Configuration
 
-The project uses two separate docker-compose files:
+The project uses multiple docker-compose files for each stack:
 
-### Zot Registry (`zot/docker-compose.yaml`)
+- **Zot Registry**: See [`zot/docker-compose.yaml`](zot/docker-compose.yaml)
+- **Monitoring Stack**: See [`monitoring/docker-compose.yaml`](monitoring/docker-compose.yaml)
+- **Traefik Proxy**: See [`traefik/docker-compose.yaml`](traefik/docker-compose.yaml)
+- **Authentication**: See [`auth/docker-compose.yaml`](auth/docker-compose.yaml)
+- **Storage**: See [`storage/docker-compose.yaml`](storage/docker-compose.yaml)
+- **Media Server**: See [`mediaserver/docker-compose.yaml`](mediaserver/docker-compose.yaml)
 
-```yaml
-services:
-  registry:
-    image: ghcr.io/project-zot/zot-linux-amd64:v2.1.5
-    container_name: registry
-    ports:
-      - "5000:5000"
-    volumes:
-      - ./config/config.yaml:/etc/zot/config.yaml:ro
-      - ./config/credentials.yaml:/etc/zot/credentials.yaml:ro
-      # Authentication handled externally, no local auth files needed
-      - zot-data:/var/lib/zot
-    networks:
-      - zot_registry
-```
+## Testing and Monitoring
 
-### Monitoring Stack (`monitoring/docker-compose.yaml`)
+### Testing the Registry
 
-The monitoring stack has been optimized for rootless Docker with init containers:
+For detailed testing procedures, see the [Testing Guide](docs/guides/testing.md).
 
-```yaml
-services:
-  # Init containers for permissions
-  prometheus-init:
-    image: localhost:5000/docker/alpine:latest
-    volumes:
-      - prometheus-data:/prometheus
-    command: chown -R 65534:65534 /prometheus
+### Monitoring and Observability
 
-  loki-init:
-    image: localhost:5000/docker/alpine:latest
-    volumes:
-      - loki-data:/loki
-    command: chown -R 10001:10001 /loki
-```
-
-**Key features**:
-
-- All monitoring images pulled through Zot registry
-- Init containers fix volume permissions for rootless Docker
-- Alloy runs as native systemd service (not in Docker)
-
-## Testing the Registry
-
-### Using Zot Registry
-
-Zot uses prefix-based routing for different registries. Unlike a traditional Docker registry mirror, you need to specify the registry prefix when pulling images:
-
-#### Pull Images from Different Registries
-
-```bash
-# Docker Hub images
-docker pull localhost:5000/docker/nginx:latest
-docker pull localhost:5000/docker/alpine:latest
-docker pull localhost:5000/docker/redis:7
-
-# GitHub Container Registry
-docker pull localhost:5000/ghcr/project-zot/zot-linux-amd64:v2.1.5
-
-# Google Container Registry
-docker pull localhost:5000/gcr/cadvisor/cadvisor:v0.52.0
-docker pull localhost:5000/gcr/kaniko-project/executor:latest
-
-# Quay.io
-docker pull localhost:5000/quay/coreos/etcd:latest
-
-# Kubernetes Registry
-docker pull localhost:5000/k8s/pause:3.9
-docker pull localhost:5000/k8s/coredns/coredns:v1.11.1
-```
-
-#### Configure Docker for Insecure Registry
-
-Since Zot runs on HTTP (not HTTPS) by default, configure Docker to allow insecure access:
-
-##### Rootless Docker
-
-```bash
-# Edit daemon configuration
-nano ~/.config/docker/daemon.json
-
-# Add localhost:5000 to insecure registries:
-{
-  "insecure-registries": ["localhost:5000"]
-}
-
-# Restart Docker
-systemctl --user restart docker
-```
-
-##### Regular Docker
-
-```bash
-# Edit daemon configuration
-sudo nano /etc/docker/daemon.json
-
-# Add configuration:
-{
-  "insecure-registries": ["localhost:5000"]
-}
-
-# Restart Docker
-sudo systemctl restart docker
-```
-
-### Test Registry Access
-
-1. **Access the Zot Web UI**:
-
-   Navigate to <http://localhost:5000/home> to access the Zot web interface where you can:
-
-   - Search for images
-   - View repository details
-   - Check image tags and manifests
-   - Monitor sync status
-
-1. **Test pulling images**:
-
-   ```bash
-   # Pull nginx from Docker Hub through Zot
-   docker pull localhost:5000/docker/nginx:latest
-
-   # Pull from other registries
-   docker pull localhost:5000/ghcr/project-zot/zot-linux-amd64:v2.1.5
-   docker pull localhost:5000/gcr/cadvisor/cadvisor:v0.52.0
-
-   # Check cached repositories
-   curl http://localhost:5000/v2/_catalog
-   # Should show: {"repositories":["docker/nginx","ghcr/project-zot/zot-linux-amd64","gcr/cadvisor/cadvisor"]}
-   ```
-
-1. **Push your own images**:
-
-   ```bash
-   # Tag and push to Zot
-   docker tag myapp:latest localhost:5000/myapp:latest
-   docker push localhost:5000/myapp:latest
-   ```
-
-1. **Access the Registry API**:
-
-   Zot implements the [OCI Distribution Specification](https://github.com/opencontainers/distribution-spec). Common endpoints:
-
-   ```bash
-   # Check registry availability
-   curl http://localhost:5000/v2/
-
-   # List all repositories
-   curl http://localhost:5000/v2/_catalog
-
-   # List tags for a repository
-   curl http://localhost:5000/v2/docker/nginx/tags/list
-
-   # Search for images (Zot-specific)
-   curl -X POST http://localhost:5000/v2/_zot/ext/search \
-        -H "Content-Type: application/json" \
-        -d '{"query": "nginx"}'
-
-   # Get image manifest
-   curl http://localhost:5000/v2/docker/nginx/manifests/latest
-   ```
-
-## Monitoring and Observability
-
-### Grafana Dashboard
-
-1. Access at <http://localhost:3000>
-1. Login with configured credentials
-1. Navigate to **Dashboards → Docker Registry**
-1. Monitor:
-   - HTTP request rates and latencies
-   - Cache hit ratios
-   - Response code distribution
-   - Storage metrics
-1. For log exploration:
-   - Navigate to **Explore → Loki**
-   - Query registry logs using LogQL
-
-### Mimir Queries
-
-Access Mimir through Grafana at <http://localhost:3000> (Explore → Mimir datasource) and try these PromQL queries:
-
-```promql
-# Request rate by method
-rate(zot_http_requests_total[5m])
-
-# 99th percentile latency
-histogram_quantile(0.99, rate(zot_http_request_duration_seconds_bucket[5m]))
-
-# Cache hit ratio
-rate(zot_storage_cache_hits_total[5m]) / rate(zot_storage_cache_requests_total[5m])
-
-# Container CPU usage
-rate(container_cpu_usage_seconds_total{container_name="registry"}[5m])
-
-# Container memory usage
-container_memory_usage_bytes{container_name="registry"}
-```
-
-### Tempo Traces
-
-1. Access through Grafana at <http://localhost:3000>
-1. Navigate to Explore → Select Tempo datasource
-1. View traces for:
-   - Registry operations (image pulls/pushes)
-   - OTLP trace collection
-   - Service dependencies and latencies
-1. Use trace-to-logs correlation to see related log entries
-
-### Loki Log Queries
-
-Access Loki through Grafana's Explore interface or use these example LogQL queries:
-
-```logql
-# View all Docker container logs
-{job="docker_logs"}
-
-# View logs from the registry container
-{container="registry"}
-
-# Filter by compose service
-{service="registry"}
-
-# Filter registry logs by level
-{container="registry"} |= "level=error"
-
-# Search for sync operations in Zot
-{container="registry"} |= "sync" |= "syncing image"
-
-# View logs from all monitoring stack containers
-{compose_project="registry"} |~ "registry|prometheus|grafana|loki"
-
-# Filter Zot logs by specific registry
-{container="registry"} |= "remote" |~ "docker|ghcr|gcr"
-
-# Show logs for specific image pulls
-{container="registry"} |= "docker/nginx"
-
-# Monitor authentication errors
-{container="registry"} |= "error" |= "auth"
-
-# Rate of errors over time
-rate({container="registry"} |= "error" [5m])
-```
-
-## Management Commands
-
-### Zot Registry Operations
-
-```bash
-# From the zot/ directory
-docker-compose up -d            # Start Zot
-docker-compose down             # Stop Zot
-docker-compose restart          # Restart Zot
-docker-compose logs -f          # View Zot logs
-
-# Check registry health
-curl http://localhost:5000/v2/
-
-# List repositories
-curl http://localhost:5000/v2/_catalog
-
-# Get repository tags
-curl http://localhost:5000/v2/docker/nginx/tags/list
-
-# Access Web UI
-open http://localhost:5000/home
-```
-
-### Monitoring Stack Operations
-
-```bash
-# From the monitoring/ directory
-docker-compose up -d            # Start monitoring
-docker-compose down             # Stop monitoring
-docker-compose restart          # Restart services
-
-# View logs for specific services
-docker-compose logs -f mimir
-docker-compose logs -f grafana
-docker-compose logs -f loki
-docker-compose logs -f tempo
-docker-compose logs -f alloy
-
-# Clean up (including volumes)
-docker-compose down -v
-```
-
-### Alloy Management
-
-```bash
-# Start Alloy service
-systemctl --user start alloy
-# Or: make alloy-start
-
-# Stop Alloy service
-systemctl --user stop alloy
-# Or: make alloy-stop
-
-# Check Alloy status
-systemctl --user status alloy
-# Or: make alloy-status
-
-# View Alloy logs
-journalctl --user -u alloy -f
-# Or: make alloy-logs
-
-# Restart Alloy service
-systemctl --user restart alloy
-
-# Access Alloy UI
-curl http://localhost:12345
-# Or open http://localhost:12345 in browser
-```
+For monitoring setup and query examples, see the [Monitoring Guide](docs/guides/monitoring.md).
 
 ## Security Considerations
 
 1. **Rootless Docker**: Provides better security isolation with user-namespace separation
-1. **Self-signed certificates**: Not suitable for production environments
-1. **Credentials**: Stored in `.env` file - ensure it's in `.gitignore`
-1. **Network isolation**: Internal service ports not exposed to host
-1. **TLS enforcement**: Minimum TLS 1.2 with strong cipher suites
-1. **Mutual TLS**: Prometheus authenticates to registry using client certificates
-1. **User services**: Alloy runs as user service with limited privileges
-1. **Socket access**: Rootless Docker socket has restricted access
-1. **Volume permissions**: Init containers ensure proper ownership
+2. **Self-signed certificates**: Not suitable for production environments
+3. **Credentials**: Stored in `.env` file - ensure it's in `.gitignore`
+4. **Network isolation**: Internal service ports not exposed to host
+5. **TLS enforcement**: Minimum TLS 1.2 with strong cipher suites
+6. **Mutual TLS**: Prometheus authenticates to registry using client certificates
+7. **User services**: Alloy runs as user service with limited privileges
+8. **Socket access**: Rootless Docker socket has restricted access
+9. **Volume permissions**: Init containers ensure proper ownership
 
 ## Troubleshooting
 
-### Rootless Docker Issues
-
-1. **Docker daemon not starting**:
-
-   ```bash
-   # Check rootless Docker status
-   systemctl --user status docker
-
-   # Check for namespace issues
-   echo $XDG_RUNTIME_DIR
-   ls -la /run/user/$(id -u)/docker.sock
-
-   # Restart rootless Docker
-   systemctl --user restart docker
-   ```
-
-1. **Resource control warnings**:
-
-   ```bash
-   # Expected warnings in docker info (these are normal)
-   WARNING: No cpuset support
-   WARNING: No io.weight support
-
-   # Enable cgroup delegation if needed
-   sudo mkdir -p /etc/systemd/system/user@.service.d
-   sudo tee /etc/systemd/system/user@.service.d/delegate.conf << 'EOF'
-   [Service]
-   Delegate=cpu cpuset io memory pids
-   EOF
-   sudo systemctl daemon-reload
-   sudo systemctl restart user@$(id -u).service
-   ```
-
-### Alloy Issues
-
-1. **Cannot connect to Docker socket**:
-
-   ```bash
-   # Check socket path and permissions
-   ls -la /run/user/$(id -u)/docker.sock
-
-   # Verify Alloy configuration
-   ~/.local/bin/alloy fmt ~/alloy/config.alloy
-
-   # Test manually
-   ~/.local/bin/alloy run ~/alloy/config.alloy --server.http.listen-addr=0.0.0.0:12345
-   ```
-
-1. **Service fails to start**:
-
-   ```bash
-   # Check service logs
-   journalctl --user -u alloy -f
-
-   # Verify binary location
-   ls -la ~/.local/bin/alloy
-
-   # Check service configuration
-   systemctl --user cat alloy
-   ```
-
-1. **No containers discovered**:
-
-   ```bash
-   # Access Alloy UI to debug
-   curl http://localhost:12345
-
-   # Check if Docker is running containers
-   docker ps
-
-   # Verify socket access
-   docker version
-   ```
-
-### Volume Permission Issues
-
-1. **Prometheus/Loki permission denied**:
-
-   ```bash
-   # Check init containers ran successfully
-   docker-compose logs prometheus-init
-   docker-compose logs loki-init
-
-   # Manual permission fix if needed
-   docker run --rm -v prometheus-data:/data alpine chown -R 65534:65534 /data
-   docker run --rm -v loki-data:/data alpine chown -R 10001:10001 /data
-   ```
-
-1. **Volume ownership issues**:
-
-   ```bash
-   # Remove and recreate volumes
-   docker-compose down
-   docker volume rm $(docker-compose config --volumes)
-   docker-compose up -d
-   ```
-
-### Certificate Issues
-
-```bash
-# Verify certificate chain
-make verify-certs
-
-# Test TLS connection
-make test-tls
-
-# Check Docker certificate configuration
-ls -la ~/.docker/certs.d/localhost:5000/  # Rootless
-ls -la /etc/docker/certs.d/localhost:5000/ # Regular Docker
-```
-
-### Authentication Issues
-
-1. **401 Unauthorized errors**:
-
-   ```bash
-   # Test authentication through external URL (handled by Traefik/Authentik)
-   curl https://registry.smigula.io/v2/
-
-   # For local access (no authentication required)
-   curl http://localhost:5000/v2/
-
-   # Verify Zot configuration
-   docker exec registry cat /etc/zot/config.yaml
-   ```
-
-1. **Update authentication**:
-
-   Authentication is managed externally through Authentik. To update access:
-   - Configure users and groups in Authentik
-   - Update Traefik middleware configuration as needed
-   - No local registry restart required for auth changes
-
-1. **Docker login issues**:
-
-   ```bash
-   # For external access
-   docker login registry.smigula.io
-
-   # For local access (add to insecure registries first)
-   docker login localhost:5000
-   ```
-
-### Registry Connection Issues
-
-```bash
-# Check if Zot is responding
-curl http://localhost:5000/v2/
-
-# Test Zot Web UI
-curl http://localhost:5000/home
-
-# View detailed logs
-docker logs registry
-
-# Check specific registry sync
-docker logs registry 2>&1 | grep -i "docker\|ghcr\|gcr"
-
-# Test image pull with specific prefix
-docker pull localhost:5000/docker/alpine:latest
-```
-
-### Zot-Specific Issues
-
-1. **Images not found**: Remember to use registry prefixes
-
-   - Wrong: `docker pull localhost:5000/nginx`
-   - Right: `docker pull localhost:5000/docker/nginx`
-
-1. **Authentication errors**: Check credentials.yaml format
-
-   ```yaml
-   registry-1.docker.io:
-     username: <user>
-     password: <pass>
-   ```
-
-1. **Sync not working**: Check logs for sync errors
-
-   ```bash
-   docker logs registry 2>&1 | grep -i "sync\|error"
-   ```
-
-### Metrics Not Appearing
-
-1. Check Mimir ingestion:
-
-   ```bash
-   # Check Mimir health
-   curl http://localhost:9009/ready
-   
-   # Check Alloy is pushing metrics to Mimir
-   docker-compose logs -f alloy | grep -i "remote_write\|mimir"
-   ```
-
-1. Verify registry metrics endpoint:
-
-   ```bash
-   # Registry metrics should be accessible
-   curl http://localhost:5000/metrics
-   ```
-
-1. Check Mimir logs:
-
-   ```bash
-   docker-compose logs -f mimir
-   ```
-
-1. Verify Alloy configuration and connectivity:
-
-   ```bash
-   # Check Alloy configuration
-   docker exec alloy cat /etc/alloy/config.alloy
-   
-   # Check Alloy targets
-   curl http://localhost:12345/api/v1/targets
-   ```
-
-1. Check MinIO connectivity (Mimir storage backend):
-
-   ```bash
-   # Verify MinIO is accessible
-   curl http://localhost:9000/minio/health/live
-   
-   # Check MinIO console
-   open http://localhost:9001
-   ```
+For troubleshooting common issues, see the [Troubleshooting Guide](docs/guides/troubleshooting.md).
 
 ## File Structure
 
@@ -1580,7 +570,7 @@ docker pull localhost:5000/docker/alpine:latest
 ├── monitoring/                   # Monitoring stack directory
 │   ├── docker-compose.yaml       # Monitoring services definition
 │   ├── .grafana-secrets.env      # Grafana credentials (git ignored)
-│   ├── .alloy-secrets.env        # Alloy secrets (git ignored)  
+│   ├── .alloy-secrets.env        # Alloy secrets (git ignored)
 │   ├── mimir/                    # Mimir configuration
 │   │   └── config.yaml           # Mimir server configuration
 │   ├── loki/                     # Loki configuration
@@ -1606,184 +596,9 @@ docker pull localhost:5000/docker/alpine:latest
 └── README.md                     # This file
 
 # User-specific files (rootless Docker)
-~/.config/docker/daemon.json  # Docker daemon configuration
-~/.local/bin/alloy            # Alloy binary
-~/alloy/config.alloy          # Alloy configuration
-~/.config/systemd/user/alloy.service  # Alloy systemd service
-~/.local/share/docker/        # Docker data directory
-~/.local/share/alloy/         # Alloy data directory
+~/.config/docker/daemon.json      # Docker daemon configuration
+~/.local/share/docker/            # Docker data directory
 ```
-
-## Migration from Prometheus to Grafana Mimir
-
-This section documents the completed migration from Prometheus to Grafana Mimir for metrics storage and collection.
-
-### Migration Overview
-
-The monitoring stack has been migrated from a traditional Prometheus setup to a modern, scalable architecture using Grafana Mimir. This migration provides:
-
-- **Scalable Metrics Storage**: Mimir handles large-scale metrics with S3 backend storage
-- **Long-term Retention**: Metrics are stored in MinIO with configurable retention policies
-- **Better Performance**: Optimized for high-cardinality metrics and query performance
-- **Future-proof Architecture**: Horizontally scalable design ready for production
-
-### Key Changes Made
-
-#### 1. Replaced Prometheus with Grafana Mimir
-
-**Before:**
-```yaml
-# Prometheus service in docker-compose.yaml
-prometheus:
-  image: prom/prometheus:latest
-  ports:
-    - "9090:9090"
-  volumes:
-    - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
-```
-
-**After:**
-```yaml
-# Mimir service with S3 storage
-mimir:
-  image: grafana/mimir:latest
-  ports:
-    - "9009:9009"
-  volumes:
-    - ./mimir/config.yaml:/etc/mimir/config.yaml:ro
-  command:
-    - --config.file=/etc/mimir/config.yaml
-```
-
-#### 2. Added MinIO for S3-Compatible Storage
-
-```yaml
-# MinIO provides S3 backend for Mimir
-minio:
-  image: minio/minio:latest
-  ports:
-    - "9000:9000"  # API
-    - "9001:9001"  # Console
-  command: server --console-address ":9001" /data
-```
-
-#### 3. Updated Grafana Alloy Configuration
-
-**Key Changes in Alloy:**
-- Changed remote_write endpoint from Prometheus to Mimir
-- Added required `X-Scope-OrgID: "1"` header for Mimir multi-tenancy
-- Updated scraping targets and relabeling rules
-
-```alloy
-// Before (Prometheus)
-prometheus.remote_write "metrics" {
-  endpoint {
-    url = "http://prometheus:9090/api/v1/write"
-  }
-}
-
-// After (Mimir) 
-prometheus.remote_write "metrics" {
-  endpoint {
-    url = "http://mimir:9009/api/v1/push"
-    headers = {
-      "X-Scope-OrgID" = "1"
-    }
-  }
-}
-```
-
-#### 4. Updated Grafana Data Sources
-
-**Before:**
-```yaml
-datasources:
-  - name: Prometheus
-    url: http://prometheus:9090
-```
-
-**After:**
-```yaml
-datasources:
-  - name: Mimir
-    type: prometheus
-    url: http://mimir:9009/prometheus
-```
-
-#### 5. Replaced Jaeger with Grafana Tempo
-
-**Migration Benefits:**
-- Better integration with Grafana ecosystem
-- More efficient trace storage and querying
-- Built-in trace-to-logs and trace-to-metrics correlation
-- OTLP native support
-
-### Configuration Details
-
-#### Mimir Configuration (`monitoring/mimir/config.yaml`)
-
-- **Deployment Mode**: Monolithic for dev simplicity
-- **Storage Backend**: S3 (MinIO) with automatic bucket creation
-- **Multi-tenancy**: Disabled for dev environment
-- **Retention**: 14 days (336h) for development
-- **Credentials**: `mimiruser` / `SuperSecret1` for MinIO access
-
-#### MinIO Configuration
-
-- **Bucket**: `mimir` (auto-created)
-- **Access**: Web console at <http://localhost:9001>
-- **API**: Available at <http://localhost:9000>
-- **Security**: Dev credentials (change for production)
-
-#### Grafana Data Source Updates
-
-- **Primary**: Mimir at `http://mimir:9009/prometheus`
-- **Tracing**: Tempo at `http://tempo:3200`
-- **Logs**: Loki at `http://loki:3100` (unchanged)
-- **Correlations**: Trace-to-logs and trace-to-metrics enabled
-
-### Migration Benefits
-
-1. **Scalability**: Mimir scales horizontally vs Prometheus vertical scaling
-2. **Storage**: S3 backend enables unlimited storage capacity
-3. **Performance**: Better handling of high-cardinality metrics
-4. **Reliability**: Component separation increases fault tolerance
-5. **Features**: Advanced query capabilities and multi-tenancy support
-
-### Troubleshooting the New Setup
-
-#### Common Issues and Solutions
-
-1. **Mimir not starting**: Check MinIO connectivity and credentials
-2. **Metrics not appearing**: Verify Alloy `X-Scope-OrgID` header
-3. **Storage errors**: Check MinIO bucket permissions and accessibility
-4. **Query performance**: Monitor Mimir query-frontend and query-scheduler logs
-
-#### Health Checks
-
-```bash
-# Mimir health
-curl http://localhost:9009/ready
-
-# MinIO health  
-curl http://localhost:9000/minio/health/live
-
-# Tempo health
-curl http://localhost:3200/ready
-
-# Grafana data source health
-curl http://localhost:3000/api/datasources/proxy/uid/prometheus/api/v1/query?query=up
-```
-
-### Future Enhancements
-
-The current setup provides a foundation for:
-
-- **Multi-tenancy**: Enable tenant isolation for different environments
-- **High Availability**: Deploy multiple Mimir instances with load balancing
-- **Remote Storage**: Use cloud S3 instead of local MinIO
-- **Advanced Queries**: Leverage Mimir's enhanced PromQL features
-- **Alerting**: Integrate with Mimir's alerting capabilities
 
 ## Performance Tuning
 

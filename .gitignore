@@ -70,10 +70,9 @@ yarn-error.log*
 *.pfx
 # .htpasswd - commented out to track auth file
 # htpasswd
-secrets/
+# secrets/
+*.dec
 credentials/
-.claude/
-CLAUDE.md
 
 # Zot OIDC secrets
 zot/config/config-secrets.yaml
@@ -85,6 +84,3 @@ zot/config/*.secret
 # Keep encrypted versions
 !*-secrets.env.enc
 !.secrets.env.enc
-
-# Legacy Prometheus files (removed after migration to Mimir)
-

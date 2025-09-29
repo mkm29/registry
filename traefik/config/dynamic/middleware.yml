@@ -16,7 +16,6 @@ http:
     auth-basic:
       basicAuth:
         users:
-          # User: smigula, Password: same as in your Caddy config
           - "smigula:$2a$14$oIo.CMitlcZBdt9/vFxPHuUT.Zvhnby7bohaTq53N8cX1sehsIldq"
     # Rate limiting
     rate-limit:

@@ -16,7 +16,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     env_file:
-      - .secrets.env
+      - ../secrets/all.env.dec
       - .env
     networks:
       - auth
@@ -43,6 +43,8 @@ services:
       - redis-data:/data
     networks:
       - auth
+    env_file:
+      - ../secrets/all.env.dec
     deploy:
       resources:
         limits:
@@ -57,7 +59,7 @@ services:
     restart: unless-stopped
     command: server
     env_file:
-      - .secrets.env
+      - ../secrets/all.env.dec
       - .env
     volumes:
       - media-data:/media
@@ -86,7 +88,7 @@ services:
     restart: unless-stopped
     command: worker
     env_file:
-      - .secrets.env
+      - ../secrets/all.env.dec
       - .env
     volumes:
       - /run/user/1000/docker.sock:/var/run/docker.sock

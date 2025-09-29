@@ -12,13 +12,13 @@ This project uses SOPS with AGE encryption to manage secrets. The `.secrets.env`
    brew install sops age
    ```
 
-1. **Generate AGE key** (if you don't have one):
+2. **Generate AGE key** (if you don't have one):
 
    ```bash
    age-keygen -o ~/.config/sops/age/keys.txt
    ```
 
-1. **Get your public key**:
+3. **Get your public key**:
 
    ```bash
    age-keygen -y ~/.config/sops/age/keys.txt
@@ -70,20 +70,20 @@ sops -d --input-type dotenv auth/.secrets.env.enc > auth/.secrets.env
 1. **Never commit decrypted files**:
    Add to `.gitignore`:
 
-   ```
+   ```bash
    *.secrets.env
    !*.secrets.env.enc
    ```
 
-1. **Use consistent naming**:
+2. **Use consistent naming**:
 
    - Secrets: `.secrets.env`
    - Encrypted: `.secrets.env.enc`
 
-1. **Document required secrets**:
+3. **Document required secrets**:
    Create a `.secrets.env.example` with dummy values:
 
-   ```env
+   ```bash
    POSTGRES_PASSWORD=changeme
    AUTHENTIK_SECRET_KEY=generate-a-secure-key
    ```
