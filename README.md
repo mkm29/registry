@@ -327,6 +327,48 @@ docker-compose logs -f loki
 docker-compose logs -f tempo
 ```
 
+## Orchestrated Startup
+
+### Automated Infrastructure Deployment
+
+The infrastructure includes an orchestration script that handles secret management and coordinated service startup:
+
+```bash
+# One-command infrastructure startup
+./run.sh
+
+# The script will:
+# 1. Decrypt all SOPS-encrypted secrets
+# 2. Collect environment variables
+# 3. Create Docker networks
+# 4. Start services in dependency order:
+#    zot → traefik → auth → minio → monitoring → mediaserver
+# 5. Wait for each service to be healthy before proceeding
+```
+
+### Secret Management
+
+Use the SOPS helper script for managing encrypted secrets:
+
+```bash
+# Decrypt all encrypted secrets in secrets/ directory
+./sops-helper.sh decrypt secrets
+
+# Encrypt all .dec files to .enc files
+./sops-helper.sh encrypt secrets
+
+# Collect all .env files into a single file
+./sops-helper.sh collect
+
+# Individual file operations
+./sops-helper.sh encrypt secrets/.authentik.env.dec
+./sops-helper.sh decrypt secrets/.authentik.env.enc
+```
+
+**File Extensions:**
+- `.dec` - Decrypted files (git ignored, for local use)
+- `.enc` - Encrypted files (committed to repository)
+
 ## Quick Start
 
 For a complete installation guide, see the [Quick Start Guide](docs/guides/quick-start.md).

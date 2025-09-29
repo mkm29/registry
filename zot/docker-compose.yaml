@@ -8,8 +8,8 @@ services:
       - "5000:5000"
     volumes:
       - ./config/config.yaml:/etc/zot/config.yaml:ro
-      - ./config/credentials.yaml:/etc/zot/credentials.yaml:ro
-      - ./auth/htpasswd:/etc/zot/htpasswd:ro
+      - ../secrets/credentials.yaml.dec:/etc/zot/credentials.yaml:ro
+      - ./secrets/htpasswd.dec:/etc/zot/htpasswd:ro
       - ${HOME}/.docker/config.json:/home/zot/.docker/config.json:ro
       # - ./certs/registry.crt:/etc/ssl/certs/registry.crt:ro
       # - ./certs/registry.key:/etc/ssl/private/registry.key:ro

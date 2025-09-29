@@ -77,6 +77,39 @@ decrypt_secrets_dir() {
 	done
 }
 
+# Function to collect all .env files from secrets directory into a single file
+collect_env_files() {
+	local output_file="${1:-secrets/all.env.dec}"
+
+	if [[ ! -d "secrets" ]]; then
+		echo "Error: secrets/ directory not found"
+		exit 1
+	fi
+
+	echo "Collecting all .env.dec files from secrets/ directory..."
+
+	# Remove existing output file if it exists
+	[[ -f "$output_file" ]] && rm "$output_file"
+
+	# Find all files containing .env in the filename (both .dec and without extension)
+	find secrets -type f -name "*\.env.dec*" | sort | while read -r file; do
+		{
+			echo "# ============================================="
+			echo "# File: $file"
+			echo "# ============================================="
+			cat "$file"
+			echo ""
+			echo ""
+		} >>"$output_file"
+	done
+
+	if [[ -f "$output_file" ]]; then
+		echo "Collected $(find secrets -type f -name "*\.env*" | wc -l) .env files into: $output_file"
+	else
+		echo "No .env files found in secrets/ directory"
+	fi
+}
+
 # Main script
 case "$1" in
 encrypt)
@@ -93,8 +126,11 @@ decrypt)
 		decrypt_file "$2" "${3:-}"
 	fi
 	;;
+collect)
+	collect_env_files "${2:-}"
+	;;
 *)
-	echo "Usage: $0 {encrypt|decrypt} <input_file|secrets> [output_file]"
+	echo "Usage: $0 {encrypt|decrypt|collect} <input_file|secrets> [output_file]"
 	echo ""
 	echo "Single file operations:"
 	echo "  $0 encrypt auth/.secrets.env"
@@ -105,6 +141,10 @@ decrypt)
 	echo "Bulk operations for secrets directory:"
 	echo "  $0 encrypt secrets     # Encrypt all .dec files to .enc in secrets/"
 	echo "  $0 decrypt secrets     # Decrypt all .enc files to .dec in secrets/"
+	echo ""
+	echo "Collection operations:"
+	echo "  $0 collect             # Collect all .env files into secrets/collected.env"
+	echo "  $0 collect output.env  # Collect all .env files into specified file"
 	exit 1
 	;;
 esac

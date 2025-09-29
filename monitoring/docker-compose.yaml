@@ -91,11 +91,9 @@ services:
       - loki-data:/loki
     command: >
       sh -c "
-
         chown -R 10001:10001 /loki &&
         chmod -R 755 /loki
       "
-
     networks:
       - monitoring
     restart: "no"
@@ -106,9 +104,11 @@ services:
     restart: always
     ports:
       - "3100:3100"
+    env_file:
+      - .env
     environment:
-      - "AWS_SECRET_ACCESS_KEY=LokiP@ss5"
-      - "AWS_ACCESS_KEY_ID=lokiuser"
+      - "AWS_SECRET_ACCESS_KEY=${$LOKI_USER_PASSWORD}"
+      - "AWS_ACCESS_KEY_ID=${LOKI_USERNAME}"
     volumes:
       - ./config/loki/loki-config.yaml:/etc/loki/loki-config.yaml:ro
       - loki-data:/loki
@@ -166,7 +166,8 @@ services:
     # environment:
     #   - "GF_PLUGINS_PREINSTALL=grafana-clock-panel, grafana-simple-json-datasource"
     env_file:
-      - .grafana-secrets.env
+      - ../secrets/all.env.dec
+      - .env
     networks:
       - monitoring
     deploy:
@@ -188,12 +189,8 @@ services:
       - dozzle-data:/data
     ports:
       - 9080:9080
-    environment:
-      - DOZZLE_NO_ANALYTICS=true
-      - DOZZLE_ADDR=:9080
-      - DOZZLE_HOSTNAME=dozzle.smigula.io
-      - DOZZLE_LEVEL=debug
-      - DOZZLE_AUTH_PROVIDER=forward-proxy
+    env_file:
+      - .env
     restart: unless-stopped
     networks:
       - monitoring
@@ -260,7 +257,8 @@ services:
     ports:
       - "12345:12345"
     env_file:
-      - .alloy-secrets.env
+      - ../secrets/all.env.dec
+      - .env
     networks:
       - monitoring
       - registry
@@ -283,7 +281,6 @@ services:
         chown -R 10001:10001 /var/tempo &&
         chmod -R 755 /var/tempo
       "
-
     volumes:
       - tempo-data:/var/tempo
     networks:
@@ -300,6 +297,9 @@ services:
       - "3200:3200" # Tempo query endpoint
       - "4317:4317" # OTLP gRPC receiver
       - "4318:4318" # OTLP HTTP receiver
+    env_file:
+      - ../secrets/all.env.dec
+      - .env
     depends_on:
       - tempo-init
     networks:
@@ -321,6 +321,9 @@ services:
     command: sh
     stdin_open: true
     tty: true
+    env_file:
+      - .env
+      - ../secrets/all.env.dec
     networks:
       - monitoring
       - registry

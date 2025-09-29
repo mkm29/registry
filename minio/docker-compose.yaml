@@ -24,17 +24,10 @@ services:
     container_name: minio
     restart: unless-stopped
     command: server /data --console-address ":9001"
+    env_file:
+      - ../secrets/all.env.dec
     environment:
-      # Change these in production - use .env file
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin123}
-      # Set browser redirect URL for console
-      MINIO_BROWSER_REDIRECT_URL: ${MINIO_BROWSER_REDIRECT_URL:-https://minio.smigula.io}
-      # Set the server URL for proper API access
-      MINIO_SERVER_URL: ${MINIO_SERVER_URL:-https://api.minio.smigula.io}
-      # Prometheus metrics
-      MINIO_PROMETHEUS_AUTH_TYPE: public
-      # Region setting
+       # Region setting
       MINIO_REGION_NAME: ${MINIO_REGION_NAME:-us-east-1}
       # Storage class settings
       MINIO_STORAGE_CLASS_STANDARD: ${MINIO_STORAGE_CLASS_STANDARD:-EC:0}
@@ -72,16 +65,9 @@ services:
     # entrypoint: ["/bin/sh", "-c", "/setup.sh"]
     volumes:
       - ./setup.sh:/setup.sh:ro
-    environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin123}
-      # Service user passwords
-      LOKI_USER_PASSWORD: ${LOKI_USER_PASSWORD:-SuperSecret1}
-      MIMIR_USER_PASSWORD: ${MIMIR_USER_PASSWORD:-SuperSecret1}
-      TEMPO_USER_PASSWORD: ${TEMPO_USER_PASSWORD:-SuperSecret1}
-    command: ["tail", "-f", "/dev/null"]
     env_file:
-      - .env
+      - ../secrets/all.env.dec
+    command: ["tail", "-f", "/dev/null"]
     networks:
       - monitoring
     deploy:
