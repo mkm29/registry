@@ -74,25 +74,30 @@ prepare_secrets() {
 # Function to create directory with proper permissions
 create_directory() {
 	local dir="$1"
-	local description="$2"
-	local owner="${3:-$(id -u):$(id -g)}"
+	local owner="${2:-$(id -u):$(id -g)}"
 
 	if [[ -d "$dir" ]]; then
 		log_info "Directory already exists: $dir"
 	else
 		if sudo mkdir -p "$dir" 2>/dev/null; then
-			log_success "Created $description: $dir"
+			log_success "Created: $dir"
 		else
-			log_error "Failed to create $description: $dir"
+			log_error "Failed to create $dir"
 			return 1
 		fi
 	fi
 
 	# Set ownership (defaults to current user if not specified)
 	if sudo chown -R "$owner" "$dir" 2>/dev/null; then
-		log_info "Set ownership for $description to $owner"
+		log_info "Set ownership for $dir to $owner"
 	else
-		log_warning "Failed to set ownership for $description"
+		log_warning "Failed to set ownership for $dir"
+	fi
+	# Change permissions to 755
+	if sudo chmod 755 "$dir" 2>/dev/null; then
+		log_info "Set permissions for $dir to 755"
+	else
+		log_warning "Failed to set permissions for $dir"
 	fi
 }
 
@@ -104,20 +109,24 @@ setup_infrastructure_directories() {
 	create_directory "/mnt/data" "Base data directory"
 
 	# Infrastructure service directories
-	log_info "Creating infrastructure service directories..."
-	create_directory "/mnt/data/logs/traefik" "Traefik logs"
-	create_directory "/mnt/data/grafana/csv" "Grafana CSV exports"
-	create_directory "/mnt/data/grafana/dashboards" "Grafana dashboards"
-	create_directory "/mnt/data/grafana/pdf" "Grafana PDF exports"
-	create_directory "/mnt/data/grafana/plugins" "Grafana plugins"
-	create_directory "/mnt/data/grafana/png" "Grafana PNG exports"
-	create_directory "/mnt/data/mimir-1" "Mimir instance 1"
-	create_directory "/mnt/data/mimir-2" "Mimir instance 2"
-	create_directory "/mnt/data/mimir-3" "Mimir instance 3"
-	create_directory "/mnt/data/minio" "MinIO storage"
-	create_directory "/mnt/data/postgres" "PostgreSQL data"
-	create_directory "/mnt/data/redis" "Redis data"
-	create_directory "/mnt/data/zot" "Zot registry data"
+	local dirs=(
+		"/mnt/data/logs/traefik"
+		"/mnt/data/grafana/csv"
+		"/mnt/data/grafana/dashboards"
+		"/mnt/data/grafana/pdf"
+		"/mnt/data/grafana/plugins"
+		"/mnt/data/grafana/png"
+		"/mnt/data/mimir-1"
+		"/mnt/data/mimir-2"
+		"/mnt/data/mimir-3"
+		"/mnt/data/minio"
+		"/mnt/data/postgres"
+		"/mnt/data/redis"
+		"/mnt/data/zot"
+	)
+	for dir in "${dirs[@]}"; do
+		create_directory "$dir" "Infrastructure directory"
+	done
 
 	log_success "Infrastructure directories setup complete"
 }
