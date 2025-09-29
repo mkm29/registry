@@ -111,35 +111,10 @@ services:
           memory: 256M
 volumes:
   postgres-data:
-    driver: local
-    driver_opts:
-      type: none
-      device: /mnt/data/postgres
-      o: bind
   redis-data:
-    driver: local
-    driver_opts:
-      type: none
-      device: /mnt/data/redis
-      o: bind
   media-data:
-    driver: local
-    driver_opts:
-      type: none
-      device: /mnt/data/authentik/media
-      o: bind
   certs-data:
-    driver: local
-    driver_opts:
-      type: none
-      device: /mnt/data/authentik/certs
-      o: bind
   templates-data:
-    driver: local
-    driver_opts:
-      type: none
-      device: /mnt/data/authentik/templates
-      o: bind
 networks:
   auth:
     external: true
