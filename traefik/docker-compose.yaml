@@ -8,6 +8,8 @@ services:
       - "443:443"
       - "8080:8080" # Traefik dashboard
       - "8082:8082" # Metrics endpoint
+      - "8090:8090" # Omni Machine API
+      - "8100:8100" # Omni K8s Proxy
     volumes:
       - ./config/traefik.yml:/etc/traefik/traefik.yml:ro
       - ./config/dynamic:/etc/traefik/dynamic:ro
