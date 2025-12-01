@@ -19,6 +19,12 @@ entryPoints:
     address: ":443"
   metrics:
     address: ":8082"
+  # Omni SideroLink Machine API
+  omni-machine-api:
+    address: ":8090"
+  # Omni Kubernetes Proxy
+  omni-k8s-proxy:
+    address: ":8100"
 providers:
   docker:
     endpoint: "unix:///var/run/docker.sock"
