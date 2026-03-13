@@ -21,6 +21,7 @@ tasks:
     desc: Generate root certificate authority
     deps: [certs:clean]
     cmds:
+      - mkdir -p {{.CERTS_DIR}}
       - cfssl gencert -initca {{.CFSSL_DIR}}/ca.json | cfssljson -bare {{.CERTS_DIR}}/ca
     sources:
       - "{{.CFSSL_DIR}}/ca.json"
