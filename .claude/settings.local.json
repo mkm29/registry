@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(go-task --list 2>&1 | head -5)"
+    ]
+  }
+}

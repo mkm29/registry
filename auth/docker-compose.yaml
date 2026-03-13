@@ -96,6 +96,7 @@ services:
       - certs-data:/certs
       - templates-data:/templates
       - ./dist/custom.css:/web/dist/custom.css
+      
     networks:
       - auth
     depends_on:

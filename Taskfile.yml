@@ -5,6 +5,9 @@ vars:
   CERTS_DIR: "certs"
   CFSSL_DIR: "cfssl"
 
+  # Container runtime
+  CRI_BIN: "podman"
+
   # Registry configuration
   REGISTRY_PORT: "5000"
   REGISTRY_DEBUG_PORT: "5001"
@@ -75,7 +78,7 @@ tasks:
     deps: [certs:all]
     cmds:
       - |
-        docker run -d --restart=always --name {{.REGISTRY_NAME}} \
+        {{.CRI_BIN}} run -d --restart=always --name {{.REGISTRY_NAME}} \
           -p {{.REGISTRY_PORT}}:5000 -p {{.REGISTRY_DEBUG_PORT}}:5001 \
           -v ./config.yml:/etc/distribution/config.yml \
           -v {{.PWD}}/{{.CERTS_DIR}}/registry.crt:/etc/ssl/certs/domain.crt \
@@ -83,18 +86,18 @@ tasks:
           -v $HOME/.local/share/containers/storage:/var/lib/registry \
           registry:3
     status:
-      - docker ps --filter "name={{.REGISTRY_NAME}}" --filter "status=running" --format "{{.Names}}" | grep -q "{{.REGISTRY_NAME}}"
+      - '{{.CRI_BIN}} ps --filter "name={{.REGISTRY_NAME}}" --filter "status=running" --format "{{.Names}}" | grep -q "{{.REGISTRY_NAME}}"'
 
   registry:stop:
     desc: Stop the Docker registry
     cmds:
-      - docker stop {{.REGISTRY_NAME}} || true
+      - '{{.CRI_BIN}} stop {{.REGISTRY_NAME}} || true'
 
   registry:remove:
     desc: Remove the Docker registry container
     deps: [registry:stop]
     cmds:
-      - docker rm {{.REGISTRY_NAME}} || true
+      - '{{.CRI_BIN}} rm {{.REGISTRY_NAME}} || true'
 
   registry:restart:
     desc: Restart the Docker registry
@@ -105,17 +108,17 @@ tasks:
   registry:logs:
     desc: View registry logs
     cmds:
-      - docker logs {{.REGISTRY_NAME}}
+      - '{{.CRI_BIN}} logs {{.REGISTRY_NAME}}'
 
   registry:logs-follow:
     desc: Follow registry logs
     cmds:
-      - docker logs -f {{.REGISTRY_NAME}}
+      - '{{.CRI_BIN}} logs -f {{.REGISTRY_NAME}}'
 
   registry:status:
     desc: Check registry status and health
     cmds:
-      - docker ps --filter "name={{.REGISTRY_NAME}}" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+      - '{{.CRI_BIN}} ps --filter "name={{.REGISTRY_NAME}}" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"'
       - echo "Registry API Health:"
       - curl -k -s https://localhost:{{.REGISTRY_DEBUG_PORT}}/debug/health || echo "Health check failed"
       - echo "Registry Metrics:"
@@ -182,7 +185,7 @@ tasks:
     cmds:
       - echo "Current service status:"
       - echo ""
-      - docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep -E "(registry|traefik|authentik|minio|mimir|grafana|loki|tempo|alloy|plex|radarr|sonarr)" || echo "No infrastructure services running"
+      - '{{.CRI_BIN}} ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep -E "(registry|traefik|authentik|minio|mimir|grafana|loki|tempo|alloy|plex|radarr|sonarr)" || echo "No infrastructure services running"'
       - echo ""
 
   # Testing Tasks
@@ -248,13 +251,13 @@ tasks:
     desc: Run garbage collection on registry
     cmds:
       - echo "Running garbage collection on registry..."
-      - docker exec {{.REGISTRY_NAME}} registry garbage-collect /etc/distribution/config.yml
+      - '{{.CRI_BIN}} exec {{.REGISTRY_NAME}} registry garbage-collect /etc/distribution/config.yml'
 
   registry:metrics:
     desc: View registry metrics
     cmds:
       - echo "Fetching registry metrics..."
-      - docker exec {{.REGISTRY_NAME}} wget -O- --no-check-certificate https://localhost:5001/metrics 2>/dev/null | grep -E '^registry_' | head -20
+      - '{{.CRI_BIN}} exec {{.REGISTRY_NAME}} wget -O- --no-check-certificate https://localhost:5001/metrics 2>/dev/null | grep -E ''^registry_'' | head -20'
 
   # TLS Configuration Tasks
   tls:trust-cert:
@@ -300,15 +303,15 @@ tasks:
     desc: Test pulling an image through the registry
     cmds:
       - echo "Testing image pull through registry..."
-      - docker pull localhost:{{.REGISTRY_PORT}}/library/alpine:latest
+      - '{{.CRI_BIN}} pull localhost:{{.REGISTRY_PORT}}/library/alpine:latest'
 
   test:push:
     desc: Test pushing an image to the registry
     deps: [test:pull]
     cmds:
       - echo "Testing image push to registry..."
-      - docker tag localhost:{{.REGISTRY_PORT}}/library/alpine:latest localhost:{{.REGISTRY_PORT}}/test/alpine:latest
-      - docker push localhost:{{.REGISTRY_PORT}}/test/alpine:latest
+      - '{{.CRI_BIN}} tag localhost:{{.REGISTRY_PORT}}/library/alpine:latest localhost:{{.REGISTRY_PORT}}/test/alpine:latest'
+      - '{{.CRI_BIN}} push localhost:{{.REGISTRY_PORT}}/test/alpine:latest'
 
   # Quick Setup
   quickstart:
@@ -349,7 +352,7 @@ tasks:
           echo "Available services: registry, traefik, authentik-server, minio, grafana, etc."
           exit 1
         fi
-        docker logs -f "{{.SERVICE}}"
+        {{.CRI_BIN}} logs -f "{{.SERVICE}}"
 
   shell:
     desc: Open a shell in a running container
@@ -363,7 +366,7 @@ tasks:
           exit 1
         fi
         shell="{{.SHELL | default "/bin/bash"}}"
-        docker exec -it "{{.SERVICE}}" "$shell"
+        {{.CRI_BIN}} exec -it "{{.SERVICE}}" "$shell"
 
   # Help
   help:

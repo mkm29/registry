@@ -10,7 +10,7 @@ services:
       - ./config/config.yaml:/etc/zot/config.yaml:ro
       - ../secrets/credentials.yaml.dec:/etc/zot/credentials.yaml:ro
       - ./secrets/htpasswd.dec:/etc/zot/htpasswd:ro
-      - ${HOME}/.docker/config.json:/home/zot/.docker/config.json:ro
+      # - ${HOME}/.docker/config.json:/home/zot/.docker/config.json:ro
       # - ./certs/registry.crt:/etc/ssl/certs/registry.crt:ro
       # - ./certs/registry.key:/etc/ssl/private/registry.key:ro
       # - ./certs/registry1-ca:/etc/zot/certs/registry1-ca:ro
