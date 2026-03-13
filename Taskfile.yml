@@ -1,6 +1,10 @@
 version: '3'
 
 vars:
+  # Repository root
+  REPO_ROOT:
+    sh: git rev-parse --show-toplevel
+
   # Certificate paths
   CERTS_DIR: "certs"
   CFSSL_DIR: "cfssl"
@@ -80,9 +84,9 @@ tasks:
       - |
         {{.CRI_BIN}} run -d --restart=always --name {{.REGISTRY_NAME}} \
           -p {{.REGISTRY_PORT}}:5000 -p {{.REGISTRY_DEBUG_PORT}}:5001 \
-          -v ./config.yml:/etc/distribution/config.yml \
-          -v {{.PWD}}/{{.CERTS_DIR}}/registry.crt:/etc/ssl/certs/domain.crt \
-          -v {{.PWD}}/{{.CERTS_DIR}}/registry.key:/etc/ssl/private/domain.key \
+          -v {{.REPO_ROOT}}/zot/config/config.yaml:/etc/distribution/config.yml \
+          -v {{.REPO_ROOT}}/{{.CERTS_DIR}}/registry.crt:/etc/ssl/certs/domain.crt \
+          -v {{.REPO_ROOT}}/{{.CERTS_DIR}}/registry.key:/etc/ssl/private/domain.key \
           -v $HOME/.local/share/containers/storage:/var/lib/registry \
           registry:3
     status:
