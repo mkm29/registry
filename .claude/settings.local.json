@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(go-task --list 2>&1 | head -5)"
+      "Bash(go-task --list 2>&1 | head -5)",
+      "Bash(go-task registry:start --dry 2>&1)"
     ]
   }
 }

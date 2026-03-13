@@ -15,7 +15,7 @@ vars:
   # Registry configuration
   REGISTRY_IMAGE: "ghcr.io/project-zot/zot-linux-amd64:v2.1.15"
   REGISTRY_PORT: "5000"
-REGISTRY_NAME: "registry"
+  REGISTRY_NAME: "registry"
 
 tasks:
   # Certificate Management Tasks
@@ -81,14 +81,7 @@ tasks:
     desc: Start the Docker registry
     deps: [certs:all]
     cmds:
-      - |
-        {{.CRI_BIN}} run -d --restart=always --name {{.REGISTRY_NAME}} \
-          -p {{.REGISTRY_PORT}}:5000 \
-          -v {{.REPO_ROOT}}/zot/config/config.yaml:/etc/zot/config.yaml:ro \
-          -v {{.REPO_ROOT}}/secrets/credentials.yaml.dec:/etc/zot/credentials.yaml:ro \
-          -v {{.REPO_ROOT}}/zot/secrets/htpasswd.dec:/etc/zot/htpasswd:ro \
-          {{.REGISTRY_IMAGE}} \
-          serve /etc/zot/config.yaml
+      - '{{.CRI_BIN}} run -d --restart=always --replace --name {{.REGISTRY_NAME}} -p {{.REGISTRY_PORT}}:5000 -v {{.REPO_ROOT}}/zot/config/config.yaml:/etc/zot/config.yaml:ro -v {{.REPO_ROOT}}/secrets/credentials.yaml.dec:/etc/zot/credentials.yaml:ro -v {{.REPO_ROOT}}/secrets/.htpasswd.dec:/etc/zot/htpasswd:ro {{.REGISTRY_IMAGE}} serve /etc/zot/config.yaml'
     status:
       - '{{.CRI_BIN}} ps --filter "name={{.REGISTRY_NAME}}" --filter "status=running" --format "{{.Names}}" | grep -q "{{.REGISTRY_NAME}}"'
 
