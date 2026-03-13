@@ -54,7 +54,7 @@ services:
           cpus: "0.1"
           memory: 128M
   server:
-    image: registry.smigula.io/ghcr/goauthentik/server:2025.6.3
+    image: registry.smigula.io/ghcr/goauthentik/server:2026.2.1
     container_name: authentik-server
     restart: unless-stopped
     command: server
@@ -83,7 +83,7 @@ services:
           cpus: "0.5"
           memory: 512M
   worker:
-    image: registry.smigula.io/ghcr/goauthentik/server:2025.6.3
+    image: registry.smigula.io/ghcr/goauthentik/server:2026.2.1
     container_name: authentik-worker
     restart: unless-stopped
     command: worker

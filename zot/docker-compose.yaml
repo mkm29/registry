@@ -1,7 +1,7 @@
 services:
   # Docker Registry with TLS
   registry:
-    image: ghcr.io/project-zot/zot-linux-amd64:v2.1.8
+    image: ghcr.io/project-zot/zot-linux-amd64:v2.1.15
     container_name: registry
     restart: always
     ports:
