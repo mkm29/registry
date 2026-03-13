@@ -314,16 +314,19 @@ tasks:
     desc: Generate certs and start registry (equivalent to make quickstart)
     deps: [certs:all, registry:start]
     cmds:
-      - echo ""
-      - echo "Quick start complete! Registry is running."
-      - echo ""
-      - echo "IMPORTANT: To use the registry with Docker, you must configure TLS trust:"
-      - echo "  task tls:configure-docker  # Configure Docker daemon (required)"
-      - echo "  task tls:trust-cert        # Add to system keychain (optional, macOS only)"
-      - echo ""
-      - echo "Service URLs:"
-      - echo "  Registry: https://localhost:{{.REGISTRY_PORT}}"
-      - echo "  Debug:    https://localhost:{{.REGISTRY_DEBUG_PORT}}"
+      - |
+        cat << EOF
+
+        Quick start complete! Registry is running.
+
+        IMPORTANT: To use the registry with Docker, you must configure TLS trust:
+          task tls:configure-docker  # Configure Docker daemon (required)
+          task tls:trust-cert        # Add to system keychain (optional, macOS only)
+
+        Service URLs:
+          Registry: https://localhost:{{.REGISTRY_PORT}}
+          Debug:    https://localhost:{{.REGISTRY_DEBUG_PORT}}
+        EOF
 
   # Utility Tasks
   clean:all:
