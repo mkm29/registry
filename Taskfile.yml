@@ -13,9 +13,9 @@ vars:
   CRI_BIN: "podman"
 
   # Registry configuration
+  REGISTRY_IMAGE: "ghcr.io/project-zot/zot-linux-amd64:v2.1.15"
   REGISTRY_PORT: "5000"
-  REGISTRY_DEBUG_PORT: "5001"
-  REGISTRY_NAME: "registry"
+REGISTRY_NAME: "registry"
 
 tasks:
   # Certificate Management Tasks
@@ -83,12 +83,12 @@ tasks:
     cmds:
       - |
         {{.CRI_BIN}} run -d --restart=always --name {{.REGISTRY_NAME}} \
-          -p {{.REGISTRY_PORT}}:5000 -p {{.REGISTRY_DEBUG_PORT}}:5001 \
-          -v {{.REPO_ROOT}}/zot/config/config.yaml:/etc/distribution/config.yml \
-          -v {{.REPO_ROOT}}/{{.CERTS_DIR}}/registry.crt:/etc/ssl/certs/domain.crt \
-          -v {{.REPO_ROOT}}/{{.CERTS_DIR}}/registry.key:/etc/ssl/private/domain.key \
-          -v $HOME/.local/share/containers/storage:/var/lib/registry \
-          registry:3
+          -p {{.REGISTRY_PORT}}:5000 \
+          -v {{.REPO_ROOT}}/zot/config/config.yaml:/etc/zot/config.yaml:ro \
+          -v {{.REPO_ROOT}}/secrets/credentials.yaml.dec:/etc/zot/credentials.yaml:ro \
+          -v {{.REPO_ROOT}}/zot/secrets/htpasswd.dec:/etc/zot/htpasswd:ro \
+          {{.REGISTRY_IMAGE}} \
+          serve /etc/zot/config.yaml
     status:
       - '{{.CRI_BIN}} ps --filter "name={{.REGISTRY_NAME}}" --filter "status=running" --format "{{.Names}}" | grep -q "{{.REGISTRY_NAME}}"'
 
@@ -124,9 +124,9 @@ tasks:
     cmds:
       - '{{.CRI_BIN}} ps --filter "name={{.REGISTRY_NAME}}" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"'
       - echo "Registry API Health:"
-      - curl -k -s https://localhost:{{.REGISTRY_DEBUG_PORT}}/debug/health || echo "Health check failed"
+      - curl -s http://localhost:{{.REGISTRY_PORT}}/v2/ || echo "Health check failed"
       - echo "Registry Metrics:"
-      - curl -k -s https://localhost:{{.REGISTRY_DEBUG_PORT}}/metrics | head -5 || echo "Metrics unavailable"
+      - curl -s http://localhost:{{.REGISTRY_PORT}}/metrics | head -5 || echo "Metrics unavailable"
 
   # Secret Management Tasks (using existing sops-helper.sh)
   secrets:encrypt:
@@ -208,12 +208,10 @@ tasks:
     desc: Test registry connectivity and basic functionality
     deps: [registry:start]
     cmds:
-      - echo "Testing registry health..."
-      - curl -k -f https://localhost:{{.REGISTRY_DEBUG_PORT}}/debug/health
       - echo "Testing registry API..."
-      - curl -k -f https://localhost:{{.REGISTRY_PORT}}/v2/
+      - curl -f http://localhost:{{.REGISTRY_PORT}}/v2/
       - echo "Testing registry metrics..."
-      - curl -k -s https://localhost:{{.REGISTRY_DEBUG_PORT}}/metrics | head -10
+      - curl -s http://localhost:{{.REGISTRY_PORT}}/metrics | head -10
 
   test:all:
     desc: Run all tests
@@ -255,13 +253,13 @@ tasks:
     desc: Run garbage collection on registry
     cmds:
       - echo "Running garbage collection on registry..."
-      - '{{.CRI_BIN}} exec {{.REGISTRY_NAME}} registry garbage-collect /etc/distribution/config.yml'
+      - '{{.CRI_BIN}} exec {{.REGISTRY_NAME}} zot scrub /etc/zot/config.yaml'
 
   registry:metrics:
     desc: View registry metrics
     cmds:
       - echo "Fetching registry metrics..."
-      - '{{.CRI_BIN}} exec {{.REGISTRY_NAME}} wget -O- --no-check-certificate https://localhost:5001/metrics 2>/dev/null | grep -E ''^registry_'' | head -20'
+      - 'curl -sk http://localhost:{{.REGISTRY_PORT}}/metrics | head -20'
 
   # TLS Configuration Tasks
   tls:trust-cert:
@@ -332,8 +330,7 @@ tasks:
           task tls:trust-cert        # Add to system keychain (optional, macOS only)
 
         Service URLs:
-          Registry: https://localhost:{{.REGISTRY_PORT}}
-          Debug:    https://localhost:{{.REGISTRY_DEBUG_PORT}}
+          Registry: http://localhost:{{.REGISTRY_PORT}}
         EOF
 
   # Utility Tasks
