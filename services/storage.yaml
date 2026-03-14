@@ -34,5 +34,5 @@ volumes:
     driver: local
     driver_opts:
       type: none
-      device: /mnt/data/minio
+      device: /mnt/media/data/minio
       o: bind

@@ -8,7 +8,7 @@ services:
     volumes:
       - "${HOME}/.config/containers/storage:/var/lib/zot"
       - ../config/zot/config.json:/etc/zot/config.json:ro
-      - ./certs:/etc/zot/certs:ro
+      - ../certs:/etc/zot/certs:ro
     networks: [registry, proxy]
     labels:
       - "traefik.enable=true"

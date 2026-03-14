@@ -9,8 +9,8 @@ vars:
   SERVER_IP: '{{.SERVER_IP | default .DETECTED_IP}}'
   # Secrets and Certs
   ENV_FILE: secrets/all.env.dec
-  CERT_DIR: services/certs
-  CFSSL_DIR: services/cfssl
+  CERT_DIR: certs
+  CFSSL_DIR: config/cfssl
   REG_DOMAIN: '{{.REG_DOMAIN | default "registry.smigula.io"}}'
   REG_BASE: '{{.REG_BASE | default "~/.config/containers/storage"}}'
 
@@ -172,11 +172,10 @@ tasks:
   init:dirs:
     internal: true
     cmds:
-      - sudo mkdir -p /mnt/media/{data/{config/{postgresql,radarr,sonarr,plex,recyclarr},torrents,media,grafana},monitoring/{logs/{loki,traefik},metrics,traces}}
-      - sudo mkdir -p /mnt/data/minio
+      - sudo mkdir -p /mnt/media/{data/{config/{radarr,sonarr,plex,recyclarr},postgresql,torrents,media,grafana,minio},monitoring/{logs/{loki,traefik},metrics,traces}}
       - mkdir -p {{.REG_BASE}}
-      - sudo chown -R 1000:1000 /mnt/media /mnt/data/minio
-      - sudo chmod -R 775 /mnt/media /mnt/data/minio
+      - sudo chown -R 1000:1000 /mnt/media
+      - sudo chmod -R 775 /mnt/media
 
   init:networks:
     internal: true
