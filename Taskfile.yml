@@ -25,12 +25,105 @@ tasks:
     cmds:
       - task --list
 
+  # --- [0] Preflight Checks ---
+  preflight:
+    desc: Verify all required tools, files, and directories
+    silent: true
+    cmds:
+      - |
+        err=0
+
+        # --- Required binaries ---
+        for bin in {{.CRI_BIN}} sops age cfssl cfssljson curl jq; do
+          if command -v "$bin" >/dev/null 2>&1; then
+            printf '  ✓ %s (%s)\n' "$bin" "$(command -v "$bin")"
+          else
+            printf '  ✗ %s not found\n' "$bin"
+            err=1
+          fi
+        done
+
+        # --- Compose plugin ---
+        if {{.CRI_BIN}} compose version >/dev/null 2>&1; then
+          printf '  ✓ %s compose plugin\n' "{{.CRI_BIN}}"
+        else
+          printf '  ✗ %s compose plugin not available\n' "{{.CRI_BIN}}"
+          err=1
+        fi
+
+        # --- AGE key ---
+        age_key="${SOPS_AGE_KEY_FILE:-$HOME/.config/sops/age/keys.txt}"
+        if [ -f "$age_key" ]; then
+          printf '  ✓ AGE key (%s)\n' "$age_key"
+        else
+          printf '  ✗ AGE key not found at %s\n' "$age_key"
+          err=1
+        fi
+
+        # --- Project files ---
+        for f in compose.yaml .env .sops.yaml; do
+          if [ -f "$f" ]; then
+            printf '  ✓ %s\n' "$f"
+          else
+            printf '  ✗ %s missing\n' "$f"
+            err=1
+          fi
+        done
+
+        # --- Encrypted secrets ---
+        enc_count=$(find secrets -maxdepth 1 -name '*.env.enc' 2>/dev/null | wc -l)
+        if [ "$enc_count" -gt 0 ]; then
+          printf '  ✓ %d encrypted secret file(s) in secrets/\n' "$enc_count"
+        else
+          printf '  ⚠ No .env.enc files found in secrets/\n'
+        fi
+
+        # --- cfssl configs ---
+        for f in {{.CFSSL_DIR}}/ca.json {{.CFSSL_DIR}}/int-ca.json {{.CFSSL_DIR}}/cfssl.json {{.CFSSL_DIR}}/registry.json; do
+          if [ -f "$f" ]; then
+            printf '  ✓ %s\n' "$f"
+          else
+            printf '  ✗ %s missing\n' "$f"
+            err=1
+          fi
+        done
+
+        # --- Data directories ---
+        for d in /mnt/media /mnt/media/data /mnt/media/monitoring; do
+          if [ -d "$d" ]; then
+            if [ -w "$d" ]; then
+              printf '  ✓ %s (writable)\n' "$d"
+            else
+              printf '  ⚠ %s exists but not writable (run: task init)\n' "$d"
+            fi
+          else
+            printf '  ⚠ %s does not exist (run: task init)\n' "$d"
+          fi
+        done
+
+        # --- Server IP ---
+        if [ -n "{{.SERVER_IP}}" ]; then
+          printf '  ✓ Server IP: %s\n' "{{.SERVER_IP}}"
+        else
+          printf '  ⚠ Could not detect server IP (set SERVER_IP or HOST_IFACE)\n'
+        fi
+
+        # --- Summary ---
+        echo ""
+        if [ "$err" -eq 0 ]; then
+          echo "Preflight passed. Ready to run: task init && task up"
+        else
+          echo "Preflight failed. Install missing dependencies before proceeding."
+          exit 1
+        fi
+
   # --- [1] Secret Management ---
   secrets:decrypt:
     desc: Decrypt all secret files in the secrets directory
     cmds:
       - |
-        for f in secrets/*.env.enc; do
+        for f in secrets/.*.env.enc secrets/*.env.enc; do
+          [ -f "$f" ] || continue
           sops -d "$f" > "${f%.enc}.dec"
         done
 
@@ -40,7 +133,8 @@ tasks:
     cmds:
       - echo "# Generated Master Secret File" > {{.ENV_FILE}}
       - |
-        for f in secrets/*.env.dec; do
+        for f in secrets/.*.env.dec secrets/*.env.dec; do
+          [ -f "$f" ] || continue
           if [ "$f" != "{{.ENV_FILE}}" ]; then
             echo "## Source: $f" >> {{.ENV_FILE}}
             cat "$f" >> {{.ENV_FILE}}
@@ -69,6 +163,7 @@ tasks:
   init:
     desc: Full environment initialization
     cmds:
+      - task: preflight
       - task: init:dirs
       - task: secrets:collect
       - task: trust-ca
