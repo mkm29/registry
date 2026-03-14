@@ -3,7 +3,7 @@ name: smigula-home-server
 include:
   # - path: services/registry.yaml
   - path: services/traefik.yaml
-  - path: services/auth.yaml
+  # - path: services/auth.yaml
   - path: services/storage.yaml
   - path: services/monitoring.yaml
   - path: services/mediaserver.yaml

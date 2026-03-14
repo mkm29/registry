@@ -22,8 +22,11 @@ MIMIR_S3_SECRET_KEY="${MIMIR_S3_SECRET_KEY:-MimirP@ss5}"
 TEMPO_S3_ACCESS_KEY="${TEMPO_S3_ACCESS_KEY:-tempouser}"
 TEMPO_S3_SECRET_KEY="${TEMPO_S3_SECRET_KEY:-TempoP@ss5}"
 
-# Buckets and their associated service users
-SERVICES="loki mimir tempo"
+# Buckets per service
+MIMIR_BUCKETS="mimir-blocks mimir-ruler mimir-alertmanager"
+LOKI_BUCKETS="loki-chunks loki-ruler"
+TEMPO_BUCKETS="tempo-traces"
+ALL_BUCKETS="${MIMIR_BUCKETS} ${LOKI_BUCKETS} ${TEMPO_BUCKETS}"
 
 echo "Waiting for MinIO..."
 until /usr/bin/mc alias set "${MINIO_ALIAS}" "${MINIO_ENDPOINT}" "${MINIO_ROOT_USER}" "${MINIO_ROOT_PASSWORD}" >/dev/null 2>&1; do
@@ -33,10 +36,10 @@ echo "MinIO is ready"
 
 # --- Create buckets ---
 echo "Creating buckets..."
-for svc in ${SERVICES}; do
-    mc mb "${MINIO_ALIAS}/${svc}" 2>/dev/null \
-        && echo "  + ${svc}" \
-        || echo "  . ${svc} (exists)"
+for bucket in ${ALL_BUCKETS}; do
+    mc mb "${MINIO_ALIAS}/${bucket}" 2>/dev/null \
+        && echo "  + ${bucket}" \
+        || echo "  . ${bucket} (exists)"
 done
 
 # --- Create service users ---
@@ -51,12 +54,21 @@ create_user "${LOKI_S3_ACCESS_KEY}"  "${LOKI_S3_SECRET_KEY}"
 create_user "${MIMIR_S3_ACCESS_KEY}" "${MIMIR_S3_SECRET_KEY}"
 create_user "${TEMPO_S3_ACCESS_KEY}" "${TEMPO_S3_SECRET_KEY}"
 
-# --- Create and attach per-bucket policies ---
+# --- Create and attach per-service policies ---
 echo "Configuring policies..."
 attach_policy() {
     local svc="$1" user="$2"
+    shift 2
+    local buckets="$*"
     local policy_name="${svc}-policy"
     local policy_file="/tmp/${policy_name}.json"
+
+    # Build resource list for all buckets owned by this service
+    local resources=""
+    for bucket in ${buckets}; do
+        [ -n "${resources}" ] && resources="${resources},"
+        resources="${resources}\"arn:aws:s3:::${bucket}\",\"arn:aws:s3:::${bucket}/*\""
+    done
 
     cat > "${policy_file}" <<-POLICY
 {
@@ -65,10 +77,7 @@ attach_policy() {
     {
       "Effect": "Allow",
       "Action": ["s3:*"],
-      "Resource": [
-        "arn:aws:s3:::${svc}",
-        "arn:aws:s3:::${svc}/*"
-      ]
+      "Resource": [${resources}]
     }
   ]
 }
@@ -82,9 +91,9 @@ POLICY
         || echo "    -> already attached to ${user}"
     rm -f "${policy_file}"
 }
-attach_policy "loki"  "${LOKI_S3_ACCESS_KEY}"
-attach_policy "mimir" "${MIMIR_S3_ACCESS_KEY}"
-attach_policy "tempo" "${TEMPO_S3_ACCESS_KEY}"
+attach_policy "mimir" "${MIMIR_S3_ACCESS_KEY}" ${MIMIR_BUCKETS}
+attach_policy "loki"  "${LOKI_S3_ACCESS_KEY}"  ${LOKI_BUCKETS}
+attach_policy "tempo" "${TEMPO_S3_ACCESS_KEY}" ${TEMPO_BUCKETS}
 
 # --- Summary ---
 echo ""
