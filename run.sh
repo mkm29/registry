@@ -10,6 +10,7 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
+CRI_BIN=${CRI_BIN:-podman}
 
 # Logging functions
 log_info() {
@@ -28,13 +29,13 @@ log_error() {
 	echo -e "${RED}[ERROR]${NC} $1"
 }
 
-# Function to check if Docker is running
+# Function to check if ${CRI_BIN} is running
 check_docker() {
-	if ! docker info >/dev/null 2>&1; then
-		log_error "Docker is not running or not accessible"
+	if ! ${CRI_BIN} info >/dev/null 2>&1; then
+		log_error "${CRI_BIN} is not running or not accessible"
 		exit 1
 	fi
-	log_success "Docker is running"
+	log_success "${CRI_BIN} is running"
 }
 
 # Function to check if required directories exist
@@ -217,14 +218,14 @@ EOF
 
 # Function to create external networks if they don't exist
 create_networks() {
-	log_info "Creating external Docker networks..."
+	log_info "Creating external ${CRI_BIN} networks..."
 
 	local networks=("traefik" "registry" "mediaserver" "monitoring" "auth")
 
 	for network in "${networks[@]}"; do
-		if ! docker network inspect "$network" >/dev/null 2>&1; then
+		if ! ${CRI_BIN} network inspect "$network" >/dev/null 2>&1; then
 			log_info "Creating network: $network"
-			docker network create "$network"
+			${CRI_BIN} network create "$network"
 		else
 			log_info "Network '$network' already exists"
 		fi
@@ -242,7 +243,7 @@ wait_for_service() {
 	log_info "Waiting for $service_name to be healthy..."
 
 	while [[ $attempt -le $max_attempts ]]; do
-		if docker ps --filter "name=$service_name" --filter "health=healthy" --format "table {{.Names}}" | grep -q "$service_name"; then
+		if ${CRI_BIN} ps --filter "name=$service_name" --filter "health=healthy" --format "table {{.Names}}" | grep -q "$service_name"; then
 			log_success "$service_name is healthy"
 			return 0
 		fi
@@ -265,7 +266,7 @@ wait_for_running() {
 	log_info "Waiting for $service_name to be running..."
 
 	while [[ $attempt -le $max_attempts ]]; do
-		if docker ps --filter "name=$service_name" --filter "status=running" --format "table {{.Names}}" | grep -q "$service_name"; then
+		if ${CRI_BIN} ps --filter "name=$service_name" --filter "status=running" --format "table {{.Names}}" | grep -q "$service_name"; then
 			log_success "$service_name is running"
 			return 0
 		fi
@@ -289,7 +290,7 @@ start_stack() {
 	log_info "Starting $stack_name stack..."
 
 	cd "$stack_dir"
-	docker compose up -d
+	${CRI_BIN} compose up -d
 	cd - >/dev/null
 
 	# Wait for services to be ready
@@ -311,7 +312,7 @@ start_stack() {
 show_status() {
 	log_info "Current service status:"
 	echo ""
-	docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep -E "(registry|traefik|authentik|minio|mimir|grafana|loki|tempo|alloy|plex|radarr|sonarr)"
+	${CRI_BIN} ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep -E "(registry|traefik|authentik|minio|mimir|grafana|loki|tempo|alloy|plex|radarr|sonarr)"
 	echo ""
 }
 
