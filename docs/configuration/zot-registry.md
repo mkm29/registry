@@ -1,77 +1,111 @@
 # Zot Registry Configuration
 
-Zot is configured via `zot/config/zot-config.yaml`. For detailed configuration options, see the [Zot documentation](https://zotregistry.dev).
+Zot v2.1.15 is configured via `config/zot/config.json`. For detailed configuration options, see the [Zot documentation](https://zotregistry.dev).
 
 ## Key Configuration Settings
 
-Our configuration (`zot/config/zot-config.yaml`) includes:
+Our configuration (`config/zot/config.json`) includes:
 
 ### Storage Configuration
 
-```yaml
-storage:
-  rootDirectory: /var/lib/zot
-  gc: true                               # Enable garbage collection
+Registry blobs are stored at `~/.config/containers/storage` (local SSD), mounted into the container:
+
+```json
+{
+  "storage": {
+    "rootDirectory": "/var/lib/zot",
+    "gc": true
+  }
+}
 ```
 
 ### HTTP Configuration
 
-```yaml
-http:
-  address: 0.0.0.0
-  port: '5000'                           # Main API port
-  externalUrl: https://registry.smigula.io  # External URL for reverse proxy
-  # Authentication is now handled externally by Authentik through Traefik
-  # No local authentication is configured
-log:
-  level: info
+Zot binds to `127.0.0.1:5000` (loopback only) and uses TLS with cfssl-generated certificates mounted from `services/certs/`:
+
+```json
+{
+  "http": {
+    "address": "127.0.0.1",
+    "port": "5000",
+    "externalUrl": "https://registry.smigula.io",
+    "tls": {
+      "cert": "/certs/server.pem",
+      "key": "/certs/server-key.pem",
+      "cacert": "/certs/ca.pem"
+    }
+  },
+  "log": {
+    "level": "info"
+  }
+}
 ```
 
 ### Multi-Registry Sync Configuration
 
-```yaml
-extensions:
-  sync:
-    enable: true
-    credentialsFile: /etc/zot/credentials.yaml
-    registries:
-      - urls: ['https://registry-1.docker.io']
-        onDemand: true                   # Pull images only when requested
-        content:
-          - prefix: '**'
-            destination: /docker         # Access via localhost:5000/docker/<image>
-      - urls: ['https://ghcr.io']
-        onDemand: true
-        content:
-          - prefix: '**'
-            destination: /ghcr           # Access via localhost:5000/ghcr/<image>
-      - urls: ['https://gcr.io']
-        onDemand: true
-        content:
-          - prefix: '**'
-            destination: /gcr            # Access via localhost:5000/gcr/<image>
-      # Additional registries: quay.io, registry.k8s.io
+Upstream registry credentials are sourced from `secrets/all.env.dec` (aggregated env). Images are pulled through the local registry cache using paths like `registry.smigula.io/docker/...`, `registry.smigula.io/ghcr/...`:
+
+```json
+{
+  "extensions": {
+    "sync": {
+      "enable": true,
+      "registries": [
+        {
+          "urls": ["https://registry-1.docker.io"],
+          "onDemand": true,
+          "content": [
+            { "prefix": "**", "destination": "/docker" }
+          ]
+        },
+        {
+          "urls": ["https://ghcr.io"],
+          "onDemand": true,
+          "content": [
+            { "prefix": "**", "destination": "/ghcr" }
+          ]
+        },
+        {
+          "urls": ["https://gcr.io"],
+          "onDemand": true,
+          "content": [
+            { "prefix": "**", "destination": "/gcr" }
+          ]
+        }
+      ]
+    }
+  }
+}
 ```
 
 ### Extensions
 
-```yaml
-extensions:
-  search:
-    enable: true                         # Enable search functionality
-  ui:
-    enable: true                         # Enable web UI
-  metrics:
-    enable: true                         # Prometheus metrics
-    prometheus:
-      path: /metrics
-  scrub:
-    enable: true                         # Enable image vulnerability scanning
-    interval: "24h"
+```json
+{
+  "extensions": {
+    "search": { "enable": true },
+    "ui": { "enable": true },
+    "metrics": {
+      "enable": true,
+      "prometheus": { "path": "/metrics" }
+    },
+    "scrub": {
+      "enable": true,
+      "interval": "24h"
+    }
+  }
+}
 ```
+
+## Management
+
+- List repositories: `task registry:list`
+- View logs: `task logs SERVICE=zot` or `podman logs zot-registry`
+- Container name: `zot-registry`
+- Default runtime: Podman
 
 ## Configuration Files
 
-- **Main Config**: [`zot/config/config.yaml`](../../zot/config/config.yaml)
-- **Credentials**: [`zot/config/credentials.yaml`](../../zot/config/credentials.yaml) (git ignored)
-- **Docker Compose**: [`zot/docker-compose.yaml`](../../zot/docker-compose.yaml)
+- **Main Config**: [`config/zot/config.json`](../../config/zot/config.json)
+- **Credentials**: [`secrets/all.env.dec`](../../secrets/all.env.dec) (aggregated env, git ignored)
+- **Compose Service**: [`services/registry.yaml`](../../services/registry.yaml)

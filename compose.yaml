@@ -1,0 +1,23 @@
+name: smigula-home-server
+
+include:
+  - path: services/registry.yaml
+  - path: services/traefik.yaml
+  - path: services/auth.yaml
+  - path: services/storage.yaml
+  - path: services/monitoring.yaml
+  - path: services/mediaserver.yaml
+  - path: services/recyclarr.yaml
+
+networks:
+  proxy:
+    name: traefik_net
+    external: true
+  internal:
+    name: internal_net
+  monitoring:
+    name: monitoring_net
+    external: true
+  registry:
+    name: registry_net
+    external: true

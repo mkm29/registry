@@ -1,622 +1,350 @@
-# Multi-Stack Container Infrastructure
+# smigula-home-server
 
-This repository provides a comprehensive, production-ready container infrastructure with six integrated Docker Compose stacks for identity management, observability, storage, registry services, and media automation. The architecture emphasizes security, observability, and operational excellence.
-
-## Infrastructure Stacks
-
-- **Authentication Stack** (`auth/`): Authentik identity provider with PostgreSQL and Redis
-- **Traefik Stack** (`traefik/`): Reverse proxy with automatic SSL termination and service discovery
-- **Monitoring Stack** (`monitoring/`): Complete observability platform with Mimir cluster, Grafana, Loki, Tempo, and Alloy
-- **Storage Stack** (`minio/`): S3-compatible object storage for monitoring backends
-- **Registry Stack** (`zot/`): OCI-compliant container registry with pull-through caching
-- **Media Stack** (`mediaserver/`): Automated media server with Plex and content management
-
-The infrastructure uses external Docker networks for service isolation, Traefik for centralized ingress, and Authentik for unified authentication across all services.
-
-## Table of Contents
-
-- [Multi-Stack Container Infrastructure](#multi-stack-container-infrastructure)
-  - [Infrastructure Stacks](#infrastructure-stacks)
-  - [Table of Contents](#table-of-contents)
-  - [Architecture Overview](#architecture-overview)
-    - [Overall Infrastructure Architecture](#overall-infrastructure-architecture)
-    - [Key Features](#key-features)
-  - [Prerequisites](#prerequisites)
-    - [System Requirements](#system-requirements)
-    - [Required Software](#required-software)
-    - [Port Requirements](#port-requirements)
-    - [Storage Structure](#storage-structure)
-  - [Rootless Docker Setup](#rootless-docker-setup)
-  - [Stack Documentation](#stack-documentation)
-    - [Individual Stack Guides](#individual-stack-guides)
-  - [Network Architecture](#network-architecture)
-  - [Registry Authentication](#registry-authentication)
-    - [Accessing the Registry](#accessing-the-registry)
-      - [Via HTTPS (External Access)](#via-https-external-access)
-      - [Via HTTP (Local Access)](#via-http-local-access)
-    - [Authentication Flow](#authentication-flow)
-  - [Available Commands](#available-commands)
-    - [Zot Registry Commands](#zot-registry-commands)
-    - [Monitoring Stack Commands](#monitoring-stack-commands)
-  - [Orchestrated Startup](#orchestrated-startup)
-    - [Automated Infrastructure Deployment](#automated-infrastructure-deployment)
-    - [Directory Management](#directory-management)
-    - [Secret Management](#secret-management)
-  - [Setup and Deployment](#setup-and-deployment)
-    - [Infrastructure Host Setup](#infrastructure-host-setup)
-    - [Prerequisites](#prerequisites-1)
-    - [Orchestrated Deployment](#orchestrated-deployment)
-      - [One-Command Infrastructure Deployment](#one-command-infrastructure-deployment)
-      - [Secret Management](#secret-management-1)
-  - [Configuration](#configuration)
-    - [Authentication](#authentication)
-    - [Reverse Proxy](#reverse-proxy)
-    - [TLS Certificates](#tls-certificates)
-    - [Registry Configuration](#registry-configuration)
-  - [Services Architecture](#services-architecture)
-    - [Core Services](#core-services)
-  - [Docker Compose Configuration](#docker-compose-configuration)
-  - [Testing and Monitoring](#testing-and-monitoring)
-    - [Testing the Registry](#testing-the-registry)
-    - [Monitoring and Observability](#monitoring-and-observability)
-  - [Security Considerations](#security-considerations)
-  - [Troubleshooting](#troubleshooting)
-  - [File Structure](#file-structure)
-  - [Performance Tuning](#performance-tuning)
-  - [References](#references)
+A containerized ecosystem orchestrating media automation, localized image caching, and full-stack observability. This architecture implements the **TRaSH Guides** media server with a hardened **Zero-Trust security model**, optimized for rootless execution on Linux and Proxmox environments.
 
 ## Architecture Overview
 
-This infrastructure provides a comprehensive, enterprise-grade container platform with the following capabilities:
+The system is built around a modular **Infrastructure as Code** approach, utilizing **Docker Compose v2.20+ `include`** to compose services from isolated definitions into a single orchestrated stack.
 
-### Overall Infrastructure Architecture
+```yaml
+# compose.yaml (root)
+name: smigula-home-server
+include:
+  - path: services/traefik.yaml
+  - path: services/auth.yaml
+  - path: services/storage.yaml
+  - path: services/monitoring.yaml
+  - path: services/mediaserver.yaml
+```
+
+### Infrastructure Diagram
 
 ```mermaid
 graph LR
-    subgraph "External"
-        Internet[🌐 Internet<br/>Port 80/443]
-        Users[👥 Users]
+    subgraph External
+        Internet["Internet<br/>:80/:443"]
+        Registries["Docker Hub<br/>ghcr.io"]
     end
 
-    subgraph "Ingress"
-        Traefik[🚦 Traefik<br/>Reverse Proxy<br/>+ SSL]
+    subgraph "smigula-home-server"
+        Traefik["Traefik v3<br/>Reverse Proxy"]
+        Auth["Authentik<br/>SSO"]
+        Monitoring["Observability<br/>Grafana &bull; Mimir<br/>Loki &bull; Tempo &bull; Alloy"]
+        Storage["MinIO<br/>S3 Storage"]
+        Media["Media Stack<br/>Radarr &bull; Sonarr &bull; Plex"]
+        Registry["Zot Registry<br/>127.0.0.1:5000"]
     end
 
-    subgraph "Core Services"
-        Auth[🔐 Authentik<br/>Identity Provider]
-        Monitor[📊 Monitoring<br/>Grafana + LGTM Stack]
-        Registry[📦 Zot Registry<br/>Container Images]
-        Storage[💾 MinIO<br/>S3 Storage]
-        Media[🎬 Plex Stack<br/>Media Automation]
-    end
-
-    subgraph "External Sources"
-        DockerHub[🐳 Docker Hub]
-        MediaSources[📺 Media Sources]
-    end
-
-    %% Main flow
     Internet --> Traefik
-    Users --> Traefik
-
-    %% Service routing
     Traefik --> Auth
-    Traefik --> Monitor
-    Traefik --> Registry
+    Traefik --> Monitoring
     Traefik --> Storage
     Traefik --> Media
+    Traefik --> Registry
 
-    %% Authentication flow
-    Auth -.->|SSO| Monitor
-    Auth -.->|SSO| Registry
-    Auth -.->|SSO| Storage
+    Auth -.->|SSO| Monitoring
     Auth -.->|SSO| Media
+    Monitoring -->|S3| Storage
+    Registry -->|pull-through cache| Registries
 
-    %% Data dependencies
-    Monitor --> Storage
-    Registry --> DockerHub
-    Media --> MediaSources
-
-    %% Styling
     classDef external fill:#ffebee,stroke:#d32f2f,stroke-width:2px,color:#424242
-    classDef ingress fill:#e3f2fd,stroke:#1976d2,stroke-width:3px,color:#424242
-    classDef core fill:#e8f5e8,stroke:#388e3c,stroke-width:2px,color:#424242
-    classDef sources fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#424242
+    classDef proxy fill:#e3f2fd,stroke:#1976d2,stroke-width:3px,color:#424242
+    classDef service fill:#e8f5e9,stroke:#388e3c,stroke-width:2px,color:#424242
 
-    class Internet,Users external
-    class Traefik ingress
-    class Auth,Monitor,Registry,Storage,Media core
-    class DockerHub,MediaSources sources
+    class Internet,Registries external
+    class Traefik proxy
+    class Auth,Monitoring,Storage,Media,Registry service
 ```
 
-### Key Features
+### Service Domains
 
-- **Unified Authentication**: Authentik provides SSO across all services
-- **Automatic HTTPS**: Traefik with Let's Encrypt certificate automation
-- **Complete Observability**: Grafana LGTM stack with Mimir clustering
-- **Container Registry**: OCI-compliant registry with pull-through caching
-- **S3 Storage**: MinIO provides scalable object storage
-- **Media Automation**: Complete Plex-based media management pipeline
-- **Production-Ready**: Resource limits, health checks, and persistent storage
+- **Registry (Zot):** Local OCI mirror and pull-through cache (Docker Hub, ghcr.io), bound to `127.0.0.1:5000` for loopback-only access. Uses cfssl-generated TLS and stores blobs on local SSD for high-throughput pulls.
+- **Media (Starr Apps + Plex):** Fully compliant with TRaSH Guides' "One Folder to Rule Them All" philosophy. A single `/data` mount point facilitates **Hardlinks and Atomic Moves**, eliminating redundant disk I/O.
+- **Observability (LGTM):** Centralized telemetry pipeline (Loki, Grafana, Tempo, Mimir) with **Grafana Alloy** and **cAdvisor** collectors. Long-term storage backed by **MinIO S3**. Includes **Dozzle** for real-time log viewing.
+- **Identity (Authentik):** Centralized SSO and user management (PostgreSQL 16 + Redis 8.2 backend).
+- **Proxy (Traefik v3):** Hardened reverse proxy with file-based dynamic configuration, OpenTelemetry tracing, and automatic HTTPS via Let's Encrypt.
 
-> [!NOTE]
-> ⚠️ **Development Deployment Mode**: The monitoring components (Grafana Loki, Mimir, and Alloy) in this stack are deployed in **monolithic mode** intended only for development and testing environments.
->
-> For production deployments, these components should be deployed on Kubernetes with appropriate scaling and high availability configurations:
->
-> - **Grafana Mimir**: See [deployment modes documentation](https://grafana.com/docs/mimir/latest/references/architecture/deployment-modes/) for microservices and distributed architectures
-> - **Grafana Loki**: See [deployment modes documentation](https://grafana.com/docs/loki/latest/get-started/deployment-modes/) for scalable production configurations
+## Project Structure
 
-The current Docker Compose setup provides a complete development environment but lacks the redundancy, scaling, and operational features required for production workloads.
-
-## Prerequisites
-
-### System Requirements
-
-- **Hardware**: Minimum 8GB RAM, 50GB free disk space
-- **Operating System**: Linux (Ubuntu 20.04+ recommended) or macOS with Docker support
-- **Docker**: Docker Engine 24.0+ with Docker Compose v2
-- **Network**: Internet connectivity for image pulls and certificate generation
-
-### Required Software
-
-- **Docker Engine**: Latest stable version with compose plugin
-- **Git**: For repository management
-- **Make**: For automation commands (optional)
-
-### Port Requirements
-
-The following ports should be available on your system:
-
-| Port      | Service   | Description             |
-| --------- | --------- | ----------------------- |
-| 80/443    | Traefik   | HTTP/HTTPS ingress      |
-| 8080      | Traefik   | Dashboard               |
-| 9008/9443 | Authentik | Identity provider       |
-| 3000      | Grafana   | Visualization dashboard |
-| 9009      | Mimir     | Metrics storage         |
-| 3100      | Loki      | Log aggregation         |
-| 3200      | Tempo     | Distributed tracing     |
-| 5000      | Zot       | Container registry      |
-| 9000/9001 | MinIO     | Object storage          |
-| 32400     | Plex      | Media server            |
-
-### Storage Structure
-
-The infrastructure automatically creates the following directory structure:
-
-```bash
-/mnt/data/
-├── postgres/              # PostgreSQL data
-├── redis/                 # Redis data
-├── mimir-{1,2,3}/         # Mimir cluster data
-├── grafana/               # Grafana data and exports
-│   ├── csv/               # CSV exports
-│   ├── dashboards/        # Dashboard storage
-│   ├── pdf/               # PDF exports
-│   ├── plugins/           # Plugin data
-│   └── png/               # PNG exports
-├── zot/                   # Registry storage
-├── minio/                 # MinIO object storage
-├── media/                 # Media storage
-│   ├── media/             # Media files
-│   └── torrents/          # Torrent downloads
-└── logs/                  # Application logs
-    └── traefik/           # Traefik access logs
-
-/mnt/filestore/data/       # Configurable mediaserver data (via DATA_ROOT)
-├── media/
-│   ├── movies/            # Movie library
-│   └── tv/                # TV show library
-└── torrents/
-    ├── movies/            # Movie downloads
-    ├── tv/                # TV downloads
-    └── incomplete/        # Incomplete downloads
-
-/mnt/filestore/config/     # Configurable mediaserver config (via CONFIG_ROOT)
-├── radarr/                # Radarr configuration
-├── sonarr/                # Sonarr configuration
-├── bazarr/                # Bazarr configuration
-├── prowlarr/              # Prowlarr configuration
-├── qbittorrent/           # qBittorrent configuration
-├── overseerr/             # Overseerr configuration
-└── plex/                  # Plex configuration
 ```
-
-All directories are automatically created with proper ownership when running `./run.sh`.
-
-## Rootless Docker Setup
-
-For detailed Docker installation and configuration, see the [Rootless Docker Setup Guide](docs/configuration/rootless-docker.md).
-
-## Stack Documentation
-
-### Individual Stack Guides
-
-- **[Traefik Stack](docs/stacks/traefik.md)** - Reverse proxy with automatic HTTPS
-- **[Authentication Stack](docs/stacks/authentik.md)** - Unified identity provider with SSO
-- **[Monitoring Stack](docs/stacks/monitoring.md)** - Complete observability platform
-- **[Storage Stack](docs/stacks/storage.md)** - S3-compatible object storage
-- **[Registry Stack](docs/stacks/registry.md)** - OCI-compliant container registry
-- **[Media Stack](docs/stacks/media.md)** - Automated media server with Plex
+.
+├── compose.yaml                 # Root orchestrator (include-based)
+├── Taskfile.yml                 # Task runner (replaces Makefile/run.sh)
+├── .env                         # Non-sensitive base environment variables
+├── .sops.yaml                   # SOPS encryption rules (AGE key)
+│
+├── services/                    # Compose service definitions
+│   ├── registry.yaml            #   Zot OCI registry
+│   ├── traefik.yaml             #   Traefik + landing page
+│   ├── auth.yaml                #   Authentik (postgres, redis, server, worker)
+│   ├── storage.yaml             #   MinIO S3 storage
+│   ├── monitoring.yaml          #   LGTM stack + cAdvisor + Dozzle
+│   ├── mediaserver.yaml         #   Radarr, Sonarr, Plex
+│   ├── certs/                   #   Generated TLS certificates (gitignored)
+│   └── cfssl/                   #   Certificate authority configs
+│
+├── config/                      # Unified configuration
+│   ├── zot/                     #   Registry config + daemon.json
+│   ├── traefik/                 #   Static config + dynamic/ providers
+│   ├── grafana/                 #   Provisioning, dashboards, alerts
+│   ├── alloy/                   #   Telemetry collector config
+│   ├── loki/                    #   Log aggregator config
+│   └── mimir/                   #   Metrics backend config + nginx
+│
+├── secrets/                     # SOPS-encrypted environment files
+│   ├── *.env.enc                #   Encrypted (committed to git)
+│   └── *.env.dec                #   Decrypted (gitignored, transient)
+│
+├── shared/                      # Shared resources (Tempo config, landing HTML)
+├── cfssl/                       # Certificate authority definitions
+├── docs/                        # Documentation (guides, stacks, configuration)
+└── scripts/                     # Helper scripts (MinIO setup, etc.)
+```
 
 ## Network Architecture
 
-The infrastructure uses external Docker networks for service isolation:
+Three core networks isolate traffic domains, defined centrally in `compose.yaml`:
+
+| Network | Name | Type | Purpose |
+|---------|------|------|---------|
+| `proxy` | `traefik_net` | External | Public-facing services routed through Traefik |
+| `internal` | `internal_net` | Local | Inter-service communication (Starr apps) |
+| `monitoring` | `monitoring_net` | External | Observability stack isolation |
+
+Individual service files also define stack-private networks (e.g., `auth`, `registry`) for internal dependencies like PostgreSQL and Redis.
 
 ```mermaid
 graph LR
-    subgraph "External Networks"
-        Internet[Internet<br/>Port 80/443]
-        DNS[DNS Provider<br/>Let's Encrypt DNS-01]
+    subgraph "External Traffic"
+        Internet["Internet<br/>Port 80/443"]
+        DNS["DNS + ACME<br/>Let's Encrypt"]
     end
 
-    subgraph "Traefik Network"
-        TraefikNet[traefik_default<br/>Overlay Network]
+    subgraph "traefik_net (proxy)"
+        direction TB
+        TraefikSvc["Traefik<br/>Connected to all networks"]
+        LandingSvc["Landing"]
+        GrafanaSvc["Grafana"]
+        ZotSvc["Zot Registry"]
+        MinIOSvc["MinIO"]
+        RadarrSvc["Radarr"]
+        SonarrSvc["Sonarr"]
+        PlexSvc["Plex"]
+        AuthentikSvc["Authentik"]
     end
 
-    subgraph "Internal Networks"
-        AuthNet[auth_default<br/>Auth Stack Network]
-        MonNet[monitoring_default<br/>Monitoring Network]
-        StorageNet[storage_default<br/>MinIO Network]
-        RegistryNet[registry_default<br/>Zot Network]
-        MediaNet[media_default<br/>Media Stack Network]
+    subgraph "monitoring_net"
+        MimirSvc["Mimir"]
+        LokiSvc["Loki"]
+        TempoSvc["Tempo"]
+        AlloySvc["Alloy"]
+        cAdvisorSvc["cAdvisor"]
+        DozzleSvc["Dozzle"]
     end
 
-    subgraph "Service Connections"
-        TraefikSvc[Traefik Container<br/>Connected to ALL networks]
-        AuthSvc[Authentik Services]
-        MonSvc[Monitoring Services]
-        StorageSvc[MinIO Services]
-        RegistrySvc[Zot Services]
-        MediaSvc[Media Services]
+    subgraph "internal_net"
+        RadarrInt["Radarr"]
+        SonarrInt["Sonarr"]
     end
 
-    Internet --> TraefikNet
-    DNS --> TraefikNet
+    subgraph "auth (private)"
+        PostgresSvc["PostgreSQL"]
+        RedisSvc["Redis"]
+    end
 
-    TraefikNet --> TraefikSvc
-    AuthNet --> TraefikSvc
-    MonNet --> TraefikSvc
-    StorageNet --> TraefikSvc
-    RegistryNet --> TraefikSvc
-    MediaNet --> TraefikSvc
+    subgraph "registry (private)"
+        ZotInt["Zot"]
+    end
 
-    AuthNet --> AuthSvc
-    MonNet --> MonSvc
-    StorageNet --> StorageSvc
-    RegistryNet --> RegistrySvc
-    MediaNet --> MediaSvc
+    %% External ingress
+    Internet --> TraefikSvc
+    DNS --> TraefikSvc
 
-    MonSvc -.->|S3 API| StorageSvc
-    AuthSvc -.->|SSO| MonSvc
-    RegistrySvc -.->|External| Internet
+    %% Traefik routes to proxy-network services
+    TraefikSvc --> LandingSvc
+    TraefikSvc --> GrafanaSvc
+    TraefikSvc --> ZotSvc
+    TraefikSvc --> MinIOSvc
+    TraefikSvc --> AuthentikSvc
+    TraefikSvc --> RadarrSvc
+    TraefikSvc --> SonarrSvc
+    TraefikSvc --> PlexSvc
 
+    %% Cross-network connections
+    GrafanaSvc ---|monitoring_net| MimirSvc
+    GrafanaSvc ---|monitoring_net| LokiSvc
+    GrafanaSvc ---|monitoring_net| TempoSvc
+    MinIOSvc ---|monitoring_net| MimirSvc
+
+    %% Auth private network
+    AuthentikSvc ---|auth| PostgresSvc
+    AuthentikSvc ---|auth| RedisSvc
+
+    %% Internal media network
+    RadarrSvc ---|internal_net| RadarrInt
+    SonarrSvc ---|internal_net| SonarrInt
+
+    %% Telemetry collection
+    AlloySvc -.->|scrape| cAdvisorSvc
+    AlloySvc -.->|push| MimirSvc
+    AlloySvc -.->|push| LokiSvc
+    AlloySvc -.->|push| TempoSvc
+
+    %% S3 storage
+    MimirSvc -.->|S3 API| MinIOSvc
+    LokiSvc -.->|S3 API| MinIOSvc
+    TempoSvc -.->|S3 API| MinIOSvc
+
+    %% Styling
     classDef external fill:#ffebee,stroke:#c62828,stroke-width:3px,color:#424242
-    classDef network fill:#e3f2fd,stroke:#1976d2,stroke-width:2px,color:#424242
-    classDef service fill:#f1f8e9,stroke:#689f38,stroke-width:2px,color:#424242
+    classDef proxy fill:#e3f2fd,stroke:#1976d2,stroke-width:2px,color:#424242
+    classDef monitoring fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#424242
+    classDef internal fill:#e8f5e9,stroke:#388e3c,stroke-width:2px,color:#424242
+    classDef auth fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#424242
+    classDef registry fill:#fce4ec,stroke:#c62828,stroke-width:2px,color:#424242
 
     class Internet,DNS external
-    class TraefikNet,AuthNet,MonNet,StorageNet,RegistryNet,MediaNet network
-    class TraefikSvc,AuthSvc,MonSvc,StorageSvc,RegistrySvc,MediaSvc service
+    class TraefikSvc,LandingSvc,GrafanaSvc,ZotSvc,MinIOSvc,RadarrSvc,SonarrSvc,PlexSvc,AuthentikSvc proxy
+    class MimirSvc,LokiSvc,TempoSvc,AlloySvc,cAdvisorSvc,DozzleSvc monitoring
+    class RadarrInt,SonarrInt internal
+    class PostgresSvc,RedisSvc auth
+    class ZotInt registry
 ```
 
-## Registry Authentication
+## Storage Strategy
 
-Authentication is handled externally by Authentik through Traefik. The Zot registry itself does not require local authentication.
+The architecture uses a **Single-Drive Mount** strategy for data consistency while keeping performance-critical registry blobs on local SSD.
 
-### Accessing the Registry
+| Location | Purpose | Strategy |
+|----------|---------|----------|
+| `~/.config/containers/storage` | OCI Registry Blobs | Local SSD (high IOPS) |
+| `/mnt/media/data` | Torrents, Configs, Media Library | Atomic Moves / Hardlinks |
+| `/mnt/media/monitoring` | LGTM Backend Data (Loki, Tempo, Mimir, Grafana, Alloy) | Persistent telemetry storage |
+| `/mnt/media/logs/traefik` | Access Logs | JSON-formatted |
+| `/tmp/plex_transcode` | Plex Transcode Cache | RAM Disk / tmpfs |
 
-#### Via HTTPS (External Access)
+## Security & Identity
 
-```bash
-# Pull images through the registry (authentication handled by Traefik/Authentik)
-docker pull registry.smigula.io/docker/nginx:latest
+- **Rootless Orchestration:** Native support for rootless **Podman** (default) or Docker, reducing the host attack surface.
+- **PKI Management:** Tiered certificate chain (Root CA &rarr; Intermediate CA &rarr; Server) managed via **cfssl**. Certificates stored in `services/certs/` (gitignored).
+- **Secret Management:** Integrated **SOPS + Age** workflow. Individual `*.env.enc` files are decrypted and aggregated into a transient `secrets/all.env.dec` master file at runtime only.
+- **Network Isolation:** Services communicate only through explicitly declared Docker networks. Zot binds to loopback only (`127.0.0.1:5000`).
 
-# Push images to the registry
-docker tag myapp:latest registry.smigula.io/myapp:latest
-docker push registry.smigula.io/myapp:latest
-```
-
-#### Via HTTP (Local Access)
-
-```bash
-# For local development, you can also use localhost:5000
-docker pull localhost:5000/docker/nginx:latest
-```
-
-### Authentication Flow
-
-1. **External Access**: Traefik handles authentication via Authentik
-2. **Local Access**: Direct access to port 5000 bypasses authentication
-3. **Metrics Access**: Prometheus can access `/metrics` endpoint without authentication
-
-## Available Commands
-
-### Zot Registry Commands
-
-```bash
-# From the zot/ directory
-docker-compose up -d        # Start Zot registry
-docker-compose down         # Stop Zot registry
-docker-compose logs -f      # View Zot logs
-docker-compose ps           # Check Zot status
-
-# Registry API commands
-curl http://localhost:5000/v2/_catalog                    # List all repositories
-curl http://localhost:5000/v2/docker/nginx/tags/list      # List tags for a repository
-```
-
-### Monitoring Stack Commands
-
-```bash
-# From the monitoring/ directory
-docker-compose up -d        # Start monitoring stack
-docker-compose down         # Stop monitoring stack
-docker-compose logs -f      # View all monitoring logs
-docker-compose ps           # Check monitoring services status
-
-# View specific service logs
-docker-compose logs -f mimir
-docker-compose logs -f grafana
-docker-compose logs -f loki
-docker-compose logs -f tempo
-```
-
-## Orchestrated Startup
-
-### Automated Infrastructure Deployment
-
-The infrastructure includes a comprehensive orchestration script that handles the complete setup and deployment:
-
-```bash
-# One-command infrastructure startup
-./run.sh
-
-# The script performs the following operations:
-# 1. Pre-flight checks (Docker, required directories)
-# 2. Decrypt all SOPS-encrypted secrets
-# 3. Collect environment variables from all .env files
-# 4. Create all required infrastructure directories with proper ownership:
-#    - /mnt/data/* directories for all services
-#    - Mediaserver config and data directories
-#    - Proper ownership using current user UID/GID
-# 5. Create Docker networks for service isolation
-# 6. Start services in dependency order with health checks:
-#    zot → traefik → auth → minio → monitoring → mediaserver
-# 7. Wait for each service to be healthy before proceeding
-# 8. Display final status and access points
-```
-
-### Directory Management
-
-The orchestration script automatically handles directory creation and ownership:
-
-- **Infrastructure directories**: All `/mnt/data/*` directories are created with current user ownership
-- **Mediaserver directories**: Both config and data directories with configurable paths
-- **Proper permissions**: All directories created with appropriate ownership for container access
-- **No manual setup**: No need to manually create directories or set permissions
-
-### Secret Management
-
-Use the SOPS helper script for managing encrypted secrets:
-
-```bash
-# Decrypt all encrypted secrets in secrets/ directory
-./sops-helper.sh decrypt secrets
-
-# Encrypt all .dec files to .enc files
-./sops-helper.sh encrypt secrets
-
-# Collect all .env files into a single file
-./sops-helper.sh collect
-
-# Individual file operations
-./sops-helper.sh encrypt secrets/.authentik.env.dec
-./sops-helper.sh decrypt secrets/.authentik.env.enc
-```
-
-**File Extensions:**
-
-- `.dec` - Decrypted files (git ignored, for local use)
-- `.enc` - Encrypted files (committed to repository)
-
-**Automated Integration:**
-The `run.sh` script automatically calls the appropriate SOPS commands, so manual secret management is only needed for initial setup or when adding new secrets.
-
-## Setup and Deployment
-
-### Infrastructure Host Setup
-
-For comprehensive VM/host setup instructions including Docker installation and system configuration, see the [VM Setup Guide](docs/guides/vm-setup.md).
+## Getting Started
 
 ### Prerequisites
 
-1. **Infrastructure Host**: VM or physical machine with Docker support
-2. **SOPS and AGE setup**: Configure SOPS with AGE keys for secret management
-3. **Docker**: Install Docker with rootless mode (recommended)
-4. **Secrets**: Place encrypted secrets in the `secrets/` directory
+- **Container Runtime:** Podman 5.0+ or Docker CE 28.3+
+- **Utilities:** [Task](https://taskfile.dev/), [SOPS](https://github.com/getsops/sops), [cfssl](https://github.com/cloudflare/cfssl), and [Age](https://github.com/FiloSottile/age)
+- **Environment:** Age key located at `~/.config/sops/age/keys.txt`
+- **Hardware:** Minimum 8GB RAM, 50GB free disk space. Intel QuickSync optional (Plex transcoding).
 
-### Orchestrated Deployment
+### Initialization
 
-The infrastructure includes comprehensive automation scripts:
-
-#### One-Command Infrastructure Deployment
+Run the master initialization task to prepare the environment. This detects your host IP (from `vmbr0` or `eth0`), creates data directories, generates the PKI chain, and decrypts secrets.
 
 ```bash
-# Clone the repository
-git clone <repository-url>
-cd registry
-
-# Run the complete infrastructure
-./run.sh
+# Default interface is vmbr0; override with HOST_IFACE=eth0 if needed
+task init
 ```
 
-The `run.sh` script automatically:
+### Deployment
 
-- Verifies prerequisites and dependencies
-- Decrypts and prepares all secrets using SOPS
-- Creates all required directories with proper permissions
-- Sets up Docker networks for service isolation
-- Starts all services in dependency order with health checks
-- Provides access points and status information
-
-#### Secret Management
-
-Use the SOPS helper for managing encrypted secrets:
+The deployment follows a strictly sequenced bootstrap to ensure image availability through the local registry cache.
 
 ```bash
-# Decrypt all secrets
-./sops-helper.sh decrypt secrets
-
-# Encrypt all .dec files to .enc files
-./sops-helper.sh encrypt secrets
-
-# Collect all .env files into one file
-./sops-helper.sh collect
+task up
 ```
 
-**File Extensions:**
+The `up` task performs:
+1. **Zot registry** starts and waits for health check (`/v2/`)
+2. **MinIO** starts, waits for liveness, then runs bucket setup script
+3. **Remaining services** start together (`traefik`, `auth`, `monitoring`, `mediaserver`)
 
-- `.dec` - Decrypted files (git ignored, for local use)
-- `.enc` - Encrypted files (committed to repository)
+### Teardown
 
-For detailed setup instructions, see the [Quick Start Guide](docs/guides/quick-start.md).
-
-## Configuration
-
-### Authentication
-
-For complete Authentik identity provider setup and configuration, see the [Authentik Setup Guide](docs/guides/authentik-setup.md).
-
-For secret management with SOPS encryption, see the [SOPS Configuration Guide](docs/configuration/sops.md).
-
-### Reverse Proxy
-
-For Traefik reverse proxy setup and configuration, see the [Traefik Configuration Guide](docs/configuration/traefik.md).
-
-### TLS Certificates
-
-For TLS certificate generation with CFSSL, see the [CFSSL Configuration Guide](docs/configuration/cfssl.md).
-
-### Registry Configuration
-
-For detailed Zot registry configuration, see the [Zot Registry Configuration Guide](docs/configuration/zot-registry.md).
-
-For Zot OIDC authentication with Authentik, see the [Zot OIDC Setup Guide](docs/configuration/zot-oidc.md).
-
-## Services Architecture
-
-### Core Services
-
-- **Zot Registry** (port 5000): OCI-compliant registry with pull-through caching
-- **Grafana** (port 3000): Observability dashboards and visualization
-- **Grafana Mimir** (port 9009): Long-term metrics storage with S3 backend
-- **Grafana Tempo** (ports 3200, 4317, 4318): Distributed tracing system
-- **Grafana Loki** (port 3100): Log aggregation and querying
-- **Grafana Alloy** (port 12345): Unified observability data collector
-- **MinIO** (ports 9000, 9001): S3-compatible object storage backend
-
-For detailed service configurations, see the respective `docker-compose.yaml` files in each stack directory.
-
-## Docker Compose Configuration
-
-The project uses multiple docker-compose files for each stack:
-
-- **Zot Registry**: See [`zot/docker-compose.yaml`](zot/docker-compose.yaml)
-- **Monitoring Stack**: See [`monitoring/docker-compose.yaml`](monitoring/docker-compose.yaml)
-- **Traefik Proxy**: See [`traefik/docker-compose.yaml`](traefik/docker-compose.yaml)
-- **Authentication**: See [`auth/docker-compose.yaml`](auth/docker-compose.yaml)
-- **Storage**: See [`storage/docker-compose.yaml`](storage/docker-compose.yaml)
-- **Media Server**: See [`mediaserver/docker-compose.yaml`](mediaserver/docker-compose.yaml)
-
-## Testing and Monitoring
-
-### Testing the Registry
-
-For detailed testing procedures, see the [Testing Guide](docs/guides/testing.md).
-
-### Monitoring and Observability
-
-For monitoring setup and query examples, see the [Monitoring Guide](docs/guides/monitoring.md).
-
-## Security Considerations
-
-1. **Rootless Docker**: Provides better security isolation with user-namespace separation
-2. **Self-signed certificates**: Not suitable for production environments
-3. **Credentials**: Stored in `.env` file - ensure it's in `.gitignore`
-4. **Network isolation**: Internal service ports not exposed to host
-5. **TLS enforcement**: Minimum TLS 1.2 with strong cipher suites
-6. **Mutual TLS**: Prometheus authenticates to registry using client certificates
-7. **User services**: Alloy runs as user service with limited privileges
-8. **Socket access**: Rootless Docker socket has restricted access
-9. **Volume permissions**: Init containers ensure proper ownership
-
-## Troubleshooting
-
-For troubleshooting common issues, see the [Troubleshooting Guide](docs/guides/troubleshooting.md).
-
-## File Structure
-
-```text
-.
-├── zot/                          # Zot registry directory
-│   ├── docker-compose.yaml       # Zot service definition
-│   ├── auth/                     # Authentication files (if using local auth)
-│   │   └── (empty - auth handled externally)
-│   └── config/                   # Zot configuration files
-│       ├── config.yaml           # Main Zot configuration
-│       └── credentials.yaml      # Registry credentials (git ignored)
-├── monitoring/                   # Monitoring stack directory
-│   ├── docker-compose.yaml       # Monitoring services definition
-│   ├── .grafana-secrets.env      # Grafana credentials (git ignored)
-│   ├── .alloy-secrets.env        # Alloy secrets (git ignored)
-│   ├── mimir/                    # Mimir configuration
-│   │   └── config.yaml           # Mimir server configuration
-│   ├── loki/                     # Loki configuration
-│   │   └── loki-config.yaml      # Loki server configuration
-│   ├── grafana/                  # Grafana provisioning
-│   │   └── provisioning/
-│   │       ├── datasources/      # Pre-configured datasources
-│   │       └── dashboards/       # Pre-configured dashboards
-│   └── alloy/                    # Alloy configuration
-│       └── config.alloy          # Alloy collection config
-├── caddy/                        # Caddy reverse proxy
-│   ├── docker-compose.yaml       # Caddy service definition
-│   ├── Caddyfile                 # Caddy configuration
-│   └── logs/                     # Caddy access logs
-├── cfssl/                        # Certificate configurations (if needed)
-│   ├── ca.json                   # Root CA config
-│   ├── intermediate-ca.json      # Intermediate CA config
-│   ├── cfssl.json                # Certificate profiles
-│   └── registry.json             # Registry certificate config
-├── certs/                        # Generated certificates (git ignored)
-├── .gitignore                    # Git ignore patterns
-├── Makefile                      # Make commands (if using)
-└── README.md                     # This file
-
-# User-specific files (rootless Docker)
-~/.config/docker/daemon.json      # Docker daemon configuration
-~/.local/share/docker/            # Docker data directory
+```bash
+task down   # Stops all services and securely purges plaintext secrets
 ```
 
-## Performance Tuning
+## Taskfile Commands
 
-- **Cache size**: Adjust blob descriptor cache size for larger deployments
-- **Concurrent operations**: Modify `tag.concurrencylimit` based on load
-- **Storage driver**: Consider S3 or other drivers for production
-- **Resource limits**: Add CPU/memory limits in docker-compose.yaml
-- **Rootless optimizations**:
-  - Use cgroup delegation for better resource control
-  - Consider running critical services natively (like Alloy)
-  - Monitor resource usage with `docker stats`
+| Command | Action |
+|---------|--------|
+| `task init` | Full initialization: directories, PKI chain, secret aggregation |
+| `task up` | Sequenced deploy: Registry &rarr; MinIO &rarr; full stack |
+| `task down` | Stop all services and purge decrypted secrets |
+| `task certs:all` | Generate full SSL certificate chain (CA &rarr; Intermediate &rarr; Server) |
+| `task trust-ca` | Install CA cert into container runtime trust store |
+| `task secrets:decrypt` | Decrypt all `*.env.enc` files in `secrets/` |
+| `task secrets:collect` | Decrypt and merge all secrets into `secrets/all.env.dec` |
+| `task registry:list` | Query the Zot catalog (`/v2/_catalog`) |
+| `task logs SERVICE=grafana` | Follow logs for a specific service |
+| `task shell SERVICE=sonarr` | Shell into a running container |
+
+## Service Inventory
+
+| Service | Image | Port | Network(s) |
+|---------|-------|------|------------|
+| Zot Registry | `ghcr.io/project-zot/zot-linux-amd64:v2.1.15` | 5000 (loopback) | proxy, registry |
+| Traefik | `traefik:v3.6.9` | 80, 443, 8080 | proxy |
+| Authentik | `authentik:2026.2.1` | 9008, 9443 | proxy, auth |
+| PostgreSQL | `postgres:16` | &mdash; | auth |
+| Redis | `redis:8.2` | &mdash; | auth |
+| MinIO | `minio/minio` | 9000, 9001 | proxy, monitoring |
+| Mimir | `grafana/mimir:v3.0.3` | 9009 | monitoring |
+| Loki | `grafana/loki:v3.6.7` | 3100 | monitoring |
+| Tempo | `grafana/tempo:v2.10.1` | 3200, 4317, 4318 | monitoring |
+| Alloy | `grafana/alloy:v1.14.0` | 12345 | monitoring |
+| cAdvisor | `gcr.io/cadvisor/cadvisor:v0.54.1` | &mdash; | monitoring |
+| Dozzle | `amir20/dozzle:v9` | 9080 | monitoring |
+| Grafana | `grafana/grafana:v12.4` | 3000 | proxy, monitoring |
+| Radarr | `linuxserver/radarr:6.0.4` | 7878 | proxy, internal |
+| Sonarr | `linuxserver/sonarr:4.0.16` | 8989 | proxy, internal |
+| Plex | `linuxserver/plex:1.43.0` | 32400 | proxy |
+
+## TRaSH Compliance
+
+| Service | Internal Path | External Map | Logic |
+|---------|---------------|--------------|-------|
+| **Radarr/Sonarr** | `/data` | `/mnt/media/data` | Maps both downloads & media to 1 filesystem |
+| **qBittorrent** | `/data/torrents` | `/mnt/media/data/torrents` | Ensures Starr apps can see completed files |
+| **Plex** | `/data/media` | `/mnt/media/data/media` | Read-only access to organized libraries |
+
+### Hardware Acceleration
+
+Intel QuickSync is passed to Plex via `/dev/dri` device mapping. The orchestration layer handles the `VIDEO_GID` mapping and permissions required for rootless hardware transcoding.
+
+## Environment Variable Flow
+
+```
+.env (base, non-sensitive)
+    ↓
+secrets/*.env.enc (encrypted, committed)
+    ↓  task secrets:collect
+secrets/*.env.dec (decrypted, transient)
+    ↓  aggregated
+secrets/all.env.dec (master env, injected into services)
+```
+
+## Documentation
+
+- **[Quick Start Guide](docs/guides/quick-start.md)** &mdash; Getting started walkthrough
+- **[VM Setup Guide](docs/guides/vm-setup.md)** &mdash; Host/VM preparation
+- **[Authentik Setup](docs/guides/authentik-setup.md)** &mdash; Identity provider configuration
+- **[Monitoring Guide](docs/guides/monitoring.md)** &mdash; Observability setup and queries
+- **[Testing Guide](docs/guides/testing.md)** &mdash; Registry and service testing procedures
+- **[Troubleshooting](docs/guides/troubleshooting.md)** &mdash; Common issues and solutions
+- **[SOPS Configuration](docs/configuration/sops.md)** &mdash; Secret management details
+- **[Traefik Configuration](docs/configuration/traefik.md)** &mdash; Reverse proxy setup
+- **[Zot Registry](docs/configuration/zot-registry.md)** &mdash; Registry configuration
+- **[Zot OIDC](docs/configuration/zot-oidc.md)** &mdash; Registry SSO with Authentik
+- **[Rootless Docker](docs/configuration/rootless-docker.md)** &mdash; Rootless runtime setup
 
 ## References
 
-- [Zot Registry Documentation](https://zotregistry.dev)
-- [OCI Distribution Specification](https://github.com/opencontainers/distribution-spec)
-- [Rootless Docker Documentation](https://docs.docker.com/engine/security/rootless/)
-- [CFSSL Documentation](https://github.com/cloudflare/cfssl)
-- [Grafana Alloy Documentation](https://grafana.com/docs/alloy/)
-- [OpenTelemetry Registry Instrumentation](https://opentelemetry.io/)
-- [Loki LogQL Documentation](https://grafana.com/docs/loki/latest/logql/)
+- [Zot Registry](https://zotregistry.dev) | [OCI Distribution Spec](https://github.com/opencontainers/distribution-spec)
+- [Grafana Alloy](https://grafana.com/docs/alloy/) | [Loki LogQL](https://grafana.com/docs/loki/latest/logql/)
+- [Rootless Docker](https://docs.docker.com/engine/security/rootless/) | [Rootless Podman](https://github.com/containers/podman/blob/main/docs/tutorials/rootless_tutorial.md)
+- [TRaSH Guides](https://trash-guides.info/) | [cfssl](https://github.com/cloudflare/cfssl)
+- [Taskfile](https://taskfile.dev/) | [SOPS](https://github.com/getsops/sops) | [Age](https://github.com/FiloSottile/age)

@@ -6,24 +6,27 @@ This guide covers the complete setup and configuration of Authentik authenticati
 
 - Traefik stack running and accessible
 - Domain name configured (e.g., `auth.yourdomain.com`)
-- Docker networks created
+- Secrets decrypted (`task secrets:collect` aggregates all `secrets/*.env.enc` into `secrets/all.env.dec`)
 
 ## Initial Setup
 
-### 1. Create the auth network
+### 1. Start Authentik
+
+Networks are defined in the compose files and created automatically -- no manual network creation is needed.
+
+To bring up the full infrastructure (including Authentik):
 
 ```bash
-docker network create auth
+task up
 ```
 
-### 2. Start Authentik
+Or to start only the auth services from the project root:
 
 ```bash
-cd auth/
-docker compose up -d
+podman compose up -d server worker
 ```
 
-### 3. Complete initial setup
+### 2. Complete initial setup
 
 - Navigate to <https://auth.yourdomain.com/if/flow/initial-setup/>
 - Create the admin user (username: akadmin)
@@ -64,7 +67,7 @@ To protect a service with Authentik authentication, modify its router configurat
 
 ### Example: Protecting Grafana
 
-Edit `/traefik/config/dynamic/monitoring.yml`:
+Edit `config/traefik/config/dynamic/monitoring.yml`:
 
 ```yaml
 http:
@@ -124,13 +127,20 @@ In Authentik, you can:
 
 This project uses SOPS for secret management. See the [SOPS Configuration Guide](../configuration/sops.md) for details on:
 
-- Encrypting/decrypting `.secrets.env` files
+- Encrypting/decrypting `secrets/*.env.enc` files
 - AGE key management
 - Best practices for secret handling
 
+Secrets workflow:
+
+```bash
+task secrets:decrypt           # Decrypt individual .enc files to .dec
+task secrets:collect           # Aggregate all .dec files into secrets/all.env.dec
+```
+
 ## Environment Variables
 
-Key variables in `.secrets.env`:
+Key variables sourced from `secrets/all.env.dec` (aggregated from `secrets/*.env.enc`):
 
 - `PG_PASS`: PostgreSQL password (auto-generated)
 - `AUTHENTIK_SECRET_KEY`: Secret key for Authentik (auto-generated)
@@ -142,14 +152,16 @@ Key variables in `.secrets.env`:
 ### 1. Check Authentik logs
 
 ```bash
-docker logs authentik-server
-docker logs authentik-worker
+task logs SERVICE=server
+# or directly:
+podman logs auth-server
+podman logs auth-worker
 ```
 
 ### 2. Verify network connectivity
 
-- Ensure Traefik and Authentik are on the same `auth` network
-- Check that services can reach `authentik-server:9000`
+- Ensure Traefik and Authentik share the `proxy` network (defined in `compose.yaml`)
+- Check that services can reach `auth-server:9000`
 
 ### 3. Common issues
 
@@ -160,12 +172,12 @@ docker logs authentik-worker
 ### 4. SOPS-related issues
 
 - Verify AGE keys are properly configured
-- Check file format specifications for `.env` files
+- Run `task secrets:collect` to regenerate `secrets/all.env.dec` from the individual `secrets/*.env.enc` files
 - Ensure encrypted files are properly decrypted before starting services
 
 ## Architecture
 
-For detailed architecture information including Mermaid diagrams and service relationships, see the [Authentication Stack](../stacks/authentik.md) documentation.
+The auth service definition lives in `services/auth.yaml`. For detailed architecture information including Mermaid diagrams and service relationships, see the [Authentication Stack](../stacks/authentik.md) documentation.
 
 ## Related Documentation
 

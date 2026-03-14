@@ -2,50 +2,53 @@
 
 ## Overview
 
-This project uses SOPS with AGE encryption to manage secrets. The `.secrets.env` files are encrypted and stored as `.secrets.env.enc`.
+This project uses SOPS with AGE encryption to manage secrets. Secret files live in the centralized `secrets/` directory: encrypted files use the `.env.enc` extension (committed to git) and decrypted files use `.env.dec` (transient, gitignored).
 
 ## Initial Setup
 
 1. **Install SOPS and AGE**:
 
    ```bash
+   # macOS
    brew install sops age
+
+   # Linux (Debian/Ubuntu)
+   sudo apt install age
+   # Download SOPS binary from https://github.com/getsops/sops/releases
    ```
 
-2. **Generate AGE key** (if you don't have one):
+1. **Generate AGE key** (if you don't have one):
 
    ```bash
    age-keygen -o ~/.config/sops/age/keys.txt
    ```
 
-3. **Get your public key**:
+1. **Get your public key**:
 
    ```bash
    age-keygen -y ~/.config/sops/age/keys.txt
    ```
 
-## Encrypting Files
+## Encrypting and Decrypting Files
 
-For `.env` files, explicitly specify the format:
+Use the Taskfile commands for encryption and decryption:
 
 ```bash
-# Encrypt a .secrets.env file
-sops --encrypt --input-type dotenv --output-type dotenv auth/.secrets.env > auth/.secrets.env.enc
+# Decrypt all secrets in the secrets/ directory
+task secrets:decrypt
 
-# Or use the SOPS config (detects format from .sops.yaml)
-sops -e auth/.secrets.env > auth/.secrets.env.enc
+# Collect all decrypted secrets into a single aggregated file (secrets/all.env.dec)
+task secrets:collect
 ```
 
-## Decrypting Files
-
-The error "invalid character 'P' looking for beginning of value" occurs when SOPS tries to parse the encrypted file as JSON. For `.env` files, specify the format:
+If you need to run SOPS manually, specify the dotenv format explicitly:
 
 ```bash
-# Decrypt with explicit format (recommended)
-sops --decrypt --input-type dotenv --output-type dotenv auth/.secrets.env.enc > auth/.secrets.env
+# Encrypt
+sops --encrypt --input-type dotenv --output-type dotenv secrets/auth-secrets.env > secrets/auth-secrets.env.enc
 
-# Or use the short form
-sops -d --input-type dotenv auth/.secrets.env.enc > auth/.secrets.env
+# Decrypt
+sops --decrypt --input-type dotenv --output-type dotenv secrets/auth-secrets.env.enc > secrets/auth-secrets.env.dec
 ```
 
 ## Common Issues
@@ -68,20 +71,20 @@ sops -d --input-type dotenv auth/.secrets.env.enc > auth/.secrets.env
 ## Best Practices
 
 1. **Never commit decrypted files**:
-   Add to `.gitignore`:
+   The `.gitignore` already excludes decrypted secrets:
 
    ```bash
-   *.secrets.env
-   !*.secrets.env.enc
+   *.env.dec
    ```
 
-2. **Use consistent naming**:
+1. **Use consistent naming**:
 
-   - Secrets: `.secrets.env`
-   - Encrypted: `.secrets.env.enc`
+   - Encrypted (committed): `secrets/<service>-secrets.env.enc`
+   - Decrypted (transient): `secrets/<service>-secrets.env.dec`
+   - Aggregated master file: `secrets/all.env.dec`
 
-3. **Document required secrets**:
-   Create a `.secrets.env.example` with dummy values:
+1. **Document required secrets**:
+   Create a `secrets/<service>-secrets.env.example` with dummy values:
 
    ```bash
    POSTGRES_PASSWORD=changeme
@@ -94,8 +97,8 @@ The `.sops.yaml` file configures SOPS for this project:
 
 ```yaml
 creation_rules:
-  - path_regex: '.*\.secrets\.env$'
+  - path_regex: 'secrets/.*'
     age: age1chya88tugul5h37x7ptag9jn3gx6k5urnpf0pxp7uwf9jpc7eehqv9m250
 ```
 
-This automatically uses AGE encryption for any `.secrets.env` file.
+This automatically uses AGE encryption for any file under the `secrets/` directory, matching the `*-secrets.env` naming convention.

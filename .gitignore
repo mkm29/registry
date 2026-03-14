@@ -84,3 +84,4 @@ zot/config/*.secret
 # Keep encrypted versions
 !*-secrets.env.enc
 !.secrets.env.enc
+.claude

@@ -3,88 +3,62 @@
 ## Prerequisites
 
 - **Hardware**: Minimum 8GB RAM, 50GB free disk space
-- **Operating System**: Linux (Ubuntu 20.04+ recommended) or macOS with Docker support
-- **Docker**: Docker Engine 24.0+ with Docker Compose v2
-- **Network**: Internet connectivity for image pulls and certificate generation
+- **Operating System**: Linux (Ubuntu 20.04+ recommended)
+- **Container Runtime**: Podman 5.0+ (default) or Docker CE 28.3+
+- **Task**: [Task](https://taskfile.dev/) runner (preferred over Make)
+- **SOPS**: [Mozilla SOPS](https://github.com/getsops/sops) for secret management
+- **Age**: [Age](https://github.com/FiloSottile/age) encryption tool, with key at `~/.config/sops/age/keys.txt`
+- **cfssl**: [Cloudflare CFSSL](https://github.com/cloudflare/cfssl) for PKI certificate generation
+- **Network**: Internet connectivity for image pulls
 
 ## Installation Steps
 
-### 1. Set up credentials (optional)
+### 1. Clone the repository
 
 ```bash
-# Create credentials file for upstream registries (optional)
-cat <<EOF > zot/config/credentials.yaml
-registry-1.docker.io:
-  username: <your_docker_hub_username>
-  password: <your_docker_hub_password>
-ghcr.io:
-  username: <your_github_username>
-  password: <your_github_token>
-EOF
-
-# Set up Grafana credentials in monitoring directory
-cat <<EOF > monitoring/.env
-GF_SECURITY_ADMIN_USER=admin
-GF_SECURITY_ADMIN_PASSWORD=admin
-EOF
+git clone https://github.com/mkm29/registry.git
+cd registry
 ```
 
-### 2. Setup rootless Docker (if not already done)
+### 2. Initialize the environment
 
-Follow the [Rootless Docker Setup](../configuration/rootless-docker.md) guide.
-
-### 3. Start all services
+This creates required data directories, generates the full PKI certificate chain (CA, intermediate, and server certificates), and decrypts and aggregates all SOPS-encrypted secrets.
 
 ```bash
-# Start Zot registry
-cd zot
-docker-compose up -d
-
-# Start Traefik reverse proxy
-cd ../traefik
-docker-compose up -d
-
-# Start monitoring stack
-cd ../monitoring
-docker-compose up -d
-
-# Start authentication stack (optional)
-cd ../auth
-docker-compose up -d
-
-# Start storage stack
-cd ../storage
-docker-compose up -d
-
-# Start media stack (optional)
-cd ../mediaserver
-docker-compose up -d
+task init
 ```
 
-### 4. Configure Docker to use the registry
+### 3. Deploy the infrastructure
+
+This starts all services in the correct dependency order: Zot registry first (with a health-check gate), then MinIO (with a health-check gate and bucket initialization), and finally the remaining services.
+
+```bash
+task up
+```
+
+### 4. Configure your container runtime to use the registry
 
 ```bash
 # For external HTTPS access (authentication handled by Traefik/Authentik)
-docker login registry.yourdomain.com
+podman login registry.smigula.io
 
-# For local HTTP access (no authentication required)
-# First add to insecure registries - see "Configure Docker for Insecure Registry" section
-docker pull localhost:5000/docker/nginx:latest
+# For local TLS access (CA is trusted during `task init`)
+podman pull 127.0.0.1:5000/docker/nginx:latest
 ```
 
 ### 5. Access services
 
 ```bash
 # Check all running services
-docker ps
+podman ps
 ```
 
 ## Service URLs
 
-- **Zot Registry API (local)**: <http://localhost:5000/v2/> (no auth)
-- **Zot Registry API (external)**: <https://registry.yourdomain.com/v2/> (auth via Traefik/Authentik)
-- **Zot Web UI**: <http://localhost:5000/home>
-- **Grafana**: <http://localhost:3000> (admin/admin)
+- **Zot Registry API (local)**: <https://127.0.0.1:5000/v2/> (TLS-enabled)
+- **Zot Registry API (external)**: <https://registry.smigula.io/v2/> (auth via Traefik/Authentik)
+- **Zot Web UI**: <https://127.0.0.1:5000/home>
+- **Grafana**: <http://localhost:3000>
 - **Mimir**: <http://localhost:9009> (metrics storage)
 - **Tempo**: <http://localhost:3200> (tracing)
 - **MinIO Console**: <http://localhost:9001> (object storage)
@@ -94,9 +68,16 @@ docker ps
 ### 6. View logs in Grafana
 
 - Navigate to <http://localhost:3000>
-- Login with admin/admin
-- Go to Explore → Select Loki datasource
-- Try queries like `{container="registry"}` or `{job="docker_logs"}`
+- Go to Explore and select the Loki datasource
+- Try queries like `{container="zot-registry"}` or `{job="docker_logs"}`
+
+## Teardown
+
+To stop all services and purge decrypted secrets:
+
+```bash
+task down
+```
 
 ## Next Steps
 

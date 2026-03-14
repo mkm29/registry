@@ -18,14 +18,8 @@ graph TB
         Dozzle[Dozzle<br/>Real-time Log Viewer<br/>:8080]
     end
 
-    subgraph "Load Balancing"
-        NginxLB[Nginx Load Balancer<br/>:80 → Mimir Cluster<br/>Round Robin]
-    end
-
-    subgraph "Storage Backends - Mimir Cluster"
-        Mimir1[Mimir Node 1<br/>:8080]
-        Mimir2[Mimir Node 2<br/>:8080]
-        Mimir3[Mimir Node 3<br/>:8080]
+    subgraph "Metrics Storage"
+        Mimir1[Mimir<br/>:8080]
     end
 
     subgraph "Log & Trace Storage"
@@ -48,22 +42,16 @@ graph TB
     Metrics --> Alloy
     Apps --> Dozzle
 
-    Alloy -->|Metrics| NginxLB
+    Alloy -->|Metrics| Mimir1
     Alloy -->|Logs| Loki
     Alloy -->|Traces| Tempo
     cAdvisor --> Alloy
 
-    NginxLB --> Mimir1
-    NginxLB --> Mimir2
-    NginxLB --> Mimir3
-
     Mimir1 --> MinIO
-    Mimir2 --> MinIO
-    Mimir3 --> MinIO
     Loki --> MinIO
     Tempo --> MinIO
 
-    Grafana --> NginxLB
+    Grafana --> Mimir1
     Grafana --> Loki
     Grafana --> Tempo
 
@@ -71,29 +59,26 @@ graph TB
     classDef collector fill:#e8f5e8,stroke:#2e7d32,stroke-width:2px,color:#424242
     classDef storage fill:#e3f2fd,stroke:#1976d2,stroke-width:2px,color:#424242
     classDef visualization fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#424242
-    classDef loadbalancer fill:#fce4ec,stroke:#c2185b,stroke-width:2px,color:#424242
     classDef backend fill:#fff8e1,stroke:#ffa000,stroke-width:2px,color:#424242
 
     class Apps,Containers,Logs,Traces,Metrics source
     class Alloy,cAdvisor,Dozzle collector
-    class Mimir1,Mimir2,Mimir3,Loki,Tempo storage
+    class Mimir1,Loki,Tempo storage
     class Grafana visualization
-    class NginxLB loadbalancer
     class MinIO backend
 ```
 
 ## Key Features
 
 - Grafana LGTM stack (Loki, Grafana, Tempo, Mimir)
-- High-availability Mimir cluster with load balancing
+- Single-node Mimir instance for metrics storage
 - Unified data collection via Alloy
 - Container metrics collection with cAdvisor
 - Real-time log viewing with Dozzle
 
 ## Services
 
-- `mimir-1/2/3`: 3-node Mimir cluster for metrics
-- `mimir-lb`: Nginx load balancer for cluster
+- `mimir-1`: Single-node Mimir instance for metrics
 - `grafana`: Visualization and dashboards
 - `loki`: Log aggregation and querying
 - `tempo`: Distributed tracing
@@ -103,21 +88,22 @@ graph TB
 
 ## Configuration
 
-See [`monitoring/docker-compose.yaml`](../../monitoring/docker-compose.yaml) for the complete configuration.
+See [`services/monitoring.yaml`](../../services/monitoring.yaml) for the complete configuration.
 
 ## Management
 
 ```bash
-# From the monitoring/ directory
-docker-compose up -d        # Start monitoring stack
-docker-compose down         # Stop monitoring stack
-docker-compose logs -f      # View all monitoring logs
+# Start/stop monitoring stack
+task up                             # Start all services (includes monitoring)
+podman compose up -d grafana        # Start Grafana only
+podman compose down grafana         # Stop Grafana
 
-# View specific service logs
-docker-compose logs -f mimir
-docker-compose logs -f grafana
-docker-compose logs -f loki
-docker-compose logs -f tempo
+# View logs
+task logs SERVICE=grafana           # Follow Grafana logs
+task logs SERVICE=mimir-1           # Follow Mimir logs
+task logs SERVICE=loki              # Follow Loki logs
+task logs SERVICE=tempo             # Follow Tempo logs
+podman logs grafana                 # View Grafana container logs
 ```
 
 ## Access Points

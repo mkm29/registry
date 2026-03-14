@@ -19,7 +19,6 @@ graph TB
     subgraph "MinIO Stack"
         MinIO[MinIO Server<br/>:9000 S3 API<br/>:9001 Console]
         Console[MinIO Console<br/>Web Management]
-        MC[MinIO Client<br/>Setup & Admin]
 
         subgraph "Storage"
             Data[MinIO Data<br/>S3 Buckets]
@@ -38,7 +37,7 @@ graph TB
 
     subgraph "S3 Clients"
         LokiSvc[Loki<br/>Log Storage]
-        MimirSvc[Mimir Cluster<br/>Metrics Storage]
+        MimirSvc[Mimir<br/>Metrics Storage]
         TempoSvc[Tempo<br/>Trace Storage]
         RegistrySvc[Registry<br/>Image Storage]
     end
@@ -47,7 +46,6 @@ graph TB
     MinIO --> Credentials
     MinIO --> Policies
     Console --> MinIO
-    MC --> MinIO
 
     LokiSvc --> Loki
     MimirSvc --> Mimir
@@ -59,7 +57,7 @@ graph TB
     classDef data fill:#e8f5e8,stroke:#2e7d32,stroke-width:2px,color:#424242
     classDef clients fill:#e3f2fd,stroke:#1976d2,stroke-width:2px,color:#424242
 
-    class MinIO,Console,MC storage
+    class MinIO,Console storage
     class Credentials,Policies,Users config
     class Data,Loki,Mimir,Tempo,Registry data
     class LokiSvc,MimirSvc,TempoSvc,RegistrySvc clients
@@ -79,36 +77,30 @@ Currently configured to provide object storage for:
 1. **Start MinIO**:
 
    ```bash
-   docker compose up -d
+   task up                             # Start all services (includes MinIO)
+   podman compose up -d minio          # Start MinIO only
    ```
 
-2. **Verify MinIO is running**:
+1. **Verify MinIO is running**:
 
    ```bash
-   docker compose ps
-   docker logs minio
+   podman compose ps
+   podman logs minio
    ```
 
-3. **Initial Setup** (automated via run.sh):
+1. **Initial Setup** (automated via `task up`):
 
-   The `run.sh` script automatically handles MinIO setup as part of the infrastructure deployment.
+   The `scripts/setup-minio.sh` script automatically handles MinIO bucket and user setup as part of the `task up` deployment.
 
 ## Docker Compose Configuration
 
-The [`minio/docker-compose.yaml`](../../minio/docker-compose.yaml) defines two services:
+The [`services/storage.yaml`](../../services/storage.yaml) defines the MinIO service:
 
 1. **minio**: The MinIO server
 
    - Runs on ports 9000 (API) and 9001 (Console)
    - Connected to the `monitoring` network for service integration
    - Health checks via `/minio/health/live` endpoint
-   - Resource limits: 2 CPUs, 2GB memory
-
-2. **mc**: MinIO Client (initialization container)
-
-   - Automatically creates buckets and users on startup
-   - Configures policies for service-specific access
-   - Exits after initialization
 
 ## Network Configuration
 
@@ -141,11 +133,11 @@ MinIO is attached to the `monitoring` external network to allow communication wi
 
 Each service has its own user with bucket-specific permissions:
 
-| Service | Username  | Bucket | Policy       | Purpose                   |
+| Service | Username | Bucket | Policy | Purpose |
 | ------- | --------- | ------ | ------------ | ------------------------- |
-| Loki    | lokiuser  | loki   | loki-policy  | Log chunk storage         |
-| Mimir   | mimiruser | mimir  | mimir-policy | Metrics TSDB blocks       |
-| Tempo   | tempouser | tempo  | tempo-policy | Distributed trace storage |
+| Loki | lokiuser | loki | loki-policy | Log chunk storage |
+| Mimir | mimiruser | mimir | mimir-policy | Metrics TSDB blocks |
+| Tempo | tempouser | tempo | tempo-policy | Distributed trace storage |
 
 ## External Access
 
@@ -237,13 +229,13 @@ rsync -av /mnt/data/minio/ /backup/minio/
 
 ```bash
 # Stop MinIO
-docker compose down
+podman compose down minio
 
 # Restore data
 rsync -av /backup/minio/ /mnt/data/minio/
 
 # Start MinIO
-docker compose up -d
+podman compose up -d minio
 ```
 
 ## Troubleshooting
@@ -257,8 +249,8 @@ curl -f http://localhost:9000/minio/health/live
 ### View Logs
 
 ```bash
-docker logs minio
-docker logs minio-mc
+task logs SERVICE=minio
+podman logs minio
 ```
 
 ### Common Issues
@@ -268,12 +260,12 @@ docker logs minio-mc
    - Verify user has correct policy attached: `mc admin user info local username`
    - Check policy permissions: `mc admin policy info local policy-name`
 
-2. **Connection Refused**
+1. **Connection Refused**
 
-   - Ensure MinIO is on correct network: `docker inspect minio`
-   - Verify service is healthy: `docker ps`
+   - Ensure MinIO is on correct network: `podman inspect minio`
+   - Verify service is healthy: `podman compose ps`
 
-3. **DNS Resolution Issues**
+1. **DNS Resolution Issues**
 
    - Services must be on same Docker network
    - Use container name (minio) not localhost for inter-container communication
@@ -281,19 +273,25 @@ docker logs minio-mc
 ## Security Considerations
 
 1. **Change default credentials** in production using environment variables or `.env` file
-2. **Enable TLS** for MinIO API (currently handled by Traefik)
-3. **Implement bucket lifecycle policies** for data retention
-4. **Regular backups** of critical data
-5. **Monitor access logs** for unauthorized access attempts
+1. **Enable TLS** for MinIO API (currently handled by Traefik)
+1. **Implement bucket lifecycle policies** for data retention
+1. **Regular backups** of critical data
+1. **Monitor access logs** for unauthorized access attempts
 
 ## Management Commands
 
 ```bash
-# From the minio/ directory
-docker-compose up -d        # Start MinIO
-docker-compose down         # Stop MinIO
-docker-compose logs -f      # View logs
-docker-compose ps           # Check status
+# Start/stop MinIO
+task up                             # Start all services (includes MinIO)
+podman compose up -d minio          # Start MinIO only
+podman compose down minio           # Stop MinIO
+
+# View logs
+task logs SERVICE=minio             # Follow MinIO logs
+podman logs minio                   # View MinIO container logs
+
+# Check status
+podman compose ps
 ```
 
 ## Access Points

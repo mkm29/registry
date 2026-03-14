@@ -1,0 +1,44 @@
+services:
+  postgresql:
+    image: registry.smigula.io/docker/postgres:16-alpine
+    container_name: auth-db
+    env_file: [../secrets/all.env.dec]
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - auth
+
+  redis:
+    image: registry.smigula.io/docker/redis:8.2.1-alpine
+    container_name: auth-redis
+    networks:
+      - auth
+
+  server:
+    image: registry.smigula.io/ghcr/goauthentik/server:2026.2.1
+    container_name: auth-server
+    command: server
+    env_file: [../secrets/all.env.dec]
+    volumes:
+      - media-data:/media
+      - /run/user/1000/podman/podman.sock:/var/run/docker.sock
+    networks:
+      - auth
+      - proxy
+    depends_on: [postgresql, redis]
+
+  worker:
+    image: registry.smigula.io/ghcr/goauthentik/server:2026.2.1
+    container_name: auth-worker
+    command: worker
+    env_file: [../secrets/all.env.dec]
+    volumes:
+      - media-data:/media
+      - /run/user/1000/podman/podman.sock:/var/run/docker.sock
+    networks:
+      - auth
+    depends_on: [postgresql, redis]
+
+volumes:
+  postgres-data:
+  media-data:

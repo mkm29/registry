@@ -10,7 +10,7 @@ graph TB
 
         subgraph "Database Layer"
             PostgreSQL[PostgreSQL 16<br/>:5432<br/>User Database]
-            Redis[Redis 7<br/>:6379<br/>Session Cache]
+            Redis[Redis 8.2<br/>:6379<br/>Session Cache]
         end
 
         subgraph "Storage"
@@ -58,32 +58,37 @@ graph TB
 
 ## Services
 
-- `postgresql`: Primary database for user data
-- `redis`: Session cache and task queue
-- `server`: Main Authentik web application
-- `worker`: Background task processor
+- `auth-db`: PostgreSQL database for user data
+- `auth-redis`: Redis 8.2 session cache and task queue
+- `auth-server`: Main Authentik web application
+- `auth-worker`: Background task processor
 
 ## Configuration
 
-See [`auth/docker-compose.yaml`](../../auth/docker-compose.yaml) for the complete configuration.
+See [`services/auth.yaml`](../../services/auth.yaml) for the complete configuration.
 
 For detailed setup and configuration instructions, see the [Authentik Setup Guide](../guides/authentik-setup.md).
 
 ## Secret Management
 
-This stack uses SOPS for managing sensitive configuration. See the [SOPS Configuration Guide](../configuration/sops.md) for:
+This stack uses SOPS for managing sensitive configuration. Secrets are stored as `secrets/*.env.enc` files and decrypted at deploy time. See the [SOPS Configuration Guide](../configuration/sops.md) for:
 
-- Encrypting/decrypting `.secrets.env` files
+- Encrypting/decrypting `secrets/*.env.enc` files
 - AGE key management
 - Best practices for secret handling
 
 ## Management
 
 ```bash
-# From the auth/ directory
-docker-compose up -d        # Start authentication stack
-docker-compose down         # Stop authentication stack
-docker-compose logs -f      # View logs
+# Start/stop authentication stack
+task up                             # Start all services (includes auth)
+podman compose up -d auth-server    # Start auth server only
+podman compose down auth-server     # Stop auth server
+
+# View logs
+task logs SERVICE=auth-server       # Follow auth server logs
+podman logs auth-server             # View auth server container logs
+podman logs auth-worker             # View auth worker container logs
 ```
 
 ## Access Points

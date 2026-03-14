@@ -1,6 +1,6 @@
 # Traefik Configuration Guide
 
-This guide covers the Traefik reverse proxy configuration that provides automatic HTTPS, service discovery, and observability features.
+This guide covers the Traefik v3.6.9 reverse proxy configuration that provides automatic HTTPS, service discovery, and observability features.
 
 ## Key Features
 
@@ -11,64 +11,46 @@ This guide covers the Traefik reverse proxy configuration that provides automati
 - **Security Headers**: Implements comprehensive security headers
 - **Basic Authentication**: Protects sensitive services
 
-## Migration from Caddy
-
-### Key Differences
-
-1. **Configuration Structure**:
-
-   - Caddy: Single `Caddyfile`
-   - Traefik: Split into static (`traefik.yml`) and dynamic configurations
-
-2. **Service Discovery**:
-
-   - Caddy: Manual proxy configuration
-   - Traefik: Can use Docker labels OR file-based configuration
-
-3. **Logging**:
-
-   - Caddy: Per-domain log files
-   - Traefik: Centralized access and error logs (can be filtered by service)
-
-4. **OpenTelemetry Support**:
-
-   - Caddy: Limited native support
-   - Traefik: Full OTLP support with configurable sampling
-
-### File Structure
+## File Structure
 
 ```bash
-traefik/
-├── docker-compose.yaml     # Main compose file
-├── config/
-│   ├── traefik.yml        # Static configuration
-│   └── dynamic/           # Dynamic route configurations
-│       ├── monitoring.yml # Monitoring services
-│       ├── registry.yml   # Registry configuration
-│       ├── media.yml      # Media services
-│       ├── middleware.yml # Reusable middlewares
-│       └── metrics.yml    # Metrics endpoint
-└── logs/                  # Log files directory
+services/traefik.yaml          # Service definition
+config/traefik/
+├── traefik.yml                # Static configuration
+└── dynamic/                   # Dynamic route configurations
+    ├── monitoring.yml
+    ├── registry.yml
+    ├── media.yml
+    ├── middleware.yml
+    ├── metrics.yml
+    ├── authentik.yaml
+    ├── geoblock.yml
+    └── minio.yml
 ```
 
 ## Usage
 
-1. **Start Traefik**:
+1. **Start Traefik** (along with all services):
 
    ```bash
-   cd traefik
-   docker compose up -d
+   task up
    ```
 
-2. **View Logs**:
+   Or start Traefik individually from the project root:
 
    ```bash
-   docker logs traefik
-   # Or view log files
-   tail -f logs/access.log
+   podman compose up -d traefik
    ```
 
-3. **Access Dashboard**:
+1. **View Logs**:
+
+   ```bash
+   task logs SERVICE=traefik
+   ```
+
+   Log files are stored at `/mnt/media/logs/traefik/` (mounted as a volume).
+
+1. **Access Dashboard**:
 
    - URL: <https://traefik.smigula.io>
    - Credentials: Same as configured in basic auth
@@ -90,30 +72,19 @@ Traefik is configured to send traces to Alloy on port 4317 (OTLP gRPC). The conf
 ## Security Features
 
 1. **Automatic HTTPS redirect**: All HTTP traffic redirected to HTTPS
-2. **Security Headers**: HSTS, XSS Protection, Content-Type sniffing prevention
-3. **Basic Authentication**: For sensitive services (using same credentials as Caddy)
-4. **Rate Limiting**: Available as middleware (not enabled by default)
-
-## Differences in Behavior
-
-1. **Path Matching**: Traefik uses different syntax for path matching
-
-   - Caddy: `/path*`
-   - Traefik: `PathPrefix(\`/path\`)\`
-
-2. **Header Handling**: Traefik automatically adds X-Forwarded-\* headers
-
-3. **WebSocket Support**: Automatically detected and handled
+1. **Security Headers**: HSTS, XSS Protection, Content-Type sniffing prevention
+1. **Basic Authentication**: For sensitive services
+1. **Rate Limiting**: Available as middleware (not enabled by default)
 
 ## Troubleshooting
 
 1. **Certificate Issues**: Check `/letsencrypt/acme.json` permissions (should be 600)
-2. **Service Discovery**: Ensure services are on the correct Docker network
-3. **Configuration Errors**: Check `docker logs traefik` for validation errors
+1. **Service Discovery**: Ensure services are on the correct Docker network
+1. **Configuration Errors**: Check logs with `task logs SERVICE=traefik` for validation errors
 
 ## Adding New Services
 
-To add a new service, create a new file in `config/dynamic/` or add to existing file:
+To add a new service, create a new file in `config/traefik/dynamic/` or add to an existing file:
 
 ```yaml
 http:

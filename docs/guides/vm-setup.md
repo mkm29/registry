@@ -228,6 +228,8 @@ systemctl --user restart docker
 
 > **Note**: The `data-root` defaults to `~/.local/share/docker` for rootless Docker. This can be changed by setting the `data-root` option in the `daemon.json` file.
 
+> **Note**: If you are running the Zot registry with TLS enabled (the default), you can use `task trust-ca` to install the generated CA certificate into the Docker daemon's trusted certificate store, removing the need for `insecure-registries`.
+
 ## Development Tools
 
 ### 10. Install Rust
@@ -413,10 +415,13 @@ Optional: Add a cron job to periodically clear caches:
 
 After completing this VM setup, you can proceed with deploying the container infrastructure:
 
+1. Install [Task](https://taskfile.dev/) (task runner):
+   ```bash
+   sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b /usr/local/bin
+   ```
 1. Clone the infrastructure repository
-2. Configure SOPS and AGE for secret management
-3. Set up encrypted secrets in the `secrets/` directory
-4. Run the orchestrated infrastructure deployment with `./run.sh`
+1. Run `task init` to initialize the environment (generates certificates, creates networks, decrypts secrets)
+1. Run `task up` to deploy the full stack
 
 See the main [Quick Start Guide](quick-start.md) for infrastructure deployment instructions.
 

@@ -1,0 +1,14 @@
+services:
+  minio:
+    image: registry.smigula.io/docker/minio/minio:RELEASE.2025-09-07T16-13-09Z-cpuv1
+    container_name: minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    env_file: [../secrets/all.env.dec]
+    volumes:
+      - /mnt/data/minio:/data
+    networks: [monitoring, proxy]
+    healthcheck:
+      test:
+      interval: 30s
+      timeout: 10s

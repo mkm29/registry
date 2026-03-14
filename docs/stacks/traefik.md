@@ -10,8 +10,8 @@ graph TB
     end
 
     subgraph "Traefik Stack"
-        Traefik[Traefik v3.4<br/>:80/:443<br/>Dashboard :8080]
-        Landing[Landing Page<br/>Static HTML]
+        Traefik[Traefik v3.6.9<br/>:80/:443<br/>Dashboard :8080]
+        Landing[Landing Page<br/>nginx:1.29-alpine]
         Config[Dynamic Config<br/>File Provider]
     end
 
@@ -49,21 +49,25 @@ graph TB
 ## Services
 
 - `traefik`: Main reverse proxy container
-- `landing`: Static landing page with subdomain redirects
+- `landing`: Static landing page (nginx:1.29-alpine) with subdomain redirects
 
 ## Configuration
 
-See [`traefik/docker-compose.yaml`](../../traefik/docker-compose.yaml) for the complete configuration.
+See [`services/traefik.yaml`](../../services/traefik.yaml) for the complete configuration.
 
 For detailed Traefik setup and configuration, see the [Traefik Configuration Guide](../configuration/traefik.md).
 
 ## Management
 
 ```bash
-# From the traefik/ directory
-docker-compose up -d        # Start Traefik
-docker-compose down         # Stop Traefik
-docker-compose logs -f      # View logs
+# Start/stop Traefik
+task up                             # Start all services (includes Traefik)
+podman compose up -d traefik        # Start Traefik only
+podman compose down traefik         # Stop Traefik
+
+# View logs
+task logs SERVICE=traefik           # Follow Traefik logs
+podman logs traefik                 # View Traefik container logs
 ```
 
 ## Access Points

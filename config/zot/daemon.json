@@ -1,5 +1,5 @@
 {
-  "data-root": "/home/madmin/.config/containers/storage",
+  "data-root": "/home/mediaserver/.config/containers/storage",
   "builder": {
     "gc": {
       "defaultKeepStorage": "20GB",

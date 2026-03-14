@@ -27,52 +27,32 @@ docker pull localhost:5000/k8s/pause:3.9
 docker pull localhost:5000/k8s/coredns/coredns:v1.11.1
 ```
 
-### Configure Docker for Insecure Registry
+### Trust the Local CA for TLS
 
-Since Zot runs on HTTP (not HTTPS) by default, configure Docker to allow insecure access:
-
-#### Rootless Docker
+Zot now runs with TLS using cfssl-generated certificates. To pull images without certificate errors, install the local CA certificate:
 
 ```bash
-# Edit daemon configuration
-nano ~/.config/docker/daemon.json
+# Install the CA cert into the local trust store
+task trust-ca
 
-# Add localhost:5000 to insecure registries:
-{
-  "insecure-registries": ["localhost:5000"]
-}
-
-# Restart Docker
-systemctl --user restart docker
+# This copies ca.pem to ~/.config/containers/certs.d/ so that
+# both Podman and Docker trust the self-signed registry certificate.
 ```
 
-#### Regular Docker
-
-```bash
-# Edit daemon configuration
-sudo nano /etc/docker/daemon.json
-
-# Add configuration:
-{
-  "insecure-registries": ["localhost:5000"]
-}
-
-# Restart Docker
-sudo systemctl restart docker
-```
+After running `task trust-ca`, you can pull from `localhost:5000` over TLS without any insecure registry configuration.
 
 ## Test Registry Access
 
 1. **Access the Zot Web UI**:
 
-   Navigate to <http://localhost:5000/home> to access the Zot web interface where you can:
+   Navigate to <https://127.0.0.1:5000/home> to access the Zot web interface where you can:
 
    - Search for images
    - View repository details
    - Check image tags and manifests
    - Monitor sync status
 
-2. **Test pulling images**:
+1. **Test pulling images**:
 
    ```bash
    # Pull nginx from Docker Hub through Zot
@@ -83,11 +63,11 @@ sudo systemctl restart docker
    docker pull localhost:5000/gcr/cadvisor/cadvisor:v0.52.0
 
    # Check cached repositories
-   curl http://localhost:5000/v2/_catalog
+   curl -sk https://127.0.0.1:5000/v2/_catalog
    # Should show: {"repositories":["docker/nginx","ghcr/project-zot/zot-linux-amd64","gcr/cadvisor/cadvisor"]}
    ```
 
-3. **Push your own images**:
+1. **Push your own images**:
 
    ```bash
    # Tag and push to Zot
@@ -95,25 +75,25 @@ sudo systemctl restart docker
    docker push localhost:5000/myapp:latest
    ```
 
-4. **Access the Registry API**:
+1. **Access the Registry API**:
 
    Zot implements the [OCI Distribution Specification](https://github.com/opencontainers/distribution-spec). Common endpoints:
 
    ```bash
    # Check registry availability
-   curl http://localhost:5000/v2/
+   curl -sk https://127.0.0.1:5000/v2/
 
    # List all repositories
-   curl http://localhost:5000/v2/_catalog
+   curl -sk https://127.0.0.1:5000/v2/_catalog
 
    # List tags for a repository
-   curl http://localhost:5000/v2/docker/nginx/tags/list
+   curl -sk https://127.0.0.1:5000/v2/docker/nginx/tags/list
 
    # Search for images (Zot-specific)
-   curl -X POST http://localhost:5000/v2/_zot/ext/search \
+   curl -sk -X POST https://127.0.0.1:5000/v2/_zot/ext/search \
         -H "Content-Type: application/json" \
         -d '{"query": "nginx"}'
 
    # Get image manifest
-   curl http://localhost:5000/v2/docker/nginx/manifests/latest
+   curl -sk https://127.0.0.1:5000/v2/docker/nginx/manifests/latest
    ```

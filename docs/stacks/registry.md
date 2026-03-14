@@ -5,30 +5,26 @@
 ```mermaid
 graph TB
     subgraph "Registry Stack"
-        Zot[Zot OCI Registry<br/>:5000 Registry API<br/>:5001 Metrics]
-        ZotUI[Zot UI<br/>:3000<br/>Web Interface]
+        Zot[Zot OCI Registry v2.1.15<br/>zot-registry<br/>127.0.0.1:5000 TLS]
 
         subgraph "Configuration"
-            Config[Registry Config<br/>config.yaml]
-            Auth[Registry Auth<br/>htpasswd]
+            Config[Registry Config<br/>config/zot/config.json]
         end
 
         subgraph "Storage"
-            RegData[Registry Data<br/>OCI Artifacts]
+            RegData[Registry Data<br/>OCI Artifacts<br/>~/.config/containers/storage]
             Cache[Pull-through Cache<br/>Docker Hub Mirror]
         end
     end
 
     subgraph "External Dependencies"
         DockerHub[Docker Hub<br/>Upstream Registry]
-        Clients[Docker Clients<br/>Podman/Docker]
+        Clients[Container Clients<br/>Podman/Docker]
     end
 
     Zot --> Config
-    Zot --> Auth
     Zot --> RegData
     Zot --> Cache
-    ZotUI --> Zot
 
     Cache --> DockerHub
     Clients --> Zot
@@ -38,8 +34,8 @@ graph TB
     classDef storage fill:#fff3e0,stroke:#ef6c00,stroke-width:2px,color:#424242
     classDef external fill:#e3f2fd,stroke:#1976d2,stroke-width:2px,color:#424242
 
-    class Zot,ZotUI registry
-    class Config,Auth config
+    class Zot registry
+    class Config config
     class RegData,Cache storage
     class DockerHub,Clients external
 ```
@@ -48,16 +44,19 @@ graph TB
 
 - OCI Distribution Specification compliance
 - Pull-through caching for improved performance
-- Web UI for registry management
+- Built-in web UI for registry management
+- TLS-enabled with cfssl certificates
 - Vulnerability scanning and image signing support
 
 ## Services
 
-- `registry`: Main Zot registry server
+- `zot-registry`: Main Zot registry server (v2.1.15)
 
 ## Configuration
 
-See [`zot/docker-compose.yaml`](../../zot/docker-compose.yaml) for the complete configuration.
+See [`services/registry.yaml`](../../services/registry.yaml) for the complete configuration.
+
+Registry configuration is stored in `config/zot/config.json`.
 
 For OIDC authentication setup with Authentik, see the [Zot OIDC Configuration Guide](../configuration/zot-oidc.md).
 
@@ -75,31 +74,38 @@ Zot uses prefix-based routing for different registries:
 
 ```bash
 # Docker Hub images
-docker pull localhost:5000/docker/nginx:latest
+podman pull 127.0.0.1:5000/docker/nginx:latest
 
 # GitHub Container Registry
-docker pull localhost:5000/ghcr/project-zot/zot-linux-amd64:v2.1.5
+podman pull 127.0.0.1:5000/ghcr/project-zot/zot-linux-amd64:v2.1.15
 
 # Google Container Registry
-docker pull localhost:5000/gcr/cadvisor/cadvisor:v0.52.0
+podman pull 127.0.0.1:5000/gcr/cadvisor/cadvisor:v0.52.0
 ```
 
 ## Management
 
 ```bash
-# From the zot/ directory
-docker-compose up -d        # Start Zot registry
-docker-compose down         # Stop Zot registry
-docker-compose logs -f      # View Zot logs
+# Start/stop Zot registry
+task up                             # Start all services (includes registry)
+podman compose up -d zot-registry   # Start Zot only
+podman compose down zot-registry    # Stop Zot
 
-# Registry API commands
-curl http://localhost:5000/v2/_catalog                    # List all repositories
-curl http://localhost:5000/v2/docker/nginx/tags/list      # List tags for a repository
+# View logs
+task logs SERVICE=zot               # Follow Zot logs
+podman logs zot-registry            # View Zot container logs
+
+# List repositories
+task registry:list
+
+# Registry API commands (TLS)
+curl -sk https://127.0.0.1:5000/v2/_catalog                    # List all repositories
+curl -sk https://127.0.0.1:5000/v2/docker/nginx/tags/list      # List tags for a repository
 ```
 
 ## Access Points
 
-- **Registry API (local)**: <http://localhost:5000/v2/> (no auth)
+- **Registry API (local)**: <https://127.0.0.1:5000/v2/> (TLS)
 - **Registry API (external)**: <https://registry.yourdomain.com/v2/> (auth via Traefik/Authentik)
-- **Web UI**: <http://localhost:5000/home>
-- **Metrics**: <http://localhost:5000/metrics>
+- **Web UI**: <https://127.0.0.1:5000/home>
+- **Metrics**: <https://127.0.0.1:5000/metrics>

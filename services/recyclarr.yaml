@@ -1,0 +1,15 @@
+services:
+  recyclarr:
+    image: ghcr.io/recyclarr/recyclarr:8.5.0
+    container_name: recyclarr
+    user: 1000:1000
+    restart: unless-stopped
+    env_file: [../secrets/all.env.dec]
+    environment:
+      - TZ=${TZ}
+      - CRON_SCHEDULE=@daily # Runs sync automatically every 24h
+    volumes:
+      - /mnt/media/data/config/recyclarr:/config
+    networks:
+      - internal # Communicates with Starr apps via container names
+    # Note: Configure recyclarr.yml to use!env_var for API keys

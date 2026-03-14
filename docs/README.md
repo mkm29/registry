@@ -1,13 +1,14 @@
 # Documentation Index
 
-This directory contains detailed documentation for the Multi-Stack Container Infrastructure.
+This directory contains detailed documentation for the smigula-home-server.
 
 ## Quick Navigation
 
 ### Getting Started
 
 - **[Quick Start Guide](guides/quick-start.md)** - Complete installation and setup guide
-- **[Rootless Docker Setup](configuration/rootless-docker.md)** - Docker installation for security
+- **[VM Setup Guide](guides/vm-setup.md)** - Virtual machine provisioning and configuration
+- **[Rootless Podman/Docker Setup](configuration/rootless-docker.md)** - Podman/Docker installation for security
 
 ### Stack Documentation
 

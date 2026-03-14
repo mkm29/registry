@@ -1,0 +1,90 @@
+services:
+  # Metrics Backend
+  mimir-1:
+    image: registry.smigula.io/docker/grafana/mimir:3.0.3
+    container_name: mimir-1
+    env_file: [../secrets/all.env.dec]
+    volumes: [./config/mimir/config.yaml:/etc/mimir/config.yaml:ro]
+    environment:
+      - AWS_ACCESS_KEY_ID=${MIMIR_S3_ACCESS_KEY}
+      - AWS_SECRET_ACCESS_KEY=${MIMIR_S3_SECRET_KEY}
+    networks: [monitoring]
+
+  # Log Aggregator
+  loki:
+    image: registry.smigula.io/docker/grafana/loki:3.6.7
+    container_name: loki
+    env_file: [../secrets/all.env.dec]
+    volumes: [./config/loki/loki-config.yaml:/etc/loki/loki-config.yaml:ro]
+    environment:
+      - AWS_ACCESS_KEY_ID=${LOKI_S3_ACCESS_KEY}
+      - AWS_SECRET_ACCESS_KEY=${LOKI_S3_SECRET_KEY}
+    networks: [monitoring]
+
+  # Trace Backend
+  tempo:
+    image: registry.smigula.io/docker/grafana/tempo:2.10.1
+    container_name: tempo
+    env_file: [../secrets/all.env.dec]
+    volumes: [../shared/tempo.yaml:/etc/tempo.yaml:ro]
+    environment:
+      - AWS_ACCESS_KEY=${TEMPO_S3_ACCESS_KEY}
+      - AWS_SECRET_KEY=${TEMPO_S3_SECRET_KEY}
+    networks: [monitoring]
+
+  # Telemetry Agent
+  alloy:
+    image: registry.smigula.io/docker/grafana/alloy:v1.14.0
+    container_name: alloy
+    restart: unless-stopped
+    volumes:
+      - /run/user/1000/podman.sock:/var/run/docker.sock:ro # Podman socket [1, 3]
+      - ./config/alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - /mnt/media/logs/traefik:/var/log/traefik:ro
+      - /mnt/media/monitoring/alloy:/var/lib/alloy/data
+    command: 
+      - run 
+      - /etc/alloy/config.alloy 
+      - --storage.path=/var/lib/alloy/data 
+      - --server.http.listen-addr=0.0.0.0:12345
+    env_file: [../secrets/all.env.dec]
+    networks: [monitoring, registry]
+
+  # Container Metrics (Rootless Optimized)
+  cadvisor:
+    image: registry.smigula.io/gcr/cadvisor/cadvisor:v0.54.1
+    container_name: cadvisor
+    restart: unless-stopped
+    privileged: true
+    volumes:
+      - /:/rootfs:ro
+      - /sys:/sys:ro
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+      - /dev/disk/:/dev/disk:ro
+      - /run/user/1000:/run/user/1000:ro
+      - ${HOME}/.local/share/docker/:/var/lib/docker:ro
+    command:
+      - --docker=unix:///run/user/1000/podman.sock
+      - --docker_only=true
+      - --store_container_labels=true
+    networks: [monitoring]
+
+  # Log Viewer
+  dozzle:
+    image: registry.smigula.io/docker/amir20/dozzle:v9
+    container_name: dozzle
+    restart: unless-stopped
+    volumes:
+      - /run/user/1000/podman.sock:/var/run/docker.sock:ro
+      - /mnt/media/monitoring/dozzle:/data
+    ports: ["9080:9080"]
+    networks: [monitoring]
+
+  # Visualization
+  grafana:
+    image: registry.smigula.io/docker/grafana/grafana:12.4
+    container_name: grafana
+    volumes: [/mnt/media/monitoring/grafana:/var/lib/grafana]
+    networks: [monitoring, proxy]
+    labels:
+      - "traefik.http.routers.grafana.rule=Host(`grafana.${DOMAIN}`)"

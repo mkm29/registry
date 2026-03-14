@@ -1,0 +1,29 @@
+services:
+  radarr:
+    image: lscr.io/linuxserver/radarr:6.0.4.10291-ls295
+    container_name: radarr
+    volumes:
+      - /mnt/media/data/config/radarr:/config
+      - /mnt/media/data:/data # Root for torrents & media
+    networks: [proxy, internal]
+
+  sonarr:
+    image: lscr.io/linuxserver/sonarr:4.0.16.2944-ls304
+    container_name: sonarr
+    volumes:
+      - /mnt/media/data/config/sonarr:/config
+      - /mnt/media/data:/data
+    networks: [proxy, internal]
+
+  plex:
+    image: lscr.io/linuxserver/plex:1.43.0.10492-121068a07-ls295
+    container_name: plex
+    environment:
+      - ADVERTISE_IP=http://${SERVER_IP}:32400
+    volumes:
+      - /mnt/media/data/config/plex:/config
+      - /mnt/media/data/media:/data/media
+      - /tmp/plex_transcode:/transcode
+    devices:
+      - /dev/dri:/dev/dri
+    networks: [proxy]
