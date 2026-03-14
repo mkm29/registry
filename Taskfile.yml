@@ -1,7 +1,7 @@
 version: '3'
 
 vars:
-  CRI_BIN: '{{.CRI_BIN | default "podman"}}'
+  CRI_BIN: '{{.CRI_BIN | default "docker"}}'
   HOST_IFACE: '{{.HOST_IFACE | default "vmbr0"}}'
   # Dynamic IP Detection
   DETECTED_IP:
@@ -165,26 +165,33 @@ tasks:
     cmds:
       - task: preflight
       - task: init:dirs
+      - task: init:networks
       - task: secrets:collect
       - task: trust-ca
 
   init:dirs:
     internal: true
     cmds:
-      - sudo mkdir -p /mnt/media/{data/{config,torrents,media},monitoring/{loki,tempo,mimir,grafana,alloy,dozzle},logs/traefik}
+      - sudo mkdir -p /mnt/media/{data/{config/{postgresql,radarr,sonarr,plex,recyclarr},torrents,media,grafana},monitoring/{logs/{loki,traefik},metrics,traces}}
+      - sudo mkdir -p /mnt/data/minio
       - mkdir -p {{.REG_BASE}}
-      - sudo chown -R 1000:1000 /mnt/media
-      - sudo chmod -R 775 /mnt/media
+      - sudo chown -R 1000:1000 /mnt/media /mnt/data/minio
+      - sudo chmod -R 775 /mnt/media /mnt/data/minio
+
+  init:networks:
+    internal: true
+    cmds:
+      - |
+        for net in traefik_net monitoring_net registry_net; do
+          docker network inspect "$net" >/dev/null 2>&1 || docker network create "$net"
+        done
 
   up:
     desc: Deploy the complete infrastructure sequentially
     deps: [init]
     cmds:
-      - "{{.CRI_BIN}} compose up -d zot"
-      - until curl -sk https://127.0.0.1:5000/v2/ >/dev/null; do sleep 2; done
-      - "{{.CRI_BIN}} compose up -d minio"
+      - "{{.CRI_BIN}} compose up -d minio minio-setup"
       - until curl -sf http://localhost:9000/minio/health/live; do sleep 2; done
-      - bash ./scripts/setup-minio.sh
       - "{{.CRI_BIN}} compose up -d --remove-orphans"
       - echo "Infrastructure deployed on {{.SERVER_IP}}"
 

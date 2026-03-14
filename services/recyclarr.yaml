@@ -9,7 +9,15 @@ services:
       - TZ=${TZ}
       - CRON_SCHEDULE=@daily # Runs sync automatically every 24h
     volumes:
-      - /mnt/media/data/config/recyclarr:/config
+      - recyclarr-config:/config
     networks:
       - internal # Communicates with Starr apps via container names
     # Note: Configure recyclarr.yml to use!env_var for API keys
+
+volumes:
+  recyclarr-config:
+    driver: local
+    driver_opts:
+      type: none
+      device: /mnt/media/data/config/recyclarr
+      o: bind

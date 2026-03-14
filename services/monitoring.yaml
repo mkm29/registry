@@ -1,10 +1,12 @@
 services:
   # Metrics Backend
   mimir-1:
-    image: registry.smigula.io/docker/grafana/mimir:3.0.3
+    image: grafana/mimir:3.0.3
     container_name: mimir-1
     env_file: [../secrets/all.env.dec]
-    volumes: [./config/mimir/config.yaml:/etc/mimir/config.yaml:ro]
+    volumes:
+      - ../config/mimir/config.yaml:/etc/mimir/config.yaml:ro
+      - mimir-data:/data
     environment:
       - AWS_ACCESS_KEY_ID=${MIMIR_S3_ACCESS_KEY}
       - AWS_SECRET_ACCESS_KEY=${MIMIR_S3_SECRET_KEY}
@@ -12,10 +14,12 @@ services:
 
   # Log Aggregator
   loki:
-    image: registry.smigula.io/docker/grafana/loki:3.6.7
+    image: grafana/loki:3.6.7
     container_name: loki
     env_file: [../secrets/all.env.dec]
-    volumes: [./config/loki/loki-config.yaml:/etc/loki/loki-config.yaml:ro]
+    volumes:
+      - ../config/loki/loki-config.yaml:/etc/loki/loki-config.yaml:ro
+      - loki-data:/loki
     environment:
       - AWS_ACCESS_KEY_ID=${LOKI_S3_ACCESS_KEY}
       - AWS_SECRET_ACCESS_KEY=${LOKI_S3_SECRET_KEY}
@@ -23,10 +27,12 @@ services:
 
   # Trace Backend
   tempo:
-    image: registry.smigula.io/docker/grafana/tempo:2.10.1
+    image: grafana/tempo:2.10.1
     container_name: tempo
     env_file: [../secrets/all.env.dec]
-    volumes: [../shared/tempo.yaml:/etc/tempo.yaml:ro]
+    volumes:
+      - ../shared/tempo.yaml:/etc/tempo.yaml:ro
+      - tempo-data:/var/tempo
     environment:
       - AWS_ACCESS_KEY=${TEMPO_S3_ACCESS_KEY}
       - AWS_SECRET_KEY=${TEMPO_S3_SECRET_KEY}
@@ -34,25 +40,26 @@ services:
 
   # Telemetry Agent
   alloy:
-    image: registry.smigula.io/docker/grafana/alloy:v1.14.0
+    image: grafana/alloy:v1.14.0
     container_name: alloy
     restart: unless-stopped
     volumes:
-      - /run/user/1000/podman.sock:/var/run/docker.sock:ro # Podman socket [1, 3]
-      - ./config/alloy/config.alloy:/etc/alloy/config.alloy:ro
-      - /mnt/media/logs/traefik:/var/log/traefik:ro
-      - /mnt/media/monitoring/alloy:/var/lib/alloy/data
-    command: 
-      - run 
-      - /etc/alloy/config.alloy 
-      - --storage.path=/var/lib/alloy/data 
+      - /run/user/1000/podman.sock:/var/run/docker.sock:ro
+      - ../config/alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - traefik-logs:/var/log/traefik:ro
+    tmpfs:
+      - /var/lib/alloy/data:size=512M
+    command:
+      - run
+      - /etc/alloy/config.alloy
+      - --storage.path=/var/lib/alloy/data
       - --server.http.listen-addr=0.0.0.0:12345
     env_file: [../secrets/all.env.dec]
     networks: [monitoring, registry]
 
   # Container Metrics (Rootless Optimized)
   cadvisor:
-    image: registry.smigula.io/gcr/cadvisor/cadvisor:v0.54.1
+    image: gcr.io/cadvisor/cadvisor:v0.54.1
     container_name: cadvisor
     restart: unless-stopped
     privileged: true
@@ -71,20 +78,53 @@ services:
 
   # Log Viewer
   dozzle:
-    image: registry.smigula.io/docker/amir20/dozzle:v9
+    image: amir20/dozzle:v9
     container_name: dozzle
     restart: unless-stopped
     volumes:
       - /run/user/1000/podman.sock:/var/run/docker.sock:ro
-      - /mnt/media/monitoring/dozzle:/data
+    tmpfs:
+      - /data:size=256M
     ports: ["9080:9080"]
     networks: [monitoring]
 
   # Visualization
   grafana:
-    image: registry.smigula.io/docker/grafana/grafana:12.4
+    image: grafana/grafana:12.4
     container_name: grafana
-    volumes: [/mnt/media/monitoring/grafana:/var/lib/grafana]
+    volumes: [grafana-data:/var/lib/grafana]
     networks: [monitoring, proxy]
     labels:
       - "traefik.http.routers.grafana.rule=Host(`grafana.${DOMAIN}`)"
+
+volumes:
+  traefik-logs:
+    driver: local
+    driver_opts:
+      type: none
+      device: /mnt/media/monitoring/logs/traefik
+      o: bind
+  loki-data:
+    driver: local
+    driver_opts:
+      type: none
+      device: /mnt/media/monitoring/logs/loki
+      o: bind
+  mimir-data:
+    driver: local
+    driver_opts:
+      type: none
+      device: /mnt/media/monitoring/metrics
+      o: bind
+  tempo-data:
+    driver: local
+    driver_opts:
+      type: none
+      device: /mnt/media/monitoring/traces
+      o: bind
+  grafana-data:
+    driver: local
+    driver_opts:
+      type: none
+      device: /mnt/media/data/grafana
+      o: bind

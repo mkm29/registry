@@ -1,7 +1,7 @@
 name: smigula-home-server
 
 include:
-  - path: services/registry.yaml
+  # - path: services/registry.yaml
   - path: services/traefik.yaml
   - path: services/auth.yaml
   - path: services/storage.yaml
@@ -18,6 +18,8 @@ networks:
   monitoring:
     name: monitoring_net
     external: true
+  auth:
+    name: auth_net
   registry:
     name: registry_net
     external: true

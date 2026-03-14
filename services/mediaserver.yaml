@@ -3,16 +3,16 @@ services:
     image: lscr.io/linuxserver/radarr:6.0.4.10291-ls295
     container_name: radarr
     volumes:
-      - /mnt/media/data/config/radarr:/config
-      - /mnt/media/data:/data # Root for torrents & media
+      - radarr-config:/config
+      - media-data:/data # Root for torrents & media
     networks: [proxy, internal]
 
   sonarr:
     image: lscr.io/linuxserver/sonarr:4.0.16.2944-ls304
     container_name: sonarr
     volumes:
-      - /mnt/media/data/config/sonarr:/config
-      - /mnt/media/data:/data
+      - sonarr-config:/config
+      - media-data:/data
     networks: [proxy, internal]
 
   plex:
@@ -21,9 +21,41 @@ services:
     environment:
       - ADVERTISE_IP=http://${SERVER_IP}:32400
     volumes:
-      - /mnt/media/data/config/plex:/config
-      - /mnt/media/data/media:/data/media
+      - plex-config:/config
+      - plex-media:/data/media
       - /tmp/plex_transcode:/transcode
     devices:
       - /dev/dri:/dev/dri
     networks: [proxy]
+
+volumes:
+  radarr-config:
+    driver: local
+    driver_opts:
+      type: none
+      device: /mnt/media/data/config/radarr
+      o: bind
+  sonarr-config:
+    driver: local
+    driver_opts:
+      type: none
+      device: /mnt/media/data/config/sonarr
+      o: bind
+  plex-config:
+    driver: local
+    driver_opts:
+      type: none
+      device: /mnt/media/data/config/plex
+      o: bind
+  plex-media:
+    driver: local
+    driver_opts:
+      type: none
+      device: /mnt/media/data/media
+      o: bind
+  media-data:
+    driver: local
+    driver_opts:
+      type: none
+      device: /mnt/media/data
+      o: bind
