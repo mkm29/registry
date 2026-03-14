@@ -101,6 +101,17 @@ tasks:
           fi
         done
 
+        # --- IPv4 forwarding (required for container networking) ---
+        ip_fwd=$(cat /proc/sys/net/ipv4/ip_forward 2>/dev/null)
+        if [ "$ip_fwd" = "1" ]; then
+          printf '  ✓ IPv4 forwarding enabled\n'
+        else
+          printf '  ✗ IPv4 forwarding disabled\n'
+          printf '    Fix: sudo sysctl -w net.ipv4.ip_forward=1\n'
+          printf '    Persist: echo "net.ipv4.ip_forward=1" | sudo tee /etc/sysctl.d/99-ip-forward.conf\n'
+          err=1
+        fi
+
         # --- Unprivileged port start (required for binding port 443) ---
         port_start=$(cat /proc/sys/net/ipv4/ip_unprivileged_port_start 2>/dev/null)
         if [ -n "$port_start" ] && [ "$port_start" -le 443 ]; then
