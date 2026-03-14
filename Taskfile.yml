@@ -5,18 +5,26 @@ vars:
   HOST_IFACE: '{{.HOST_IFACE | default "vmbr0"}}'
   # Dynamic IP Detection
   DETECTED_IP:
-    sh: ip -4 addr show {{.HOST_IFACE}} 2>/dev/null | awk '/inet / {print $2}' | cut -d/ -f1 | head -n 1 |
-  SERVER_IP: '{{.SERVER_IP | default.DETECTED_IP}}'
+    sh: ip -4 addr show {{.HOST_IFACE}} 2>/dev/null | awk '/inet / {print $2}' | cut -d/ -f1 | head -1
+  SERVER_IP: '{{.SERVER_IP | default .DETECTED_IP}}'
   # Secrets and Certs
   ENV_FILE: secrets/all.env.dec
   CERT_DIR: services/certs
   CFSSL_DIR: services/cfssl
+  REG_DOMAIN: '{{.REG_DOMAIN | default "registry.smigula.io"}}'
+  REG_BASE: '{{.REG_BASE | default "~/.config/containers/storage"}}'
 
 env:
   SERVER_IP: '{{.SERVER_IP}}'
   CRI_BIN: '{{.CRI_BIN}}'
 
 tasks:
+  default:
+    desc: Show available tasks
+    silent: true
+    cmds:
+      - task --list
+
   # --- [1] Secret Management ---
   secrets:decrypt:
     desc: Decrypt all secret files in the secrets directory
@@ -33,7 +41,7 @@ tasks:
       - echo "# Generated Master Secret File" > {{.ENV_FILE}}
       - |
         for f in secrets/*.env.dec; do
-          if [ "$f"!= "{{.ENV_FILE}}" ]; then
+          if [ "$f" != "{{.ENV_FILE}}" ]; then
             echo "## Source: $f" >> {{.ENV_FILE}}
             cat "$f" >> {{.ENV_FILE}}
           fi
@@ -81,7 +89,7 @@ tasks:
       - until curl -sk https://127.0.0.1:5000/v2/ >/dev/null; do sleep 2; done
       - "{{.CRI_BIN}} compose up -d minio"
       - until curl -sf http://localhost:9000/minio/health/live; do sleep 2; done
-      - bash./scripts/setup-minio.sh
+      - bash ./scripts/setup-minio.sh
       - "{{.CRI_BIN}} compose up -d --remove-orphans"
       - echo "Infrastructure deployed on {{.SERVER_IP}}"
 
@@ -95,7 +103,7 @@ tasks:
   registry:list:
     desc: List all images cached in the local registry
     cmds:
-      - curl -sk https://127.0.0.1:5000/v2/_catalog | jq.
+      - curl -sk https://127.0.0.1:5000/v2/_catalog | jq .
 
   # --- Recyclarr Utilities ---
   recyclarr:sync:
@@ -112,7 +120,9 @@ tasks:
   logs:
     desc: Follow logs for a service (Usage - task logs SERVICE=radarr)
     cmds:
+      - "{{.CRI_BIN}} logs -f {{.SERVICE}}"
 
   shell:
     desc: Shell into container (Usage - task shell SERVICE=sonarr)
     cmds:
+      - "{{.CRI_BIN}} exec -it {{.SERVICE}} /bin/sh"
