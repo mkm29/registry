@@ -81,6 +81,8 @@ services:
     image: amir20/dozzle:v9
     container_name: dozzle
     restart: unless-stopped
+    environment:
+      - DOCKER_HOST=unix:///var/run/docker.sock
     volumes:
       - ${DOCKER_SOCK}:/var/run/docker.sock:ro
     tmpfs:
