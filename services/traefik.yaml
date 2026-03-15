@@ -12,10 +12,7 @@ services:
       - ../config/traefik/config/dynamic:/etc/traefik/dynamic:ro
       - ../certs:/certs:ro
       - traefik-logs:/var/log/traefik
-    networks:
-      - proxy
-      - monitoring
-      - auth
+    networks: [proxy]
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.dashboard.rule=Host(`traefik.${DOMAIN}`)"
@@ -29,8 +26,7 @@ services:
     restart: unless-stopped
     volumes:
       - ../shared/html:/usr/share/nginx/html:ro
-    networks:
-      - proxy
+    networks: [proxy]
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.landing.rule=Host(`${DOMAIN}`)"

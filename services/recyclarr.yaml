@@ -10,8 +10,7 @@ services:
       - CRON_SCHEDULE=@daily # Runs sync automatically every 24h
     volumes:
       - recyclarr-config:/config
-    networks:
-      - internal # Communicates with Starr apps via container names
+    networks: [internal] # Communicates with Starr apps via container names
     # Note: Configure recyclarr.yml to use !env_var for API keys
 
 volumes:
