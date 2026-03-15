@@ -7,7 +7,7 @@ services:
       - "443:443"
       - "8080:8080" # Dashboard
     volumes:
-      - /run/docker.sock:/var/run/docker.sock:ro
+      - ${DOCKER_SOCK}:/var/run/docker.sock:ro
       - ../config/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
       - ../config/traefik/dynamic:/etc/traefik/dynamic:ro
       - ../certs:/certs:ro

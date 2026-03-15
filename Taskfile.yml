@@ -196,7 +196,7 @@ tasks:
     cmds:
       - sudo mkdir -p /mnt/media/{data/{config/{radarr,sonarr,plex,recyclarr},postgresql,torrents,media,grafana,minio},monitoring/{logs/{loki,traefik},metrics,traces}}
       - mkdir -p {{.REG_BASE}}
-      - sudo chown -R 1000:1000 /mnt/media
+      - sudo chown -R "$(id -u):$(id -g)" /mnt/media
       - sudo chmod -R 775 /mnt/media
 
   init:networks:
@@ -220,7 +220,7 @@ tasks:
     desc: Full teardown and secret purge
     cmds:
       - "{{.CRI_BIN}} compose down"
-      - rm -f secrets/*.dec
+      - find secrets -maxdepth 1 -name '*.dec' -type f -delete
 
   # --- [4] Registry Utilities ---
   registry:list:

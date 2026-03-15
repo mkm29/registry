@@ -44,7 +44,7 @@ services:
     container_name: alloy
     restart: unless-stopped
     volumes:
-      - /run/docker.sock:/var/run/docker.sock:ro
+      - ${DOCKER_SOCK}:/var/run/docker.sock:ro
       - ../config/alloy/config.alloy:/etc/alloy/config.alloy:ro
       - traefik-logs:/var/log/traefik:ro
     tmpfs:
@@ -68,10 +68,10 @@ services:
       - /sys:/sys:ro
       - /sys/fs/cgroup:/sys/fs/cgroup:ro
       - /dev/disk/:/dev/disk:ro
-      - /run/docker.sock:/run/docker.sock:ro
+      - ${DOCKER_SOCK}:/var/run/docker.sock:ro
       - ${HOME}/.local/share/docker/:/var/lib/docker:ro
     command:
-      - --docker=unix:///run/docker.sock
+      - --docker=unix:///var/run/docker.sock
       - --docker_only=true
       - --store_container_labels=true
     networks: [monitoring]
@@ -82,7 +82,7 @@ services:
     container_name: dozzle
     restart: unless-stopped
     volumes:
-      - /run/docker.sock:/var/run/docker.sock:ro
+      - ${DOCKER_SOCK}:/var/run/docker.sock:ro
     tmpfs:
       - /data:size=256M
     ports: ["9080:9080"]
