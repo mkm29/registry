@@ -34,7 +34,7 @@ tasks:
         err=0
 
         # --- Required binaries ---
-        for bin in {{.CRI_BIN}} sops age cfssl cfssljson curl jq; do
+        for bin in {{.CRI_BIN}} curl jq; do
           if command -v "$bin" >/dev/null 2>&1; then
             printf '  ✓ %s (%s)\n' "$bin" "$(command -v "$bin")"
           else
@@ -44,21 +44,12 @@ tasks:
         done
 
         # --- Compose plugin ---
-        if {{.CRI_BIN}} compose version >/dev/null 2>&1; then
-          printf '  ✓ %s compose plugin\n' "{{.CRI_BIN}}"
-        else
-          printf '  ✗ %s compose plugin not available\n' "{{.CRI_BIN}}"
-          err=1
-        fi
-
-        # --- AGE key ---
-        age_key="${SOPS_AGE_KEY_FILE:-$HOME/.config/sops/age/keys.txt}"
-        if [ -f "$age_key" ]; then
-          printf '  ✓ AGE key (%s)\n' "$age_key"
-        else
-          printf '  ✗ AGE key not found at %s\n' "$age_key"
-          err=1
-        fi
+        # if {{.CRI_BIN}} compose version >/dev/null 2>&1; then
+        #   printf '  ✓ %s compose plugin\n' "{{.CRI_BIN}}"
+        # else
+        #   printf '  ✗ %s compose plugin not available\n' "{{.CRI_BIN}}"
+        #   err=1
+        # fi
 
         # --- Project files ---
         for f in compose.yaml .env .sops.yaml; do
@@ -70,26 +61,8 @@ tasks:
           fi
         done
 
-        # --- Encrypted secrets ---
-        enc_count=$(find secrets -maxdepth 1 -name '*.env.enc' 2>/dev/null | wc -l)
-        if [ "$enc_count" -gt 0 ]; then
-          printf '  ✓ %d encrypted secret file(s) in secrets/\n' "$enc_count"
-        else
-          printf '  ⚠ No .env.enc files found in secrets/\n'
-        fi
-
-        # --- cfssl configs ---
-        for f in {{.CFSSL_DIR}}/ca.json {{.CFSSL_DIR}}/int-ca.json {{.CFSSL_DIR}}/cfssl.json {{.CFSSL_DIR}}/registry.json; do
-          if [ -f "$f" ]; then
-            printf '  ✓ %s\n' "$f"
-          else
-            printf '  ✗ %s missing\n' "$f"
-            err=1
-          fi
-        done
-
         # --- Data directories ---
-        for d in /mnt/media /mnt/media/data /mnt/media/monitoring; do
+        for d in /mnt/media /mnt/media/data; do
           if [ -d "$d" ]; then
             if [ -w "$d" ]; then
               printf '  ✓ %s (writable)\n' "$d"
@@ -194,7 +167,7 @@ tasks:
   init:dirs:
     internal: true
     cmds:
-      - sudo mkdir -p /mnt/media/{data/{config/{radarr,sonarr,plex,recyclarr},postgresql,torrents,media,grafana,minio},monitoring/{logs/{loki,traefik},metrics,traces}}
+      - sudo mkdir -p /mnt/media/{data/{config/{radarr,sonarr,plex,recyclarr},postgresql,torrents,media},monitoring/{logs/{traefik},metrics,traces}}
       - mkdir -p {{.REG_BASE}}
       - sudo chown -R "$(id -u):$(id -g)" /mnt/media
       - sudo chmod -R 775 /mnt/media
@@ -203,7 +176,7 @@ tasks:
     internal: true
     cmds:
       - |
-        for net in traefik_net monitoring_net registry_net; do
+        for net in traefik_net; do
           docker network inspect "$net" >/dev/null 2>&1 || docker network create "$net"
         done
 
@@ -211,8 +184,6 @@ tasks:
     desc: Deploy the complete infrastructure sequentially
     deps: [init]
     cmds:
-      - "{{.CRI_BIN}} compose up -d minio minio-setup"
-      - until curl -sf http://localhost:9000/minio/health/live; do sleep 2; done
       - "{{.CRI_BIN}} compose up -d --remove-orphans"
       - echo "Infrastructure deployed on {{.SERVER_IP}}"
 

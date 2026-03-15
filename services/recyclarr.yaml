@@ -4,7 +4,7 @@ services:
     container_name: recyclarr
     user: 1000:1000
     restart: unless-stopped
-    env_file: [../secrets/all.env.dec]
+    env_file: ["../.env"]
     environment:
       - TZ=${TZ}
       - CRON_SCHEDULE=@daily # Runs sync automatically every 24h
@@ -12,7 +12,7 @@ services:
       - recyclarr-config:/config
     networks:
       - internal # Communicates with Starr apps via container names
-    # Note: Configure recyclarr.yml to use!env_var for API keys
+    # Note: Configure recyclarr.yml to use !env_var for API keys
 
 volumes:
   recyclarr-config:
